@@ -1,4 +1,4 @@
-import { useState } from 'react';
+ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -25,7 +25,8 @@ import {
   RotateCcw,
   MessageSquare,
   XCircle,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
@@ -131,6 +132,31 @@ export default function QuotationDetail() {
     onError: (err) => toast.error(err.message)
   });
 
+  const simulateNegotiationMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${API_BASE}/customer-portal/quotations/${id}/negotiate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          customerId: quote?.customerId,
+          notes: 'Customer requested 15% discount concession for bulk enterprise contract.',
+          counterDiscount: 15
+        })
+      });
+      if (!res.ok) throw new Error('Failed to simulate customer negotiation');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      toast.success('⚡ Customer counter-offer received! Quotation entered NEGOTIATION status.');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
   const confirmMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`${API_BASE}/quotations/${id}/confirm`, {
@@ -172,12 +198,20 @@ export default function QuotationDetail() {
   const items = currentVersion.items || [];
   const approvals = quote.approvalRequests || [];
 
-  const subtotal = Number(currentVersion.totalAmount || 0);
+  const subtotal = items.length > 0
+    ? items.reduce((sum, it) => {
+        const qty = Number(it.quantity || 1);
+        const unitPrice = Number(it.unitPrice || 0);
+        const disc = Number(it.discountPercentage || 0);
+        return sum + ((qty * unitPrice) * (1 - disc / 100));
+      }, 0)
+    : Number(currentVersion.totalAmount || 0);
+
   const totalDiscount = Number(currentVersion.totalDiscount || 0);
-  const netAmount = subtotal - totalDiscount;
-  const tax = netAmount * 0.18;
-  const grandTotal = netAmount + tax;
-  const marginPercentage = (100 - ((totalDiscount / (subtotal || 1)) * 100) - 25).toFixed(1);
+  const grossListPrice = subtotal + totalDiscount;
+  const tax = subtotal * 0.18;
+  const grandTotal = subtotal + tax;
+  const marginPercentage = grossListPrice > 0 ? (100 - ((totalDiscount / grossListPrice) * 100) - 25).toFixed(1) : '75.0';
   const marginAmount = (grandTotal * (Number(marginPercentage) / 100));
 
   const isHistorical = selectedVersionIndex > 0;
@@ -314,6 +348,20 @@ export default function QuotationDetail() {
             </button>
           )}
 
+          {/* Trigger Customer Negotiation (Sent status simulation) */}
+          {quote.status === 'SENT' && (
+            <button
+              type="button"
+              onClick={() => simulateNegotiationMutation.mutate()}
+              disabled={simulateNegotiationMutation.isPending}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-[#B85D19] hover:from-amber-600 hover:to-[#9E4E13] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              title="Simulate customer requesting a counter-discount to test the negotiation flow"
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>{simulateNegotiationMutation.isPending ? 'Simulating...' : '⚡ Trigger Negotiation (Test)'}</span>
+            </button>
+          )}
+
           {/* Confirm Deal (Sent status or Sales Rep confirmation) */}
           {quote.status === 'SENT' && (
             <button
@@ -323,7 +371,7 @@ export default function QuotationDetail() {
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Confirm & Create Order</span>
+              <span>Confirm Terms As-Is</span>
             </button>
           )}
 
@@ -397,7 +445,7 @@ export default function QuotationDetail() {
         <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
           <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider block">Total Discount</span>
           <h3 className="text-xl font-black text-rose-600 mt-1">-₹{totalDiscount.toLocaleString('en-IN')}</h3>
-          <span className="text-[10px] text-rose-600 mt-1 block">{((totalDiscount / (subtotal || 1)) * 100).toFixed(0)}% Overall</span>
+          <span className="text-[10px] text-rose-600 mt-1 block">{((totalDiscount / (grossListPrice || 1)) * 100).toFixed(0)}% Overall</span>
         </div>
 
         <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
@@ -536,7 +584,7 @@ export default function QuotationDetail() {
                     </span>
                     <span>Total: ₹{Number(ver.totalAmount).toLocaleString('en-IN')}</span>
                     <span>·</span>
-                    <span>Discount: {((Number(ver.totalDiscount) / (Number(ver.totalAmount) || 1)) * 100).toFixed(0)}%</span>
+                    <span>Discount: {((Number(ver.totalDiscount) / ((Number(ver.totalAmount) + Number(ver.totalDiscount)) || 1)) * 100).toFixed(0)}%</span>
                   </div>
                   <span className="text-[#A8A29E] font-normal">
                     {ver.createdAt ? new Date(ver.createdAt).toLocaleDateString() : 'Active Revision'}

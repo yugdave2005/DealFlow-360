@@ -94,8 +94,22 @@ export default function CustomerQuotationView() {
   if (isLoading) return <div className="p-12 text-center text-[#78716C]">Loading Quotation Securely...</div>;
   if (isError || !quote) return <div className="p-12 text-center text-rose-600">Quotation not found or you do not have access.</div>;
 
-  const version = quote.versions?.[0];
+  const version = quote.activeVersion || quote.versions?.[0];
   const items = version?.items || [];
+
+  // Compute exact subtotal from items (or stored net totalAmount)
+  const subtotal = items.length > 0
+    ? items.reduce((sum, it) => {
+        const qty = Number(it.quantity || 1);
+        const unitPrice = Number(it.unitPrice || 0);
+        const disc = Number(it.discountPercentage || 0);
+        return sum + ((qty * unitPrice) * (1 - disc / 100));
+      }, 0)
+    : Number(version?.totalAmount || 0);
+
+  const taxAmount = subtotal * 0.18;
+  const totalAgreed = subtotal + taxAmount;
+
   const statusColors = { 
     SENT: 'bg-[#F5EFEB] text-[#1E1B18] border border-[#E8DFD8]', 
     NEGOTIATION: 'bg-amber-50 text-amber-800 border border-amber-200', 
@@ -148,7 +162,7 @@ export default function CustomerQuotationView() {
                   <div key={item.id || idx} className="rounded-2xl bg-[#FAF8F5] border border-[#EBE8E2] p-4 space-y-3 transition-all">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <p className="font-bold text-[#1E1B18] text-base">{item.product?.name || item.productName || `Item #${idx + 1}`}</p>
+                        <p className="font-bold text-[#1E1B18] text-base">{item.product?.name || item.productName || item.name || `Item #${idx + 1}`}</p>
                         <p className="text-xs text-[#78716C] mt-0.5">
                           {qty} units &times; ₹{unitPrice.toLocaleString('en-IN')}
                         </p>
@@ -238,13 +252,13 @@ export default function CustomerQuotationView() {
                 <div className="p-3 bg-[#FFFFFF] rounded-xl border border-[#EBE8E2]">
                   <span className="text-xs text-[#78716C] block font-medium">One-Time Hardware & Services</span>
                   <span className="text-lg font-bold text-[#1E1B18]">
-                    ₹{(Number(version?.totalAmount || 0) - Number(version?.totalDiscount || 0)).toLocaleString('en-IN')}
+                    ₹{subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="p-3 bg-[#FFFFFF] rounded-xl border border-[#EBE8E2]">
                   <span className="text-xs text-[#78716C] block font-medium">Estimated Taxes (18% GST)</span>
                   <span className="text-lg font-bold text-[#1E1B18]">
-                    ₹{((Number(version?.totalAmount || 0) - Number(version?.totalDiscount || 0)) * 0.18).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    ₹{taxAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -259,7 +273,7 @@ export default function CustomerQuotationView() {
                 <p className="text-xs font-bold text-[#78716C] uppercase tracking-wider mb-1">Total Agreed Value</p>
                 <p className="text-4xl sm:text-5xl font-black text-[#1E1B18] tracking-tight">
                   <span className="text-2xl text-[#A8A29E] mr-1">₹</span>
-                  {((Number(version?.totalAmount || 0) - Number(version?.totalDiscount || 0)) * 1.18).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  {totalAgreed.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </p>
               </div>
             </div>

@@ -161,21 +161,14 @@ export default function QuotationBuilder() {
         });
         setValue('lineItems', itemsToLoad);
       }
-    } else if (!isEditMode && customers.length > 0 && !selectedCustomerId) {
-      setSelectedCustomerId(customers[0].id);
-      setValue('customerId', customers[0].id);
     }
   }, [isEditMode, existingQuote, products, customers, selectedCustomerId, setValue]);
 
+
+
   const watchLineItems = watch('lineItems') || [];
-  const currentCustomer = customers.find(c => c.id === selectedCustomerId) || customers[0] || {
-    id: 'default',
-    name: 'Standard Account',
-    tier: 'Standard',
-    tierDiscountLimit: 15,
-    contact: 'Primary Contact',
-    email: 'billing@clientcorp.com'
-  };
+  const currentCustomer = customers.find(c => c.id === selectedCustomerId) || (isEditMode ? customers[0] : null) || null;
+
 
   // Dynamic calculations with Hybrid Billing & Deal Governance Risk
   const calculations = useMemo(() => {
@@ -209,7 +202,7 @@ export default function QuotationBuilder() {
       const unit = Number(item.unitPrice || 0);
       const disc = Number(item.discountPercentage || 0);
       const cost = Number(item.cost || unit * 0.65);
-      const allowed = Number(item.allowedDiscount || currentCustomer.tierDiscountLimit || 15);
+      const allowed = Number(item.allowedDiscount || currentCustomer?.tierDiscountLimit || 15);
 
       const lineGross = qty * unit;
       const lineDiscountAmt = lineGross * (disc / 100);
@@ -380,9 +373,9 @@ export default function QuotationBuilder() {
         customerId: selectedCustomerId,
         lineItems: watchLineItems.map(item => ({
           productId: item.productId,
-          quantity: Number(item.quantity),
-          unitPrice: Number(item.unitPrice),
-          discountPercentage: Number(item.discountPercentage)
+          quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+          unitPrice: Math.max(0, parseFloat(item.unitPrice) || 0),
+          discountPercentage: Math.min(100, Math.max(0, parseFloat(item.discountPercentage) || 0))
         }))
       };
 
@@ -392,7 +385,16 @@ export default function QuotationBuilder() {
       } else {
         res = await api.post('/quotations', payload);
       }
-      return res?.data?.data || res?.data || res;
+      const created = res?.data?.data || res?.data || res;
+      const targetId = created?.id || id;
+
+      if (status === 'PENDING_APPROVAL' && targetId) {
+        await api.post(`/quotations/${targetId}/submit`).catch(() => {});
+      } else if (status === 'SENT' && targetId) {
+        await api.post(`/quotations/${targetId}/send`).catch(() => {});
+      }
+
+      return created;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
@@ -421,7 +423,27 @@ export default function QuotationBuilder() {
 
   const isApprovalRequired = calculations.approvalRequirement !== 'NONE';
 
+  const handleSaveDraft = () => {
+    if (!selectedCustomerId) {
+      toast.error('Please select a customer before saving the draft');
+      return;
+    }
+    if (watchLineItems.length === 0) {
+      toast.error('Please add at least one line item to the quotation');
+      return;
+    }
+    saveMutation.mutate({ status: 'DRAFT' });
+  };
+
   const handlePrimarySubmit = () => {
+    if (!selectedCustomerId) {
+      toast.error('Please select a customer before submitting');
+      return;
+    }
+    if (watchLineItems.length === 0) {
+      toast.error('Please add at least one line item to the quotation');
+      return;
+    }
     saveMutation.mutate({ status: isApprovalRequired ? 'PENDING_APPROVAL' : 'SENT' });
   };
 
@@ -430,7 +452,7 @@ export default function QuotationBuilder() {
       
       {/* 1. Page Header with edit support */}
       <QuotationHeader
-        onSaveDraft={() => saveMutation.mutate({ status: 'DRAFT' })}
+        onSaveDraft={handleSaveDraft}
         onPreview={() => setPreviewModalOpen(true)}
         onSubmit={handlePrimarySubmit}
         isPending={saveMutation.isPending}

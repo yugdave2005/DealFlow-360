@@ -114,13 +114,14 @@ export const actionApproval = async (approvalRequestId, action, userId, comments
 };
 
 /**
- * Helper to enrich approvals with customer and salesRep info
+ * Helper to enrich approvals with customer, salesRep, and product info
  */
 const enrichApprovals = async (approvals) => {
   const customerIds = [...new Set(approvals.map(a => a.quotationVersion?.quotation?.customerId).filter(Boolean))];
   const salesRepIds = [...new Set(approvals.map(a => a.quotationVersion?.quotation?.salesRepId).filter(Boolean))];
+  const productIds = [...new Set(approvals.flatMap(a => a.quotationVersion?.items?.map(i => i.productId) || []).filter(Boolean))];
 
-  const [customers, salesReps] = await Promise.all([
+  const [customers, salesReps, products] = await Promise.all([
     prisma.user.findMany({
       where: { id: { in: customerIds } },
       select: { id: true, name: true, email: true, role: true }
@@ -128,11 +129,16 @@ const enrichApprovals = async (approvals) => {
     prisma.user.findMany({
       where: { id: { in: salesRepIds } },
       select: { id: true, name: true, email: true, role: true }
+    }),
+    prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, category: true }
     })
   ]);
 
   const customerMap = new Map(customers.map(c => [c.id, c]));
   const salesRepMap = new Map(salesReps.map(s => [s.id, s]));
+  const productMap = new Map(products.map(p => [p.id, p]));
 
   return approvals.map(a => {
     const quote = a.quotationVersion?.quotation;
@@ -141,6 +147,23 @@ const enrichApprovals = async (approvals) => {
     const version = a.quotationVersion;
     const riskScore = version?.riskScore || 20;
 
+    const enrichedItems = (version?.items || []).map(it => {
+      const prod = productMap.get(it.productId);
+      const qty = Number(it.quantity || 1);
+      const price = Number(it.unitPrice || 0);
+      const discPct = Number(it.discountPercentage ?? it.discountPercent ?? 0);
+      const totalPrice = qty * price * (1 - discPct / 100);
+      return {
+        ...it,
+        quantity: qty,
+        unitPrice: price,
+        discountPercentage: discPct,
+        discountPercent: discPct,
+        totalPrice: Math.round(totalPrice * 100) / 100,
+        product: prod ? { id: prod.id, name: prod.name, category: prod.category } : { name: `Product (${it.productId ? it.productId.slice(0, 6) : 'Item'})` }
+      };
+    });
+
     return {
       ...a,
       level: a.assignedRole,
@@ -148,6 +171,7 @@ const enrichApprovals = async (approvals) => {
         ...version,
         riskScore,
         riskLevel: riskScore > 60 ? 'HIGH' : riskScore > 30 ? 'MEDIUM' : 'LOW',
+        items: enrichedItems,
         quotation: quote ? {
           ...quote,
           customer: cust ? {

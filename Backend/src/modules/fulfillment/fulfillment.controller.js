@@ -31,8 +31,18 @@ export const getPlan = async (req, res, next) => {
 
 export const acceptPlan = async (req, res, next) => {
   try {
-    const result = await fulfillmentService.acceptPlan(req.params.planId, req.body.splits);
-    sendSuccess(res, 200, result.message);
+    const { splits, deliveryDays, estimatedDelivery } = req.body;
+    const result = await fulfillmentService.acceptPlan(req.params.planId, splits, deliveryDays, estimatedDelivery);
+    sendSuccess(res, 200, result.message, result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const markDelivered = async (req, res, next) => {
+  try {
+    const result = await fulfillmentService.markDelivered(req.params.planId);
+    sendSuccess(res, 200, result.message, result);
   } catch (err) {
     next(err);
   }
