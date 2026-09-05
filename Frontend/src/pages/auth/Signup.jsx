@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   Lock,
   Mail,
-  User as UserIcon
+  User as UserIcon,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const ROLES = [
@@ -45,6 +47,7 @@ const ROLES = [
 export default function Signup() {
   const [selectedRole, setSelectedRole] = useState('SALES_REP');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm({
@@ -165,14 +168,22 @@ export default function Signup() {
                   <Lock className="w-5 h-5" />
                 </div>
                 <input 
-                  type="password" 
+                  type={showPassword ? 'text' : 'password'} 
                   {...register('password', { 
                     required: 'Password is required', 
                     minLength: { value: 8, message: 'Password must be at least 8 characters' } 
                   })} 
-                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className="w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
                   placeholder="••••••••" 
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
               {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password.message}</span>}
             </div>

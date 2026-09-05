@@ -1,2 +1,5 @@
-import { Outlet } from 'react-router-dom';
-export default function SalesLayout() { return <div className="sales-layout"><Outlet /></div>; }
+import DashboardLayout from './DashboardLayout';
+
+export default function SalesLayout() {
+  return <DashboardLayout variant="sales" />;
+}

@@ -48,6 +48,8 @@ export default function AppRoutes() {
           <Route path="subscriptions" element={<SubscriptionsList />} />
           <Route path="invoices" element={<InvoicesList />} />
           <Route path="deal-health" element={<DealHealth />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="reports" element={<div className="p-8"><h2 className="text-2xl font-bold text-slate-900 mb-2">Reports & Analytics</h2><p className="text-slate-500">Pipeline revenue, discount distributions, and team performance analytics.</p></div>} />
         </Route>
 
         <Route path="/admin/*" element={<RoleRoute allowedRoles={['ADMIN', 'SALES_REP']} />}>
