@@ -1,4 +1,4 @@
-import { ForbiddenError } from '../../utils/errors.js';
+import { ForbiddenError } from '../utils/errors.js';
 
 export const requireRole = (allowedRoles) => (req, res, next) => {
   if (!req.user || !req.user.role) {

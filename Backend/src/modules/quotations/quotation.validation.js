@@ -3,9 +3,9 @@ import { ValidationError } from '../../utils/errors.js';
 
 export const createQuotationSchema = z.object({
   body: z.object({
-    customerId: z.string().uuid("Invalid Customer ID"),
+    customerId: z.string().min(1, "Customer ID required"),
     lineItems: z.array(z.object({
-      productId: z.string().uuid("Invalid Product ID"),
+      productId: z.string().min(1, "Product ID required"),
       quantity: z.number().int().min(1, "Quantity must be at least 1"),
       unitPrice: z.number().min(0, "Unit price cannot be negative"),
       discountPercentage: z.number().min(0).max(100, "Discount must be between 0 and 100")
@@ -22,6 +22,7 @@ export const validate = (schema) => (req, res, next) => {
     });
     next();
   } catch (err) {
-    next(new ValidationError(err.errors));
+    console.log("VALIDATION ERROR CAUGHT:", err);
+    next(new ValidationError(err.issues || err.errors || err.message));
   }
 };

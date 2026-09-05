@@ -109,6 +109,7 @@ model Quotation {
   salesRepId      String             
   status          QuotationStatus    @default(DRAFT)
   activeVersionId String?            @unique
+  activeVersion   QuotationVersion?  @relation(name: "ActiveVersion", fields: [activeVersionId], references: [id])
   versions        QuotationVersion[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -133,7 +134,7 @@ model QuotationVersion {
   
   createdAt        DateTime          @default(now())
   
-  activeForQuotation Quotation?      @relation(name: "ActiveVersion", fields: [id], references: [activeVersionId])
+  activeForQuotation Quotation?      @relation(name: "ActiveVersion")
 }
 
 model QuotationItem {
