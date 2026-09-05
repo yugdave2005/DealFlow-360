@@ -44,6 +44,17 @@
     overflow-x: hidden;
   }
 
+  /* Hide the native browser eye icon for password inputs */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
+  
+  input[type="password"]::-webkit-reveal,
+  input[type="password"]::-webkit-clear {
+    display: none !important;
+  }
+
   * {
     @apply border-border;
   }
