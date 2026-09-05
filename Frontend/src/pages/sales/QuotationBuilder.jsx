@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { adminApi } from '../../features/admin/admin.api';
+import UpsellPanel from '../../components/UpsellPanel';
 
 // Normally, this would fetch from a CRM endpoint, but we mock customer IDs for now
 const MOCK_CUSTOMERS = [
@@ -153,6 +154,17 @@ export default function QuotationBuilder() {
              ))}
            </div>
         </div>
+
+        {/* Upsell / Cross-sell Suggestions */}
+        <UpsellPanel
+          lineItems={watchLineItems}
+          onAddProduct={(product) => append({
+            productId: product.productId,
+            quantity: product.quantity,
+            unitPrice: product.unitPrice,
+            discountPercentage: product.discountPercentage
+          })}
+        />
 
         <div className="flex justify-end gap-6">
           <div className="bg-slate-800 text-white p-6 rounded-2xl w-80 shadow-lg">
