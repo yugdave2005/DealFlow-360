@@ -18,8 +18,8 @@ import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-const API_QUOTES = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
-const API_APPROVALS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/approvals`;
+const API_QUOTES = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/quotations`;
+const API_APPROVALS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/approvals`;
 const getToken = () => localStorage.getItem('accessToken');
 
 export default function ManagerDashboard() {

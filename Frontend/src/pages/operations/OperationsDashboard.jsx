@@ -17,10 +17,10 @@ import {
 } from 'lucide-react';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-const API_FULFILLMENT = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/fulfillment`;
-const API_INVOICES = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/invoices`;
-const API_APPROVALS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/approvals`;
-const API_SUBSCRIPTIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/subscriptions`;
+const API_FULFILLMENT = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/fulfillment`;
+const API_INVOICES = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/invoices`;
+const API_APPROVALS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/approvals`;
+const API_SUBSCRIPTIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/subscriptions`;
 const getToken = () => localStorage.getItem('accessToken');
 
 export default function OperationsDashboard() {
@@ -124,7 +124,7 @@ export default function OperationsDashboard() {
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Outstanding AR</span>
-          <p className="text-xl font-extrabold text-slate-900 mt-1">₹{totalOutstandingAR.toLocaleString('en-IN')}</p>
+          <p className="text-xl font-extrabold text-slate-900 mt-1">â‚¹{totalOutstandingAR.toLocaleString('en-IN')}</p>
           <span className="text-xs text-rose-600 font-semibold mt-0.5 block">{unpaidInvoices.length} unpaid</span>
         </div>
 
@@ -255,7 +255,7 @@ export default function OperationsDashboard() {
                     <div className="text-slate-500 mt-0.5">Due: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</div>
                   </div>
                   <div className="text-right">
-                    <span className="font-bold text-slate-900 text-sm">₹{Number(inv.amount || 0).toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-slate-900 text-sm">â‚¹{Number(inv.amount || 0).toLocaleString('en-IN')}</span>
                     <span className="block text-amber-600 font-medium">{inv.status}</span>
                   </div>
                 </div>

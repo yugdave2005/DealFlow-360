@@ -38,7 +38,7 @@ export default function Signup() {
   const { login } = useAuth();
   const selectedRole = watch('role');
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
   const handleRoleSelect = (roleId) => {
     setValue('role', roleId, { shouldValidate: true });

@@ -7,8 +7,7 @@ const router = express.Router();
 
 // All customer portal routes require authentication
 router.use(requireAuth);
-// Allow internal staff to preview the portal
-router.use(requireRole(['CUSTOMER', 'ADMIN', 'SALES_REP', 'SALES_MANAGER']));
+router.use(requireRole(['CUSTOMER', 'ADMIN']));
 
 router.get('/quotations', ctrl.listQuotations);
 router.get('/quotations/:id', ctrl.getQuotation);

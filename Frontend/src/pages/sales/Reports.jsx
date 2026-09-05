@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-const API_QUOTATIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
+const API_QUOTATIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/quotations`;
 const getToken = () => localStorage.getItem('accessToken');
 
 export default function Reports() {

@@ -53,7 +53,7 @@ export default function Customers() {
     queryKey: ['salesQuotations'],
     queryFn: async () => {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/quotations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) return [];
@@ -324,7 +324,6 @@ export default function Customers() {
                           active deals
                         </div>
                       </td>
-
                       {/* 5. Pipeline Value */}
                       <td className="py-4 px-4 whitespace-nowrap">
                         <span className="font-semibold text-[#171717] text-[15px] sm:text-[16px]">
@@ -354,7 +353,7 @@ export default function Customers() {
                           }}
                           className="inline-flex items-center gap-1.5 h-9 px-3.5 text-[13px] font-semibold bg-white hover:bg-[#F8E9E3] text-[#6F6B66] hover:text-[#C96648] border border-[#E6E1D9] hover:border-[#E9B8A7] rounded-[9px] transition-all cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                         >
-                          <span>360° View</span>
+                          <span>360Â° View</span>
                           <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                       </td>

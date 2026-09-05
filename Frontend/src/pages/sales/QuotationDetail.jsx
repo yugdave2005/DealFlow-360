@@ -34,7 +34,7 @@ import RiskBadge from '../../components/common/RiskBadge';
 import DealProgress from '../../components/common/DealProgress';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 export default function QuotationDetail() {
   const { id } = useParams();
@@ -534,8 +534,8 @@ export default function QuotationDetail() {
                     <span className="px-2 py-0.5 rounded bg-[#FFFFFF] text-[#1E1B18] font-mono font-bold shadow-xs border border-[#EBE8E2]">
                       v{ver.versionNumber}
                     </span>
-                    <span>Total: ₹{Number(ver.totalAmount).toLocaleString('en-IN')}</span>
-                    <span>·</span>
+                    <span>Total: â‚¹{Number(ver.totalAmount).toLocaleString('en-IN')}</span>
+                    <span>Â·</span>
                     <span>Discount: {((Number(ver.totalDiscount) / (Number(ver.totalAmount) || 1)) * 100).toFixed(0)}%</span>
                   </div>
                   <span className="text-[#A8A29E] font-normal">
@@ -653,7 +653,7 @@ export default function QuotationDetail() {
                     <span>Governance Re-Approval Alert</span>
                   </div>
                   <p className="text-[11px] text-amber-800">
-                    Applying 18%–20% discount exceeds the 15% standard sales rep ceiling. The quotation will automatically route back to <strong>Pending Manager Approval</strong>.
+                    Applying 18%â€“20% discount exceeds the 15% standard sales rep ceiling. The quotation will automatically route back to <strong>Pending Manager Approval</strong>.
                   </p>
                 </div>
               )}

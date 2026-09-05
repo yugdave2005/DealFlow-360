@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -43,7 +43,36 @@ const fetchDashboardData = async () => {
   return { metrics, quotes, health };
 };
 
+// Simple Error Boundary to trap React Crashes locally
+class DashboardErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, errorInfo) { console.error("Dashboard Crash:", error, errorInfo); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 max-w-2xl mx-auto bg-rose-50 rounded-2xl border border-rose-200 mt-10">
+          <h2 className="text-xl font-bold text-rose-700">Dashboard Render Crash</h2>
+          <p className="text-sm text-rose-600 mt-2">{this.state.error?.toString()}</p>
+          <pre className="mt-4 p-4 bg-white rounded-lg border border-rose-100 text-xs overflow-auto">
+            {this.state.error?.stack}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function Dashboard() {
+  return (
+    <DashboardErrorBoundary>
+      <DashboardContent />
+    </DashboardErrorBoundary>
+  );
+}
+
+function DashboardContent() {
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ['salesDashboard'],
