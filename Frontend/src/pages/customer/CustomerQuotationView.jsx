@@ -80,7 +80,7 @@ export default function CustomerQuotationView() {
           <div className="bg-slate-900 px-8 py-6 flex justify-between items-center">
             <div>
               <p className="text-slate-400 text-sm font-semibold tracking-wider uppercase mb-1">Proposal For</p>
-              <h2 className="text-2xl font-bold text-white">Your Organization</h2>
+              <h2 className="text-2xl font-bold text-white">{quote?.customer?.companyName || quote?.customer?.name || 'Your Organization'}</h2>
             </div>
             <div className="text-right">
               <span className={`px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase ${statusColors[quote.status] || 'bg-slate-100 text-slate-700'}`}>
