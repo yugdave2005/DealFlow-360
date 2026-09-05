@@ -56,7 +56,7 @@ export default function Customers() {
       const pipelineValue = relatedQuotes.reduce((sum, q) => sum + Number(q.activeVersion?.totalAmount || 0), 0);
       const avgRisk = relatedQuotes.length > 0 
         ? Math.round(relatedQuotes.reduce((sum, q) => sum + (q.activeVersion?.riskScore || 0), 0) / relatedQuotes.length)
-        : 15;
+        : 0;
 
       return {
         id: tier.id,
@@ -186,16 +186,16 @@ export default function Customers() {
                         <div className="text-xs text-slate-400">{cust.email}</div>
                       </td>
                       <td className="py-4 px-4 font-semibold text-slate-800">
-                        {cust.activeQuotesCount || 1} deals
+                        {cust.activeQuotesCount} deals
                       </td>
                       <td className="py-4 px-4 font-bold text-slate-900">
-                        ₹{Number(cust.pipelineValue || 124000).toLocaleString('en-IN')}
+                        ₹{Number(cust.pipelineValue || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="py-4 px-4 text-xs font-medium text-slate-500">
-                        {cust.lastActivity || 'Recently active'}
+                        {cust.lastActivity || 'No active proposals'}
                       </td>
                       <td className="py-4 px-4">
-                        <RiskBadge score={cust.riskScore || 20} level={cust.riskLevel} />
+                        <RiskBadge score={cust.riskScore || 0} level={cust.riskLevel} />
                       </td>
                       <td className="py-4 px-4 text-right">
                         <button
