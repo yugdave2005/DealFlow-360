@@ -1,5 +1,5 @@
-import { verifyAccessToken } from '../../services/token/jwt.service.js';
-import { UnauthorizedError } from '../../utils/errors.js';
+import { verifyAccessToken } from '../services/token/jwt.service.js';
+import { UnauthorizedError } from '../utils/errors.js';
 
 export const requireAuth = (req, res, next) => {
   const authHeader = req.headers.authorization;
