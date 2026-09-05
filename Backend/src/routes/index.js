@@ -12,11 +12,13 @@ import adminRoutes from '../modules/admin/routes.js';
 import authRoutes from '../modules/auth/auth.routes.js';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
 import quotationRoutes from '../modules/quotations/quotation.routes.js';
+import approvalRoutes from '../modules/approvals/approval.routes.js';
 
 // Module Routes
 router.use('/v1', authRoutes);
 router.use('/v1/dashboard', dashboardRoutes);
 router.use('/v1/admin', adminRoutes);
 router.use('/v1/quotations', quotationRoutes);
+router.use('/v1/approvals', approvalRoutes);
 
 export default router;

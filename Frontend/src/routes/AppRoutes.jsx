@@ -15,6 +15,7 @@ import ForgotPassword from '../pages/ForgotPassword';
 import Dashboard from '../pages/sales/Dashboard';
 import QuotationsList from '../pages/sales/QuotationsList';
 import QuotationBuilder from '../pages/sales/QuotationBuilder';
+import Approvals from '../pages/sales/Approvals';
 
 export default function AppRoutes() {
   return (
@@ -35,7 +36,7 @@ export default function AppRoutes() {
           <Route path="quotations" element={<QuotationsList />} />
           <Route path="quotations/new" element={<QuotationBuilder />} />
           <Route path="quotations/:id" element={<div>Quotation Detail</div>} />
-          <Route path="approvals" element={<div>Approvals</div>} />
+          <Route path="approvals" element={<Approvals />} />
           <Route path="fulfillment" element={<div>Fulfillment</div>} />
           <Route path="inventory" element={<div>Inventory</div>} />
           <Route path="subscriptions" element={<div>Subscriptions</div>} />
