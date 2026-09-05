@@ -20,6 +20,7 @@ import FulfillmentList from '../pages/sales/FulfillmentList';
 import SubscriptionsList from '../pages/sales/SubscriptionsList';
 import InvoicesList from '../pages/sales/InvoicesList';
 import DealHealth from '../pages/sales/DealHealth';
+import CustomerQuotationView from '../pages/customer/CustomerQuotationView';
 
 export default function AppRoutes() {
   return (
@@ -66,7 +67,7 @@ export default function AppRoutes() {
       </Route>
 
       <Route path="/customer/*" element={<CustomerLayout />}>
-        <Route path="quotation/:id" element={<div>Customer Quotation View</div>} />
+        <Route path="quotation/:id" element={<CustomerQuotationView />} />
       </Route>
 
       <Route path="/unauthorized" element={<div>Unauthorized</div>} />

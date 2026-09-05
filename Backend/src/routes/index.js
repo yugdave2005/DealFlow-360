@@ -18,9 +18,10 @@ import fulfillmentRoutes from '../modules/fulfillment/fulfillment.routes.js';
 import subscriptionRoutes from '../modules/subscriptions/subscription.routes.js';
 import invoiceRoutes from '../modules/invoices/invoice.routes.js';
 import dealHealthRoutes from '../modules/dealhealth/dealhealth.routes.js';
+import customerRoutes from '../modules/customer/customer.routes.js';
 
 // Module Routes
-router.use('/v1', authRoutes);
+router.use('/v1/auth', authRoutes);
 router.use('/v1/dashboard', dashboardRoutes);
 router.use('/v1/admin', adminRoutes);
 router.use('/v1/quotations', quotationRoutes);
@@ -30,5 +31,6 @@ router.use('/v1/fulfillment', fulfillmentRoutes);
 router.use('/v1/subscriptions', subscriptionRoutes);
 router.use('/v1/invoices', invoiceRoutes);
 router.use('/v1/deal-health', dealHealthRoutes);
+router.use('/v1/customer-portal', customerRoutes);
 
 export default router;
