@@ -215,7 +215,7 @@ export default function DashboardLayout() {
 
       {/* Sidebar Navigation */}
       <aside className={`
-        fixed md:sticky top-0 z-50 h-screen bg-[#0f172a] text-slate-300 flex flex-col border-r border-slate-800/80 transition-all duration-300 ease-in-out shrink-0
+        fixed inset-y-0 left-0 z-40 h-screen bg-[#0f172a] text-slate-300 flex flex-col border-r border-slate-800/80 transition-all duration-300 ease-in-out shrink-0
         ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
         ${isCollapsed ? 'md:w-20' : 'md:w-64'}
       `}>
@@ -302,7 +302,7 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] min-h-screen">
+      <div className={`flex-1 flex flex-col min-w-0 bg-[#f8fafc] min-h-screen ${isCollapsed ? 'md:pl-20' : 'md:pl-64'} transition-all duration-300 ease-in-out`}>
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-slate-200/80 sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 shadow-xs/50">
           <div className="flex items-center gap-3">

@@ -324,7 +324,7 @@ export default function QuotationBuilder() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 pb-12">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
@@ -344,13 +344,13 @@ export default function QuotationBuilder() {
 
       {/* Customer Selection Banner (Tier & Governance) */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-200/60">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 flex-1 min-w-0">
+            <div className="p-3 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-200/60 shrink-0">
               <Building className="w-5 h-5" />
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+            <div className="flex-1 max-w-sm">
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                 Target Account / Customer
               </label>
               <select
@@ -359,44 +359,52 @@ export default function QuotationBuilder() {
                   setSelectedCustomerId(e.target.value);
                   setValue('customerId', e.target.value);
                 }}
-                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all cursor-pointer"
               >
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+                {customers.length === 0 ? (
+                  <option value="" disabled>No customer accounts found</option>
+                ) : (
+                  customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))
+                )}
               </select>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-4 flex-wrap text-xs bg-slate-50/80 p-3 rounded-xl border border-slate-200/80 shrink-0">
             <div>
-              <span className="text-slate-400 block font-medium">Customer Tier</span>
-              <span className="font-bold text-indigo-700">{currentCustomer.tier}</span>
+              <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Customer Tier</span>
+              <span className="font-bold text-indigo-700">{currentCustomer.tier || 'Standard'}</span>
             </div>
             <div className="border-l border-slate-200 pl-4">
-              <span className="text-slate-400 block font-medium">Primary Contact</span>
-              <span className="font-semibold text-slate-800">{currentCustomer.contact} ({currentCustomer.email})</span>
+              <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Primary Contact</span>
+              <span className="font-semibold text-slate-800">
+                {currentCustomer.contact 
+                  ? `${currentCustomer.contact}${currentCustomer.email ? ` (${currentCustomer.email})` : ''}`
+                  : 'Standard Account'}
+              </span>
             </div>
             <div className="border-l border-slate-200 pl-4">
-              <span className="text-slate-400 block font-medium">Discount Limit</span>
-              <span className="font-bold text-emerald-700">&le; {currentCustomer.tierDiscountLimit}% Standard</span>
+              <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Discount Limit</span>
+              <span className="font-bold text-emerald-700">&le; {currentCustomer.tierDiscountLimit || 15}% Standard</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* 3-Column Quotation Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 lg:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT COLUMN: Product Catalog (3 cols on lg) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col space-y-4">
+        {/* LEFT COLUMN: Product Catalog */}
+        <div className="xl:col-span-4 lg:col-span-6 col-span-12 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col space-y-4">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
                 <Package className="w-4 h-4 text-indigo-600" />
                 Products & Services
               </h2>
-              <span className="text-[11px] font-semibold text-slate-400">{filteredCatalogProducts.length} items</span>
+              <span className="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{filteredCatalogProducts.length} items</span>
             </div>
 
             {/* Search */}
@@ -407,12 +415,12 @@ export default function QuotationBuilder() {
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="Search catalog or SKU..."
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all"
               />
             </div>
 
             {/* Category tabs */}
-            <div className="flex gap-1 overflow-x-auto pb-1">
+            <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
               {['ALL', 'HARDWARE', 'SERVICES', 'SUBSCRIPTIONS'].map(cat => (
                 <button
                   key={cat}
@@ -420,7 +428,7 @@ export default function QuotationBuilder() {
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
                     selectedCategory === cat
-                      ? 'bg-slate-900 text-white'
+                      ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -431,10 +439,12 @@ export default function QuotationBuilder() {
           </div>
 
           {/* Product Items List */}
-          <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-2.5 h-[520px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
             {filteredCatalogProducts.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs">
-                No products found in this category.
+              <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center border-2 border-dashed border-slate-100 rounded-xl">
+                <Package className="w-8 h-8 text-slate-300 mb-2" />
+                <p className="text-xs font-semibold text-slate-600">No products available</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Master products can be added in Product Catalog.</p>
               </div>
             ) : filteredCatalogProducts.map(prod => {
               const isHw = prod.category === 'HARDWARE';
@@ -444,7 +454,7 @@ export default function QuotationBuilder() {
               return (
                 <div 
                   key={prod.id}
-                  className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-200 transition-all flex items-center justify-between gap-3 group"
+                  className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-indigo-200 hover:shadow-xs transition-all flex items-center justify-between gap-3 group"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -472,13 +482,13 @@ export default function QuotationBuilder() {
                       {isHw && (
                         <>
                           <span>&bull;</span>
-                          <span className="text-[10px] text-emerald-600 font-medium">Stock: {prod.stock} units</span>
+                          <span className="text-[10px] text-emerald-600 font-medium">Stock: {prod.stock}</span>
                         </>
                       )}
                       {isSvc && (
                         <>
                           <span>&bull;</span>
-                          <span className="text-[10px] text-slate-500">Service SLA</span>
+                          <span className="text-[10px] text-slate-500">SLA</span>
                         </>
                       )}
                     </div>
@@ -487,7 +497,7 @@ export default function QuotationBuilder() {
                   <button
                     type="button"
                     onClick={() => handleAddProduct(prod)}
-                    className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shrink-0 shadow-xs"
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0 shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add
@@ -498,22 +508,24 @@ export default function QuotationBuilder() {
           </div>
         </div>
 
-        {/* CENTER COLUMN: Quotation Cart (5 cols on lg) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col space-y-4">
+        {/* CENTER COLUMN: Quotation Cart */}
+        <div className="xl:col-span-4 lg:col-span-6 col-span-12 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
               <Layers className="w-4 h-4 text-indigo-600" />
               Quotation Line Items
             </h2>
-            <span className="text-xs font-semibold text-slate-500">{fields.length} line(s)</span>
+            <span className="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{fields.length} line(s)</span>
           </div>
 
           {fields.length === 0 ? (
-            <div className="py-16 text-center text-slate-400">
-              <p className="text-xs">No items in quotation cart. Select products from the left catalog.</p>
+            <div className="h-[520px] flex flex-col items-center justify-center py-12 px-4 text-center border-2 border-dashed border-slate-100 rounded-xl">
+              <Layers className="w-8 h-8 text-slate-300 mb-2" />
+              <p className="text-xs font-semibold text-slate-600">Quotation cart is empty</p>
+              <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">Select products from the catalog on the left to start formulating commercial terms.</p>
             </div>
           ) : (
-            <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-3 h-[520px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
               {fields.map((field, index) => {
                 const item = watchLineItems[index] || {};
                 const qty = Number(item.quantity || 1);
@@ -522,13 +534,13 @@ export default function QuotationBuilder() {
                 const lineTotal = (qty * price) * (1 - disc / 100);
 
                 return (
-                  <div key={field.id} className="p-3.5 rounded-xl border border-slate-200/80 bg-white space-y-3">
+                  <div key={field.id} className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/40 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-1.5">
                           <h4 className="text-xs font-bold text-slate-900">{item.productName || 'Line Item'}</h4>
                           {item.isSubscription && (
-                            <span className="text-[9px] font-bold px-1 py-0.2 bg-purple-50 text-purple-700 rounded border border-purple-200">
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 bg-purple-50 text-purple-700 rounded border border-purple-200">
                               Recurring
                             </span>
                           )}
@@ -538,22 +550,22 @@ export default function QuotationBuilder() {
                       <button
                         type="button"
                         onClick={() => remove(index)}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                         title="Remove item"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2.5 pt-1 border-t border-slate-100">
+                    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60">
                       {/* Qty with +/- buttons */}
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qty</label>
-                        <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
+                        <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden bg-white">
                           <button
                             type="button"
                             onClick={() => update(index, { ...item, quantity: Math.max(1, qty - 1) })}
-                            className="px-2 py-1 text-slate-500 hover:bg-slate-200 font-bold"
+                            className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold text-xs"
                           >
                             -
                           </button>
@@ -566,7 +578,7 @@ export default function QuotationBuilder() {
                           <button
                             type="button"
                             onClick={() => update(index, { ...item, quantity: qty + 1 })}
-                            className="px-2 py-1 text-slate-500 hover:bg-slate-200 font-bold"
+                            className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold text-xs"
                           >
                             +
                           </button>
@@ -580,13 +592,13 @@ export default function QuotationBuilder() {
                           type="number"
                           step="0.01"
                           {...register(`lineItems.${index}.unitPrice`, { valueAsNumber: true })}
-                          className="w-full p-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-900 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                          className="w-full p-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600"
                         />
                       </div>
 
                       {/* Discount % */}
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Discount %</label>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Disc %</label>
                         <input
                           type="number"
                           step="0.5"
@@ -596,13 +608,13 @@ export default function QuotationBuilder() {
                           className={`w-full p-1.5 rounded-lg border text-xs font-bold focus:outline-none focus:ring-1 ${
                             disc > (item.allowedDiscount || 15)
                               ? 'border-rose-300 bg-rose-50 text-rose-700'
-                              : 'border-slate-200 bg-slate-50 text-slate-900'
+                              : 'border-slate-200 bg-white text-slate-900'
                           }`}
                         />
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 font-semibold">
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 font-semibold">
                       <span className="text-slate-500 text-[11px]">Net Line Total:</span>
                       <span className="text-slate-900 font-bold">₹{lineTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                     </div>
@@ -613,8 +625,8 @@ export default function QuotationBuilder() {
           )}
         </div>
 
-        {/* RIGHT COLUMN: Deal Intelligence & Summary (4 cols on lg) */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* RIGHT COLUMN: Deal Intelligence & Summary */}
+        <div className="xl:col-span-4 lg:col-span-12 col-span-12 space-y-4">
           
           {/* 1. Quotation Summary with Hybrid Billing */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
@@ -624,7 +636,7 @@ export default function QuotationBuilder() {
 
             <div className="space-y-2 text-xs">
               {/* Hybrid Billing Split */}
-              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5 mb-2">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5 mb-2">
                 <div className="flex justify-between text-slate-700 font-medium">
                   <span>One-Time Hardware & Services:</span>
                   <span className="font-bold text-slate-900">₹{calculations.oneTimeSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -649,7 +661,7 @@ export default function QuotationBuilder() {
               </div>
 
               <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline">
-                <span className="font-bold text-slate-900 text-sm">Grand Total (Agreed):</span>
+                <span className="font-bold text-slate-900 text-sm">Grand Total:</span>
                 <span className="font-black text-slate-900 text-lg">
                   ₹{calculations.grandTotalWithTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </span>
@@ -713,7 +725,7 @@ export default function QuotationBuilder() {
             </div>
           </div>
 
-          {/* 4. Ranked Upsell & Cross-sell suggestions */}
+          {/* 3. Ranked Upsell & Cross-sell suggestions */}
           {upsellSuggestions.length > 0 && (
             <div className="bg-gradient-to-br from-indigo-50/60 to-purple-50/60 rounded-2xl border border-indigo-200/80 p-4 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
@@ -767,7 +779,7 @@ export default function QuotationBuilder() {
       </div>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white/95 backdrop-blur-md border-t border-slate-200 px-6 py-3.5 z-40 flex items-center justify-between shadow-lg">
+      <div className="sticky bottom-4 z-30 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl px-6 py-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
         <div>
           <button
             type="button"
