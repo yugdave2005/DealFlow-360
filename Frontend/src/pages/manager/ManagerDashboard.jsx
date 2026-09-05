@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -10,13 +10,9 @@ import {
   FileText, 
   Users, 
   Percent, 
-  DollarSign, 
   ShieldAlert, 
-  ArrowRight, 
   ChevronRight,
-  Sparkles,
-  Sliders,
-  Filter
+  Inbox
 } from 'lucide-react';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
@@ -28,7 +24,6 @@ const getToken = () => localStorage.getItem('accessToken');
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
-  const [repFilter, setRepFilter] = useState('ALL');
 
   const { data: quotations = [], isLoading: loadingQuotes } = useQuery({
     queryKey: ['managerQuotes'],
@@ -36,7 +31,7 @@ export default function ManagerDashboard() {
       const res = await fetch(API_QUOTES, {
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
-      if (!res.ok) throw new Error('Failed to fetch quotations');
+      if (!res.ok) return [];
       const json = await res.json();
       return json.data || [];
     }
@@ -65,6 +60,35 @@ export default function ManagerDashboard() {
     const v = q.activeVersion || (q.versions && q.versions[0]) || {};
     return (v.riskScore || 0) > 40;
   }).length;
+
+  const totalDiscountSum = quotations.reduce((sum, q) => {
+    const v = q.activeVersion || (q.versions && q.versions[0]) || {};
+    const amt = Number(v.totalAmount) || 0;
+    const disc = Number(v.totalDiscount) || 0;
+    return sum + (amt > 0 ? (disc / amt) * 100 : 0);
+  }, 0);
+  const avgDiscount = quotations.length > 0 ? (totalDiscountSum / quotations.length).toFixed(1) : '0.0';
+
+  // Group by real sales rep from database
+  const repStats = useMemo(() => {
+    const map = {};
+    quotations.forEach(q => {
+      const repName = q.salesRep?.name || q.salesRep?.email || 'Unassigned Rep';
+      if (!map[repName]) {
+        map[repName] = { name: repName, pipeline: 0, closed: 0, totalQuotes: 0, confirmedQuotes: 0 };
+      }
+      const v = q.activeVersion || (q.versions && q.versions[0]) || {};
+      const amt = Number(v.totalAmount) || Number(q.totalAmount) || 0;
+      map[repName].pipeline += amt;
+      map[repName].totalQuotes += 1;
+      if (['CONFIRMED', 'COMPLETED', 'PAID'].includes(q.status)) {
+        map[repName].closed += amt;
+        map[repName].confirmedQuotes += 1;
+      }
+    });
+
+    return Object.values(map);
+  }, [quotations]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -103,7 +127,7 @@ export default function ManagerDashboard() {
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Team Pipeline</span>
           <p className="text-xl font-extrabold text-slate-900 mt-1">₹{teamPipelineValue.toLocaleString('en-IN')}</p>
-          <span className="text-xs text-emerald-700 font-semibold mt-0.5 block">+14% MoM</span>
+          <span className="text-xs text-slate-400 mt-0.5 block">{quotations.length} total deals</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
@@ -126,14 +150,16 @@ export default function ManagerDashboard() {
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Discount</span>
-          <p className="text-xl font-extrabold text-slate-900 mt-1">11.8%</p>
-          <span className="text-xs text-emerald-700 font-semibold mt-0.5 block">Floor: 15.0%</span>
+          <p className="text-xl font-extrabold text-slate-900 mt-1">{avgDiscount}%</p>
+          <span className="text-xs text-emerald-700 font-semibold mt-0.5 block">Portfolio average</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Approval Delays</span>
-          <p className="text-xl font-extrabold text-amber-700 mt-1">2</p>
-          <span className="text-xs text-amber-600 font-semibold mt-0.5 block">&gt; 24h pending</span>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Confirmed</span>
+          <p className="text-xl font-extrabold text-emerald-700 mt-1">
+            {quotations.filter(q => ['CONFIRMED', 'COMPLETED', 'PAID'].includes(q.status)).length}
+          </p>
+          <span className="text-xs text-emerald-600 font-semibold mt-0.5 block">Won deals</span>
         </div>
       </div>
 
@@ -149,75 +175,52 @@ export default function ManagerDashboard() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div 
-            onClick={() => navigate('/sales/approvals')}
-            className="p-4 bg-purple-50/50 rounded-xl border border-purple-200/80 hover:bg-purple-50 transition-colors cursor-pointer space-y-2"
-          >
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-purple-900 uppercase">Pending Approvals</span>
-              <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
-            </div>
-            <p className="text-xs text-purple-800">
-              <strong>{approvals.length || 2} quotations</strong> exceed sales rep discount limits requiring manager sign-off.
-            </p>
-            <div className="text-xs font-bold text-purple-700 flex items-center gap-1 pt-1">
-              <span>Review queue</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </div>
+        {approvals.length === 0 && atRiskCount === 0 ? (
+          <div className="py-6 text-center bg-slate-50 rounded-xl border border-slate-100">
+            <Inbox className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
+            <p className="text-xs font-medium text-slate-500">No active escalations or pending approvals requiring attention.</p>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {approvals.length > 0 && (
+              <div 
+                onClick={() => navigate('/sales/approvals')}
+                className="p-4 bg-purple-50/50 rounded-xl border border-purple-200/80 hover:bg-purple-50 transition-colors cursor-pointer space-y-2"
+              >
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-bold text-purple-900 uppercase">Pending Approvals</span>
+                  <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+                </div>
+                <p className="text-xs text-purple-800">
+                  <strong>{approvals.length} quotation(s)</strong> require manager sign-off on pricing/discounts.
+                </p>
+                <div className="text-xs font-bold text-purple-700 flex items-center gap-1 pt-1">
+                  <span>Review queue</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            )}
 
-          <div 
-            onClick={() => navigate('/sales/deal-health')}
-            className="p-4 bg-rose-50/50 rounded-xl border border-rose-200/80 hover:bg-rose-50 transition-colors cursor-pointer space-y-2"
-          >
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-rose-900 uppercase">Discount Anomalies</span>
-              <Percent className="w-3.5 h-3.5 text-rose-600" />
-            </div>
-            <p className="text-xs text-rose-800">
-              <strong>Beta Industries (19% disc)</strong> exceeds typical rep baseline by 11%.
-            </p>
-            <div className="text-xs font-bold text-rose-700 flex items-center gap-1 pt-1">
-              <span>Inspect anomaly</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </div>
+            {atRiskCount > 0 && (
+              <div 
+                onClick={() => navigate('/sales/deal-health')}
+                className="p-4 bg-rose-50/50 rounded-xl border border-rose-200/80 hover:bg-rose-50 transition-colors cursor-pointer space-y-2"
+              >
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-bold text-rose-900 uppercase">High-Risk Deals</span>
+                  <Percent className="w-3.5 h-3.5 text-rose-600" />
+                </div>
+                <p className="text-xs text-rose-800">
+                  <strong>{atRiskCount} deal(s)</strong> exhibit high discount or anomaly risk score.
+                </p>
+                <div className="text-xs font-bold text-rose-700 flex items-center gap-1 pt-1">
+                  <span>Inspect health</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            )}
           </div>
-
-          <div 
-            onClick={() => navigate('/sales/deal-health')}
-            className="p-4 bg-amber-50/50 rounded-xl border border-amber-200/80 hover:bg-amber-50 transition-colors cursor-pointer space-y-2"
-          >
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-amber-900 uppercase">Stalled Negotiations</span>
-              <Clock className="w-3.5 h-3.5 text-amber-600" />
-            </div>
-            <p className="text-xs text-amber-800">
-              <strong>QT-1024</strong> inactive for 8 days in customer negotiation.
-            </p>
-            <div className="text-xs font-bold text-amber-700 flex items-center gap-1 pt-1">
-              <span>Unblock deal</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </div>
-          </div>
-
-          <div 
-            onClick={() => navigate('/sales/fulfillment')}
-            className="p-4 bg-cyan-50/50 rounded-xl border border-cyan-200/80 hover:bg-cyan-50 transition-colors cursor-pointer space-y-2"
-          >
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-cyan-900 uppercase">Delivery Risks</span>
-              <ShieldAlert className="w-3.5 h-3.5 text-cyan-600" />
-            </div>
-            <p className="text-xs text-cyan-800">
-              <strong>ORD-1003</strong> has 3-day SLA delivery delay due to hub shortage.
-            </p>
-            <div className="text-xs font-bold text-cyan-700 flex items-center gap-1 pt-1">
-              <span>View fulfillment</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Team Pipeline & Recent Team Quotations */}
@@ -226,27 +229,29 @@ export default function ManagerDashboard() {
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-slate-900 text-base">Sales Rep Velocity</h3>
-            <span className="text-xs text-slate-400">Current Q3</span>
           </div>
 
-          <div className="space-y-3">
-            {[
-              { name: 'Samarth Thakkar', pipeline: '₹24,50,000', closed: '₹14,00,000', winRate: '72%' },
-              { name: 'Neel Vora', pipeline: '₹16,80,000', closed: '₹9,50,000', winRate: '65%' },
-              { name: 'Priya Sharma', pipeline: '₹12,40,000', closed: '₹8,20,000', winRate: '68%' },
-            ].map((rep, idx) => (
-              <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                <div>
-                  <span className="font-bold text-slate-900">{rep.name}</span>
-                  <div className="text-slate-500 mt-0.5">Pipeline: {rep.pipeline}</div>
+          {repStats.length === 0 ? (
+            <div className="py-8 text-center bg-slate-50 rounded-xl border border-slate-100">
+              <Users className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
+              <p className="text-xs font-medium text-slate-500">No representative deal data found.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {repStats.map((rep, idx) => (
+                <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-slate-900">{rep.name}</span>
+                    <div className="text-slate-500 mt-0.5">Pipeline: ₹{rep.pipeline.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-emerald-700">₹{rep.closed.toLocaleString('en-IN')}</span>
+                    <div className="text-slate-400 mt-0.5">{rep.confirmedQuotes}/{rep.totalQuotes} won</div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="font-bold text-emerald-700">{rep.closed}</span>
-                  <div className="text-slate-400 mt-0.5">Win: {rep.winRate}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="pt-2 border-t border-slate-100">
             <button
@@ -261,7 +266,7 @@ export default function ManagerDashboard() {
         {/* Recent Quotations requiring management eye */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-slate-900 text-base">High-Impact Team Deals</h3>
+            <h3 className="font-bold text-slate-900 text-base">Team Deals Queue</h3>
             <button
               onClick={() => navigate('/sales/quotations')}
               className="text-xs font-bold text-indigo-600 hover:underline"
@@ -271,7 +276,13 @@ export default function ManagerDashboard() {
           </div>
 
           {loadingQuotes ? (
-            <LoadingSkeleton rows={4} />
+            <LoadingSkeleton count={3} />
+          ) : quotations.length === 0 ? (
+            <div className="py-12 text-center bg-slate-50 rounded-xl border border-slate-100">
+              <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-xs font-semibold text-slate-700">No quotations recorded in database</p>
+              <p className="text-xs text-slate-400 mt-0.5">When sales reps create proposals, they will appear here.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -292,7 +303,7 @@ export default function ManagerDashboard() {
                     return (
                       <tr key={q.id} className="hover:bg-slate-50/50">
                         <td className="py-3 px-3 font-mono font-bold text-indigo-700">{q.quotationNumber || `QT-${q.id.slice(0,6)}`}</td>
-                        <td className="py-3 px-3 font-semibold text-slate-900">{q.customer?.companyName || 'Enterprise Client'}</td>
+                        <td className="py-3 px-3 font-semibold text-slate-900">{q.customer?.companyName || 'Client'}</td>
                         <td className="py-3 px-3 text-slate-600">{q.salesRep?.name || 'Sales Rep'}</td>
                         <td className="py-3 px-3 font-bold text-slate-900">₹{Number(v.totalAmount || q.totalAmount || 0).toLocaleString('en-IN')}</td>
                         <td className="py-3 px-3"><RiskBadge score={v.riskScore || 25} level={v.riskLevel} /></td>

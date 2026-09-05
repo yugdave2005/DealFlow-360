@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, 
@@ -6,20 +7,46 @@ import {
   Building2, 
   FileText, 
   TrendingUp, 
-  DollarSign, 
   Boxes, 
   Layers, 
   Sliders, 
   History, 
-  Settings, 
-  Package, 
-  ArrowRight, 
-  ChevronRight,
-  Sparkles
+  Package
 } from 'lucide-react';
+import { adminApi } from '../../features/admin/admin.api';
+
+const API_QUOTES = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
+const getToken = () => localStorage.getItem('accessToken');
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+
+  const { data: products = [] } = useQuery({
+    queryKey: ['adminProductsList'],
+    queryFn: () => adminApi.getProducts().then(res => res.data).catch(() => [])
+  });
+
+  const { data: customerTiers = [] } = useQuery({
+    queryKey: ['adminCustomerTiers'],
+    queryFn: () => adminApi.getCustomerTiers().then(res => res.data).catch(() => [])
+  });
+
+  const { data: quotations = [] } = useQuery({
+    queryKey: ['adminQuotations'],
+    queryFn: async () => {
+      const res = await fetch(API_QUOTES, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    }
+  });
+
+  const totalPipeline = quotations.reduce((sum, q) => {
+    const v = q.activeVersion || (q.versions && q.versions[0]) || {};
+    return sum + (Number(v.totalAmount) || Number(q.totalAmount) || 0);
+  }, 0);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -43,24 +70,24 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 8 Platform Overview KPI Cards */}
+      {/* 4 Platform Overview KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Users</span>
-            <Users className="w-4 h-4 text-purple-600" />
+            <span className="text-xs font-semibold uppercase tracking-wider">Catalog Products</span>
+            <Package className="w-4 h-4 text-purple-600" />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">18</p>
-          <span className="text-xs text-slate-400 mt-1 block">5 Active Roles</span>
+          <p className="text-2xl font-extrabold text-slate-900">{products.length}</p>
+          <span className="text-xs text-slate-400 mt-1 block">Configured in Master Catalog</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Client Accounts</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Customer Tiers</span>
             <Building2 className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">42</p>
-          <span className="text-xs text-slate-400 mt-1 block">Enterprise & Mid-Market</span>
+          <p className="text-2xl font-extrabold text-slate-900">{customerTiers.length}</p>
+          <span className="text-xs text-slate-400 mt-1 block">Active Pricing Tiers</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
@@ -68,8 +95,8 @@ export default function AdminDashboard() {
             <span className="text-xs font-semibold uppercase tracking-wider">Total Quotations</span>
             <FileText className="w-4 h-4 text-indigo-600" />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">128</p>
-          <span className="text-xs text-slate-400 mt-1 block">All-time proposals</span>
+          <p className="text-2xl font-extrabold text-slate-900">{quotations.length}</p>
+          <span className="text-xs text-slate-400 mt-1 block">System-wide proposals</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200/80">
@@ -77,8 +104,8 @@ export default function AdminDashboard() {
             <span className="text-xs font-semibold uppercase tracking-wider">Platform Pipeline</span>
             <TrendingUp className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">₹84,50,000</p>
-          <span className="text-xs text-emerald-700 font-semibold mt-1 block">Active opportunities</span>
+          <p className="text-2xl font-extrabold text-slate-900">₹{totalPipeline.toLocaleString('en-IN')}</p>
+          <span className="text-xs text-emerald-700 font-semibold mt-1 block">Live opportunity value</span>
         </div>
       </div>
 

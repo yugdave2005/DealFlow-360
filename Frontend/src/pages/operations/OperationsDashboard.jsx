@@ -13,21 +13,20 @@ import {
   Clock, 
   ChevronRight, 
   ShieldAlert,
-  ArrowRight,
-  PackageCheck
+  Inbox
 } from 'lucide-react';
-import StatusBadge from '../../components/common/StatusBadge';
-import RiskBadge from '../../components/common/RiskBadge';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
 const API_FULFILLMENT = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/fulfillment`;
 const API_INVOICES = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/invoices`;
 const API_APPROVALS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/approvals`;
+const API_SUBSCRIPTIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/subscriptions`;
 const getToken = () => localStorage.getItem('accessToken');
 
 export default function OperationsDashboard() {
   const navigate = useNavigate();
 
-  const { data: fulfillmentPlans = [] } = useQuery({
+  const { data: fulfillmentPlans = [], isLoading: loadingFulfillment } = useQuery({
     queryKey: ['opsFulfillment'],
     queryFn: async () => {
       const res = await fetch(API_FULFILLMENT, { headers: { 'Authorization': `Bearer ${getToken()}` } });
@@ -37,7 +36,7 @@ export default function OperationsDashboard() {
     }
   });
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ['opsInvoices'],
     queryFn: async () => {
       const res = await fetch(API_INVOICES, { headers: { 'Authorization': `Bearer ${getToken()}` } });
@@ -57,7 +56,18 @@ export default function OperationsDashboard() {
     }
   });
 
+  const { data: subscriptions = [] } = useQuery({
+    queryKey: ['opsSubscriptions'],
+    queryFn: async () => {
+      const res = await fetch(API_SUBSCRIPTIONS, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    }
+  });
+
   const unpaidInvoices = invoices.filter(i => i.status !== 'PAID');
+  const overdueInvoices = invoices.filter(i => i.status === 'OVERDUE');
   const totalOutstandingAR = unpaidInvoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
   return (
@@ -96,38 +106,38 @@ export default function OperationsDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tier-2 Approvals</span>
-          <p className="text-xl font-extrabold text-purple-700 mt-1">{approvals.length || 1}</p>
+          <p className="text-xl font-extrabold text-purple-700 mt-1">{approvals.length}</p>
           <span className="text-xs text-purple-600 font-semibold mt-0.5 block">High discount review</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pending Orders</span>
-          <p className="text-xl font-extrabold text-slate-900 mt-1">{fulfillmentPlans.length || 2}</p>
+          <p className="text-xl font-extrabold text-slate-900 mt-1">{fulfillmentPlans.length}</p>
           <span className="text-xs text-slate-400 mt-0.5 block">Awaiting dispatch</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Backorders</span>
-          <p className="text-xl font-extrabold text-amber-700 mt-1">1</p>
-          <span className="text-xs text-amber-600 font-semibold mt-0.5 block">Depot shortage</span>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Invoices</span>
+          <p className="text-xl font-extrabold text-indigo-700 mt-1">{invoices.length}</p>
+          <span className="text-xs text-slate-400 mt-0.5 block">Generated bills</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Outstanding AR</span>
-          <p className="text-xl font-extrabold text-slate-900 mt-1">₹{(totalOutstandingAR || 100000).toLocaleString('en-IN')}</p>
-          <span className="text-xs text-rose-600 font-semibold mt-0.5 block">Unsettled invoices</span>
+          <p className="text-xl font-extrabold text-slate-900 mt-1">₹{totalOutstandingAR.toLocaleString('en-IN')}</p>
+          <span className="text-xs text-rose-600 font-semibold mt-0.5 block">{unpaidInvoices.length} unpaid</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Subscriptions</span>
-          <p className="text-xl font-extrabold text-emerald-700 mt-1">3</p>
-          <span className="text-xs text-emerald-700 font-semibold mt-0.5 block">₹1.8L /mo MRR</span>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Subscriptions</span>
+          <p className="text-xl font-extrabold text-emerald-700 mt-1">{subscriptions.length}</p>
+          <span className="text-xs text-emerald-700 font-semibold mt-0.5 block">Active recurring</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Billing Alerts</span>
-          <p className="text-xl font-extrabold text-rose-700 mt-1">1</p>
-          <span className="text-xs text-rose-600 font-semibold mt-0.5 block">Overdue &gt; 15d</span>
+          <p className="text-xl font-extrabold text-rose-700 mt-1">{overdueInvoices.length}</p>
+          <span className="text-xs text-rose-600 font-semibold mt-0.5 block">Overdue invoices</span>
         </div>
       </div>
 
@@ -140,59 +150,44 @@ export default function OperationsDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div 
-            onClick={() => navigate('/sales/approvals')}
-            className="p-4 bg-purple-50/50 rounded-xl border border-purple-200/80 hover:bg-purple-50 transition-colors cursor-pointer space-y-2"
-          >
-            <span className="text-xs font-bold text-purple-900 uppercase">High-Risk Finance Approvals</span>
-            <p className="text-xs text-purple-800">
-              <strong>1 Quotation</strong> has exceeded 20% max margin discount threshold requiring finance authorization.
-            </p>
-            <div className="text-xs font-bold text-purple-700 flex items-center gap-1 pt-1">
-              <span>Review finance approval &rarr;</span>
-            </div>
+        {approvals.length === 0 && overdueInvoices.length === 0 && fulfillmentPlans.length === 0 ? (
+          <div className="py-6 text-center bg-slate-50 rounded-xl border border-slate-100">
+            <Inbox className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
+            <p className="text-xs font-medium text-slate-500">No pending operational alerts or escalations.</p>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {approvals.length > 0 && (
+              <div 
+                onClick={() => navigate('/sales/approvals')}
+                className="p-4 bg-purple-50/50 rounded-xl border border-purple-200/80 hover:bg-purple-50 transition-colors cursor-pointer space-y-2"
+              >
+                <span className="text-xs font-bold text-purple-900 uppercase">High-Risk Finance Approvals</span>
+                <p className="text-xs text-purple-800">
+                  <strong>{approvals.length} Quotation(s)</strong> require finance escalation authorization.
+                </p>
+                <div className="text-xs font-bold text-purple-700 flex items-center gap-1 pt-1">
+                  <span>Review finance approval &rarr;</span>
+                </div>
+              </div>
+            )}
 
-          <div 
-            onClick={() => navigate('/sales/fulfillment/ORD-1004')}
-            className="p-4 bg-cyan-50/50 rounded-xl border border-cyan-200/80 hover:bg-cyan-50 transition-colors cursor-pointer space-y-2"
-          >
-            <span className="text-xs font-bold text-cyan-900 uppercase">Warehouse Split Plan</span>
-            <p className="text-xs text-cyan-800">
-              <strong>ORD-1004 (100 units)</strong> optimal 3-hub dispatch ready for logistics acceptance.
-            </p>
-            <div className="text-xs font-bold text-cyan-700 flex items-center gap-1 pt-1">
-              <span>Dispatch allocation &rarr;</span>
-            </div>
+            {overdueInvoices.length > 0 && (
+              <div 
+                onClick={() => navigate('/sales/invoices')}
+                className="p-4 bg-rose-50/50 rounded-xl border border-rose-200/80 hover:bg-rose-50 transition-colors cursor-pointer space-y-2"
+              >
+                <span className="text-xs font-bold text-rose-900 uppercase">Overdue Receivables</span>
+                <p className="text-xs text-rose-800">
+                  <strong>{overdueInvoices.length} invoice(s)</strong> have passed their payment due date.
+                </p>
+                <div className="text-xs font-bold text-rose-700 flex items-center gap-1 pt-1">
+                  <span>Record payment &rarr;</span>
+                </div>
+              </div>
+            )}
           </div>
-
-          <div 
-            onClick={() => navigate('/sales/invoices')}
-            className="p-4 bg-rose-50/50 rounded-xl border border-rose-200/80 hover:bg-rose-50 transition-colors cursor-pointer space-y-2"
-          >
-            <span className="text-xs font-bold text-rose-900 uppercase">Overdue Receivables</span>
-            <p className="text-xs text-rose-800">
-              <strong>INV-2026-003 (₹85,000)</strong> past due date for Gujarat Infotech Solutions.
-            </p>
-            <div className="text-xs font-bold text-rose-700 flex items-center gap-1 pt-1">
-              <span>Record payment &rarr;</span>
-            </div>
-          </div>
-
-          <div 
-            onClick={() => navigate('/sales/subscriptions')}
-            className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200/80 hover:bg-emerald-50 transition-colors cursor-pointer space-y-2"
-          >
-            <span className="text-xs font-bold text-emerald-900 uppercase">Subscription Cycle Proration</span>
-            <p className="text-xs text-emerald-800">
-              <strong>SUB-2026-01</strong> renewal billing scheduled for Oct 1, 2026.
-            </p>
-            <div className="text-xs font-bold text-emerald-700 flex items-center gap-1 pt-1">
-              <span>View schedules &rarr;</span>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Operational Dispatch & Invoicing Queue */}
@@ -206,30 +201,32 @@ export default function OperationsDashboard() {
             </button>
           </div>
 
-          <div className="space-y-3 text-xs">
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
-              <div>
-                <span className="font-mono font-bold text-slate-900">ORD-1004</span> · Acme Corp (100 units)
-                <div className="text-slate-500 mt-0.5">3 Hubs (Ahmedabad, Anand, Gandhinagar) · Est. ₹2,450</div>
-              </div>
-              <button 
-                onClick={() => navigate('/sales/fulfillment/ORD-1004')}
-                className="px-3 py-1.5 bg-indigo-600 text-white font-bold rounded-lg shadow-xs"
-              >
-                Split Plan
-              </button>
+          {loadingFulfillment ? (
+            <LoadingSkeleton count={2} />
+          ) : fulfillmentPlans.length === 0 ? (
+            <div className="py-8 text-center bg-slate-50 rounded-xl border border-slate-100">
+              <Boxes className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
+              <p className="text-xs font-semibold text-slate-700">No fulfillment orders queued</p>
+              <p className="text-xs text-slate-400 mt-0.5">When orders are confirmed, warehouse allocations appear here.</p>
             </div>
-
-            <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200 flex items-center justify-between">
-              <div>
-                <span className="font-mono font-bold text-slate-900">ORD-1005</span> · Gujarat Infotech (40 units)
-                <div className="text-amber-800 font-medium mt-0.5">35 In Stock · 5 Units Backordered</div>
-              </div>
-              <span className="px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded-full">
-                BACKORDER
-              </span>
+          ) : (
+            <div className="space-y-3 text-xs">
+              {fulfillmentPlans.slice(0, 3).map((plan) => (
+                <div key={plan.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                  <div>
+                    <span className="font-mono font-bold text-slate-900">{plan.orderNumber || plan.id}</span>
+                    <div className="text-slate-500 mt-0.5">Status: {plan.status}</div>
+                  </div>
+                  <button 
+                    onClick={() => navigate(`/sales/fulfillment/${plan.id}`)}
+                    className="px-3 py-1.5 bg-indigo-600 text-white font-bold rounded-lg shadow-xs"
+                  >
+                    View Plan
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Unpaid / Pending Invoices Ledger */}
@@ -241,29 +238,30 @@ export default function OperationsDashboard() {
             </button>
           </div>
 
-          <div className="space-y-3 text-xs">
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
-              <div>
-                <span className="font-mono font-bold text-slate-900">INV-2026-002</span> · Acme Corp
-                <div className="text-slate-500 mt-0.5">Recurring SLA · Due Oct 10, 2026</div>
-              </div>
-              <div className="text-right">
-                <span className="font-bold text-slate-900 text-sm">₹15,000</span>
-                <span className="block text-amber-600 font-medium">Pending</span>
-              </div>
+          {loadingInvoices ? (
+            <LoadingSkeleton count={2} />
+          ) : unpaidInvoices.length === 0 ? (
+            <div className="py-8 text-center bg-slate-50 rounded-xl border border-slate-100">
+              <Receipt className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
+              <p className="text-xs font-semibold text-slate-700">All invoices settled</p>
+              <p className="text-xs text-slate-400 mt-0.5">No outstanding receivables pending payment.</p>
             </div>
-
-            <div className="p-3.5 bg-rose-50/60 rounded-xl border border-rose-200 flex items-center justify-between">
-              <div>
-                <span className="font-mono font-bold text-slate-900">INV-2026-003</span> · Gujarat Infotech
-                <div className="text-rose-800 mt-0.5">One-Time Hardware · Due Sep 15, 2026</div>
-              </div>
-              <div className="text-right">
-                <span className="font-bold text-rose-700 text-sm">₹85,000</span>
-                <span className="block text-rose-700 font-bold">OVERDUE</span>
-              </div>
+          ) : (
+            <div className="space-y-3 text-xs">
+              {unpaidInvoices.slice(0, 3).map((inv) => (
+                <div key={inv.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                  <div>
+                    <span className="font-mono font-bold text-slate-900">{inv.invoiceNumber || inv.id}</span>
+                    <div className="text-slate-500 mt-0.5">Due: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-slate-900 text-sm">₹{Number(inv.amount || 0).toLocaleString('en-IN')}</span>
+                    <span className="block text-amber-600 font-medium">{inv.status}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
