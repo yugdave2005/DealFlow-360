@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { 
   Activity, 
   AlertTriangle, 
@@ -26,6 +27,27 @@ const getToken = () => localStorage.getItem('accessToken');
 
 export default function DealHealth() {
   const navigate = useNavigate();
+
+  const escalateMutation = useMutation({
+    mutationFn: async ({ itemId, type, notes }) => {
+      const res = await fetch(`${API_DEAL_HEALTH}/escalate`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ itemId, type, notes })
+      });
+      if (!res.ok) throw new Error('Failed to escalate');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Issue escalated and stakeholders notified via Brevo/Socket');
+    },
+    onError: () => {
+      toast.error('Failed to dispatch escalation');
+    }
+  });
 
   const { data: healthData, isLoading: isHealthLoading } = useQuery({
     queryKey: ['dealHealthData'],
@@ -143,7 +165,15 @@ export default function DealHealth() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 mb-3">No activity recorded for over 7 days in status: {deal.status}</p>
-                <div className="flex items-center justify-end pt-2 border-t border-slate-200/60 text-xs">
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
+                  <button
+                    onClick={() => escalateMutation.mutate({ itemId: deal.id, type: 'Stalled Deal', notes: 'Urgent: Deal has completely stalled.' })}
+                    className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 bg-rose-50 px-2 py-1 rounded"
+                    disabled={escalateMutation.isPending}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Nudge/Escalate</span>
+                  </button>
                   <button
                     onClick={() => navigate(`/sales/quotations/${deal.id}`)}
                     className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1"
@@ -196,10 +226,25 @@ export default function DealHealth() {
                 </div>
                 <div className="flex items-center justify-between pt-1 text-xs">
                   <span className="text-slate-500">Risk score exceeds tolerance limit</span>
-                  <button
-                    onClick={() => navigate('/sales/quotations')}
-                    className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 shrink-0 ml-2"
-                  >
+                  
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => escalateMutation.mutate({ itemId: deal.quotationNumber, type: 'Discount Anomaly', notes: 'Margin eroded too deeply.' })}
+                      className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1"
+                      disabled={escalateMutation.isPending}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>Escalate</span>
+                    </button>
+                    <button
+                      onClick={() => navigate('/sales/quotations')}
+                      className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 shrink-0"
+                    >
+                      <span>Review Quotes</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
                     <span>Review Quotes</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>

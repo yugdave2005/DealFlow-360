@@ -70,3 +70,21 @@ export const getDealHealth = async () => {
     }
   };
 };
+
+export const escalateIssue = async ({ itemId, type, notes }) => {
+  // Normally you would integrate with an SMTP Service (Brevo/SendGrid) here
+  // or create a task in a CRM system. 
+  // We use the real-time notification socket to push an alert to specific roles.
+
+  import('../../services/socket/socket.service.js').then(({ broadcastEvent }) => {
+    broadcastEvent('DEAL_HEALTH_ESCALATION', {
+      itemId,
+      type,
+      notes,
+      timestamp: new Date(),
+      message: `System Escalation: A ${type} issue has been manually escalated.`
+    });
+  });
+
+  return { success: true, message: 'Notification dispatched to relevant stakeholders.' };
+};

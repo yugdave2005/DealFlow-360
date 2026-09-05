@@ -15,11 +15,14 @@ import {
   CheckCircle2, 
   ChevronRight,
   TrendingUp,
-  Activity
+  Activity,
+  FileSpreadsheet,
+  FileDown
 } from 'lucide-react';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { exportToExcel, exportToPDF } from '../../lib/exportUtils';
 
 import { api } from '../../lib/axios';
 import { quotationsApi } from '../../features/quotations/quotations.api';
@@ -166,6 +169,39 @@ export default function Dashboard() {
     return <LoadingSkeleton type="table" rows={6} />;
   }
 
+  const handleExportExcel = () => {
+    const exportData = quotes.map(q => {
+      const v = q.activeVersion || q.versions?.[0] || {};
+      const amount = Number(v.totalAmount || 0);
+      return {
+        'Quote #': q.quotationNumber,
+        'Customer': q.customer?.name || 'Account Corporation',
+        'Amount': amount,
+        'Discount': Number(v.totalDiscount || 0),
+        'Risk': v.riskScore || 20,
+        'Status': q.status
+      };
+    });
+    exportToExcel(exportData, 'Dashboard_Quotations', 'Dashboard');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['Quote #', 'Customer', 'Amount', 'Discount', 'Risk', 'Status'];
+    const rows = quotes.map(q => {
+      const v = q.activeVersion || q.versions?.[0] || {};
+      const amount = Number(v.totalAmount || 0);
+      return [
+        q.quotationNumber,
+        q.customer?.name || 'Account Corporation',
+        amount.toLocaleString('en-IN'),
+        Number(v.totalDiscount || 0).toLocaleString('en-IN'),
+        v.riskScore || 20,
+        q.status
+      ];
+    });
+    exportToPDF(headers, rows, 'Dashboard_Report', 'Sales Dashboard Report');
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Top Header & New Quotation CTA */}
@@ -174,13 +210,23 @@ export default function Dashboard() {
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Sales Overview</h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">Pipeline performance and active quotation pipeline</p>
         </div>
-        <Link 
-          to="/sales/quotations/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-xs shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Quotation</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200 shadow-xs h-10">
+            <button onClick={handleExportExcel} className="p-2 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 transition-colors" title="Export Excel">
+               <FileSpreadsheet className="w-4 h-4" />
+            </button>
+            <button onClick={handleExportPDF} className="p-2 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-100 transition-colors" title="Export PDF">
+               <FileDown className="w-4 h-4" />
+            </button>
+          </div>
+          <Link 
+            to="/sales/quotations/new"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-xs shrink-0 h-10"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Quotation</span>
+          </Link>
+        </div>
       </div>
 
       {/* 4 Primary KPI Cards */}

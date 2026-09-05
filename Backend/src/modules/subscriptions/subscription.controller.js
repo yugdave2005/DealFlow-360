@@ -13,3 +13,6 @@ export const modify = async (req, res, next) => {
 export const cancel = async (req, res, next) => {
   try { sendSuccess(res, 200, 'Subscription cancelled', await subService.cancelSubscription(req.params.id)); } catch (e) { next(e); }
 };
+export const prorate = async (req, res, next) => {
+  try { sendSuccess(res, 200, 'Proration processed successfully', await subService.processProration(req.params.id, req.body)); } catch (e) { next(e); }
+};

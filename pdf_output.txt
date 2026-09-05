@@ -1,0 +1,273 @@
+An Intelligent, Self Governing S ales Operations P latform 
+This hackathon project is  a Sales Operations platform called "D ealFlow360", des igned to 
+handle: 
+● Multi tier dis count governance and automated approval routing 
+● Live ups ell and cross sell recommendations while  buildin g a quotation 
+● Multi wa rehouse fulfillm ent splittin g and backorder ha ndling 
+● Hybrid billin g (one tim e products mixed with r ecur ring subscription lines) 
+● Deal health monitoring and anomaly alerts 
+● Customer facing portal negotiation on live quo tations 
+● Sales backend configura tion and reporting dashboards 
+Most simple sales tools handle the basics well: cr eate a quote, co nfirm an order, invoice 
+it. Real B2B sales teams operate in messier co nditions such a s multi level dis count 
+approvals, partial stock spread across warehouses, bun dled subscriptions mixed with o ne 
+time hardware, cus tomers who  want to negotiate inside a  portal instead of over email, and 
+managers who  only find out a deal is stuck after it ha s already lost momentum. 
+The go al of this pr oject is  to build a  sales platform that goes beyond a quote to invoice 
+form and beco mes a self go verning deal engine, one tha t enforces pricing dis ciplin e, 
+reacts to inventory reality in real time, keeps subscriptions and one tim e sales reconciled 
+on a single o rder, and giv es both sales reps and cus tomers a livin g, negotiable do cument 
+instead of a static PDF. 1) Project OverviewDealFlow360Teams are free to use any programming language, fra mework, or database techn ology to 
+build this  solution. The focus is on the busin ess logic, the  data model, and the en d to end 
+workflow, not on any specific pla tform or vendor. 
+Main Goal 
+Build a  complete sales flow includin g backend configura tion and a frontend quo tation to 
+cash experience. 
+Key Outcom es 
+● Sales rep can log in, build a  quotation, and have it a uto route for the co rrect 
+approval based on discount and cus tomer tie r 
+● Rep receiv es live ups ell and cross sell sugge stions with r eal time margin impact 
+while  buildin g the quo te 
+● Order can be a utomatically split a cross warehouses based on stock availability, 
+with m anual override 
+● A single o rder c an mix one tim e products and recur ring subscription lines with 
+correct pr oration and bill ing schedules 
+● Dashboard shows deal health, stalled quo tes, and dis count anomalies in real time 
+● Customer can view and negotiate the quo tation directly from a customer facing 
+portal witho ut em ail back and forth 
+Sales Rep 
+● Builds  quotations, applie s discounts, adds upsell items 
+● Tracks approval status and fulfillm ent progress 2) Goals & Scope
+3) User Roles● Responds to customer negotiation reques ts 
+Sales Manager / A pprover 
+● Reviews and approves or reject s quotations that exceed dis count thresholds 
+● Configur es disco unt tiers  and approval cha ins 
+● Monitors de al health da shboard for at risk deals 
+Finance / Operation s Use r 
+● Handles second level approvals for high r isk discounts 
+● Manages warehouse fulfillm ent splits and backorder decisions 
+● Reconciles recur ring billin g and credit n otes 
+Customer (P ortal Use r) 
+● Views quotation online 
+● Reques ts changes, asks line level ques tions, or counters a discount 
+● Confirms final terms with o ne click  
+Admin 
+● Manages backend setup: pr oducts, price lists, disco unt tiers , warehouses, 
+subscription plans 
+● Views platform wide a nalytics and reporting 
+A) Sales Backend (C onfiguration  Area) 
+A1) A uthentication  (Login  / Signup) 
+● Internal users can sign up a nd log in with s tandard creden tials 4) Modules / Features Breakdown● Customers access their quo tations through a  portal login (magic lin k, or em ail and 
+password) 
+● After login, internal users can acces s backend configura tion and open a sales 
+workspace 
+A2) Pr odu ct & Pr ice List M anagement 
+● General Info: Name, Ca tegory, Price, Un it, Tax, Product D escription 
+● Variants: Attribute (example: Size or Pack), Values, Extra prices 
+● Price Lis ts: Cust omer tie r based pr icing, cur rency specific rules  
+A3) Discou nt Tier & A pproval Chain Setup 
+● Define dis count ceilings per cus tomer tier ( example: Bronze up to 5 pe rcent, Silver 
+up to 10 percent, Go ld up t o 15 per cent) 
+● Define category specific dis count ceilin gs (some product c ategories allow highe r 
+discretion than others) 
+● Configur e approval cha in: which dis count range needs Sales Manager o nly, and 
+which ra nge needs  Sales Manager f ollowed by Fin ance 
+Notes 
+● Whe n a quote mixes categories with dif ferent ceilings, the s ystem must compute a 
+blended r isk score and route to the highes t requir ed le vel 
+● All approvals, rejections, and edit s must be lo gged with us er, timestamp, and 
+reason 
+A4) W arehouse & F ulfillment Se tup 
+● Create and manage wa rehouses (example: " Main Warehouse", "East Depot") 
+● Configur e stock levels and replen ishment rules  per wa rehouse 
+● Define shippin g cost weightin g used by the  auto split lo gic to minimize number o f 
+shipm ents 
+A5) Su bscr iption  / Recurring Pla n Setup ● Define recurring pla ns (monthly, qua rterly, yearly) that can be a ttached to specific 
+products or services 
+● Configur e proration rules  for mid cycle qua ntity or plan changes 
+● Configur e cancella tion and partial refun d rules  
+A6) Upse ll / Cr oss Se ll Rule Setup (O ption al) 
+● Define product p airings based on historical co purchase data 
+● Mark products as currently promoted so they rank higher in  sugge stions 
+● Set minimum margin thresholds so only healthy margin sugge stions surface 
+A7) Repor ting & Da shboard Configuration  
+● Dashboard plus  reporting menu for sales performance 
+● Export options: PDF / X LS 
+Repor ting Fil ters (Pu rpose ) 
+● Period: View quo tations and orders within  a date range (today, week, cus tom 
+range) 
+● Sales Team / Rep: Fil ter reports by responsible rep or team, to analyze individua l or 
+team performance 
+● Approval Status: Filter by pending, approved, o r rejected quo tations 
+● Product / Ca tegory: Fil ter reporting to track best selling or most discounted items 
+B) Sales Frontend (R ep W orksp ace Expe rience) 
+B1) Sales W orksp ace, Top M enu 
+Top n avigation  con tains 
+● Quotations: Redirects to the list of active and dra ft quo tations 
+● Pipeline: Opens a Kanban style de al pipelin e vie w Action s 
+● Reload Data: Refreshes pricing, stock, and approval data from the b ackend 
+● Go to Back-end: Opens the co nfigura tion and settings screen 
+● Close Workspace: En ds the current working session view 
+B2) Qu otation  List / Pipe line View 
+● Quotations appear as select able cards showing cus tomer, amount, and stage 
+● Example en tries: "Acme Co rp, Draft", "Bet a Industries, Pending Approval" 
+● Selecting a quotation opens the Q uotation Builder f or tha t deal 
+B3) Qu otation  Builder Scr een (Produ cts + Cart) 
+● Pick products across categories (Hardware, Services, Subscriptions) 
+● Adjust qua ntities (+/-) 
+● Apply line level or order level dis counts 
+● View order lines with pr ice totals and a live margin indicator 
+● Confirm and move to approval, or straight t o fulfillm ent if no approval is requir ed 
+B4) Dis cou nt Approval Scr een 
+Approval scr een includes 
+● Blended risk score for the quo tation 
+● Approval steps list: Sales Manager, and Fin ance (only shown when  requir ed) 
+After e ach reviewer a cts 
+● Approve, reject, or return for revisio n 
+● Confirmation screen with a  full a udit tra il entry 
+B5) Upsell a nd Cross Se ll Panel (Spe cial Flo w) 
+Whe n buildin g a quotation, this  panel is shown alongside the  cart: ● Ranked sugges tion list based on co purchase his tory and active promotions 
+Displa ys 
+● Sugges ted pr oduct 
+● Margin delta if added 
+● Promotion tag if a pplic able 
+Buttons 
+● Add to Quote 
+● Dismiss 
+After adding a sugges tion, the margin indicator on the quo tation upda tes immediately. 
+B6) F ulfillment and W arehouse Split Scr een 
+● Shows recommended wa rehouse split for the o rder b ased on live stock 
+Displa ys 
+● Warehouse name 
+● Quantity fulfilled fr om that warehouse 
+● Estimated shipm ent count and cost 
+Buttons 
+● Accept S ugges ted S plit 
+● Manual Override 
+If stock arrives mid fulfillm ent, a "Consolidate Remaining Ba ckorder" prompt appears 
+automatically. 
+B7) Su bscr iption  and Billing Scr een 
+● Shows one tim e lines and recur ring lines separately within  the same order ● Displays upco ming billin g schedule for recur ring lines 
+● Handles mid cycle pr oration when  quantity changes 
+● Cancel o r modify s ubscription controls, with a n automatic partial refun d or credit 
+note trigger when  applic able 
+B8) C ustomer Portal Ne gotia tion  Scr een 
+Customer facing screen, separate from the internal workspace: 
+● Shows quotation details and cur rent status (Sent, Un der Nego tiation, Confirmed) 
+● Line level co mment and cha nge reques t tool 
+● Counter dis count proposal field 
+Buttons 
+● Submit Reques t 
+● Confirm Quotation 
+After con firmation  
+● If final terms exceed a pproval thresholds, the quotation automatically re enters the 
+approval flow from B4 
+● Otherwise, the o rder moves directly to fulfillm ent 
+B9) De al He alth and Anomaly Da shboard 
+Dashboard sh ows 
+● Stalled de als (quotations inactive for more tha n a configur ed number of days) 
+● Discount anomaly alerts (a discount well above a rep's historical average) 
+● Delivery promise slippage in dicators 
+● Click ing an alert opens the related quo tation directly 
+● An automated nudge o r escalation action can be tr igger ed fr om an alert ● Sales rep signs up ( first time) or logs in to access the s ystem 
+● Admin configur es the backend (products, price lis ts, discount tiers , approval 
+chains, warehouses, subscription plans) 
+● Rep opens the w orkspace and creates a new quo tation for a customer 
+● Rep adds products, applies  discounts, and reviews upsell sugge stions in the p anel 
+● If the dis count or blen ded risk score exceeds  a threshold, the quo tation is 
+automatically routed for approval (Sales Manager, then  Finance if r equir ed) 
+● Once approved, o r immediately if n o approval was needed, the s ystem sugges ts a 
+warehouse fulfillm ent split 
+● Order may include r ecur ring subscription lines, which gen erate a billin g schedule 
+alongside a ny one tim e invoice 
+● Customer receiv es the quo tation link and can negotiate directly thr ough the po rtal 
+● If terms change be yond thr esholds during negotiation, the quote re enters the 
+approval flow automatically 
+● Once co nfirmed, the o rder proceeds  to fulfillm ent and billin g 
+● Manager r eviews the Deal Health da shboard thr ougho ut the c ycle to catch stalled 
+or risky deals early 
+● Reports are reviewed us ing filters (Period / S ales Team / Approval Status / Product)  
+● Real world bus iness workflow: Shows how a complete B2 B sales flow works end to 
+end (Quotation to Approval to Fulfillm ent to Billin g to Reporting) 
+● Business logic focus: Teaches handling real opera tional problems like dis count 
+governance, m ulti wa rehouse fulfillm ent, and hybrid billin g, not just UI 5) Complete Flow (End-to-End)
+6) Why This Hackathon Problem Is Important● Indus try ready system thinking: Builds  a productio n like solution with r eal time 
+approval routing, multi wa rehouse coordination, and portal based cus tomer 
+collaboration 
+● Techn ology agnostic: T eams can apply this  problem statement using a ny language, 
+framework, or database of their cho ice, s o the focus stays on design, data 
+modelin g, and workflow logic 
+● Teams may use any tech s tack (any backend language, a ny frontend fra mework, 
+any relational or document database) 
+● Core bus iness rules  (approval routing, dis count governance, wa rehouse splittin g, 
+billin g proration) must be im plemented in  applic ation logic, n ot hardcoded or faked 
+for the dem o 
+● The cus tomer facing negotiation screen must be a  real, separate, restricted vie w, 
+not just another in ternal screen with a  different label 
+● Multi currency or multi company suppo rt is a bonus, not a requir ement 
+● A working applic ation (backend plus  frontend) with s ample s eed da ta 
+● A five minute live dem o covering at least two full flo ws end to end, from quotation 
+to fulfillm ent or billin g 
+● A one page architectur e dia gram showing the  data model a nd how the m ajor 
+modules  connect 
+● A short note on wha t the t eam would build n ext with m ore tim e 7) Technical Guidelines
+8) Deliverables
+9) Quick Test Flow (Login to Payment)Use this  short walkthrough t o check  that the co re logic a ctually works, not just the 
+screens. Each step should pr oduce a  visible, co rrect r esult bef ore moving to the n ext one. 
+● Sign up o r log in, and set up b asic backend data: a discount tier, a warehouse, and 
+a subscription plan 
+● Create a quotation and add a product lin e with a  discount that is highe r tha n wha t 
+is normally allowed 
+● Confirm the quotation automatically asks for manager a pproval, witho ut the r ep 
+having to reque st it m anually 
+● While buildin g the  quote, accept o ne ups ell sugges tion and confirm the order total 
+and margin upda te right a way 
+● Get the quo tation approved, then  confirm that stock is bein g pulled fr om the 
+correct wa rehouse, splittin g across two warehouses if needed 
+● Check that a one tim e product a nd a recur ring subscription on the s ame order are 
+billed co rrectly and separately 
+● Open the cus tomer po rtal view and reques t a bigger dis count as the cus tomer, 
+then confirm the quote goes back for approval automatically 
+● Confirm the o rder, record a payment, and che ck that the in voice s tatus upda tes 
+correctly 
+If all eight s teps w ork smoothly and each result matches wha t is expected, the co re flow 
+is solid. 
+This score decides  whether a  quotation needs  manager a pproval, and if n eeded, whether 
+it also needs finance approval. The simplest way to think about it: dif ferent products are 
+allowed dif ferent discount limits, and the s ystem check s every line against its own limit, 
+not just one overall lim it for the who le order. 10) Understanding the Blended Discount Risk ScoreExample 
+A Gold cus tomer is normally allowed up t o 15 per cent discount. But within  that same 
+order: 
+● Hardware items are allowed up t o 15 per cent, since the y have healthy margins 
+● Service it ems are allowed only up t o 10 percent, since the y have thin  margins 
+Now say a rep builds  this quote: 
+● Laptop (Ha rdware): 12 percent discount given, 15 per cent allowed, s o this line is 
+fine 
+● Setup S ervice (Service): 18 percent discount given, only 10 percent allowed, s o this 
+line is 8 points over its limit 
+Even though the cus tomer is Gold and 15 per cent sounds fine on paper, the Service lin e 
+broke its own stricter limit. So the who le quo tation gets flagged for approval, bec ause of 
+that one line. 
+Why "blen ded"? 
+Sometimes no single line is badly over its limit, but m any lines are each a little  over. One 
+line 2 points over, another 3  points over, another 2  points over. None of them  look 
+alarming alone, but a dded t ogethe r across the order, the r ep ha s quie tly given away a lot 
+of margin. The blen ded s core looks at the t otal pattern across the order, not just the s ingle 
+worst line, so small vio lations spread across many lines cannot slip thr ough un noticed. 
+Why this m atters 
+● It decides  who  needs  to review the de al before it is  approved, s o managers are not 
+stuck reviewing every single quo tation by hand 
+● It stops a rep fr om keeping every line techn ically within  limits while s till dis counting 
+the o rder more tha n the company intends overall 
+ Why Th is Ha ckathon Proble m is Im portant 
+Real-world sa les workflo w: Shows how a complete B2 B sales process works end-to-end 
+(Quotation → Approval → Fulfillm ent → Billin g → Cust omer Nego tiation → Reporting). 
+Business log ic focu s: Teaches handling pra ctical rule s like dis count approvals, 
+warehouse splittin g, subscription billin g, margin impact, and cus tomer negotiation — not 
+just UI screens. 
+Industry-ready sy stem thinking: Builds a  productio n-like solution with r ole-based 
+acces s, approval cha ins, inventory coordination, recur ring billin g, audit tra ils, and deal 
+analytics. 
+ 
+Mocku p: https ://app.excalidraw.com/l/65V Nwvy 7c4X/7Fb5S R3WKu2 
+ 

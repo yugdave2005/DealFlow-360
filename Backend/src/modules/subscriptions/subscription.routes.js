@@ -9,5 +9,6 @@ router.get('/', ctrl.list);
 router.get('/:id', ctrl.get);
 router.patch('/:id', ctrl.modify);
 router.post('/:id/cancel', ctrl.cancel);
+router.post('/:id/prorate', ctrl.prorate);
 
 export default router;

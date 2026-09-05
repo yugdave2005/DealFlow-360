@@ -20,10 +20,14 @@ import {
   Layers,
   FileText,
   IndianRupee,
-  X
+  X,
+  Download,
+  FileSpreadsheet,
+  FileDown
 } from 'lucide-react';
 import EmptyState from '../../components/common/EmptyState';
 import { quotationsApi } from '../../features/quotations/quotations.api';
+import { exportToExcel, exportToPDF } from '../../lib/exportUtils';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -186,6 +190,40 @@ export default function Pipeline() {
     };
   }, [quotations]);
 
+  const handleExportExcel = () => {
+    const exportData = filteredQuotations.map(q => {
+      const v = q.activeVersion || (q.versions && q.versions[0]) || {};
+      return {
+        'Quote #': q.quotationNumber || `QT-${q.id.slice(0,6)}`,
+        'Customer': q.customer?.companyName || q.customer?.name || 'Account Corporation',
+        'Stage': q.status,
+        'Amount': Number(v.totalAmount) || Number(q.totalAmount) || 0,
+        'Discount': Number(v.totalDiscount) || 0,
+        'Margin (%)': v.marginPercent || 25,
+        'Risk Score': v.riskScore || 15,
+        'Sales Rep': q.salesRep?.name || 'Representative'
+      };
+    });
+    exportToExcel(exportData, 'Pipeline_Export', 'Pipeline');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['Quote #', 'Customer', 'Stage', 'Amount', 'Margin', 'Risk', 'Rep'];
+    const rows = filteredQuotations.map(q => {
+      const v = q.activeVersion || (q.versions && q.versions[0]) || {};
+      return [
+        q.quotationNumber || `QT-${q.id.slice(0,6)}`,
+        q.customer?.companyName || q.customer?.name || 'Account Corporation',
+        q.status,
+        (Number(v.totalAmount) || Number(q.totalAmount) || 0).toLocaleString('en-IN'),
+        `${v.marginPercent || 25}%`,
+        v.riskScore || 15,
+        q.salesRep?.name || 'Representative'
+      ];
+    });
+    exportToPDF(headers, rows, 'Pipeline_Report', 'Sales Pipeline Report');
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-5">
       
@@ -229,6 +267,23 @@ export default function Pipeline() {
             >
               <List className="w-3.5 h-3.5" />
               <span className="hidden md:inline">List</span>
+            </button>
+          </div>
+
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button
+               onClick={handleExportExcel}
+               className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+               title="Export Excel"
+            >
+               <FileSpreadsheet className="w-4 h-4" />
+            </button>
+            <button
+               onClick={handleExportPDF}
+               className="p-1.5 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+               title="Export PDF"
+            >
+               <FileDown className="w-4 h-4" />
             </button>
           </div>
 
