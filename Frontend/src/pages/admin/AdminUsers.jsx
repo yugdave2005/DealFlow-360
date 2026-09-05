@@ -45,7 +45,7 @@ export default function AdminUsers() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['adminUsersList'],
-    queryFn: () => adminApi.getUsers().then(res => res.data).catch(() => [])
+    queryFn: () => adminApi.getUsers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const updateMutation = useMutation({
@@ -95,20 +95,22 @@ export default function AdminUsers() {
     }
   };
 
+  const userList = useMemo(() => Array.isArray(users) ? users : (users?.data || []), [users]);
+
   // KPI Calculations
-  const totalUsers = users.length;
-  const customerCount = users.filter(u => u.role === 'CUSTOMER').length;
+  const totalUsers = userList.length;
+  const customerCount = userList.filter(u => u.role === 'CUSTOMER').length;
   const staffCount = totalUsers - customerCount;
-  const activeCount = users.filter(u => u.isActive !== false).length;
+  const activeCount = userList.filter(u => u.isActive !== false).length;
 
   const filteredUsers = useMemo(() => {
-    return users.filter(u => {
+    return userList.filter(u => {
       const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
       return matchesSearch && matchesRole;
     });
-  }, [users, searchTerm, roleFilter]);
+  }, [userList, searchTerm, roleFilter]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 pb-24">

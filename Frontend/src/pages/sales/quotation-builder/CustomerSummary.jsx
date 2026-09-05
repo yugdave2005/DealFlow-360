@@ -32,7 +32,9 @@ export default function CustomerSummary({
                   <option value="" disabled>No customer accounts found</option>
                 ) : (
                   customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.tier} · &le;{c.tierDiscountLimit}% disc)
+                    </option>
                   ))
                 )}
               </select>
@@ -47,7 +49,7 @@ export default function CustomerSummary({
             </label>
             <div className="h-[30px] flex items-center">
               <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold text-[11px] border border-indigo-100">
-                {currentCustomer?.tier || 'Standard'}
+                {currentCustomer?.tier || 'STANDARD'}
               </span>
             </div>
           </div>
@@ -59,7 +61,7 @@ export default function CustomerSummary({
             </label>
             <div className="h-[30px] flex items-center">
               <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[11px] border border-emerald-100">
-                &le; {currentCustomer?.tierDiscountLimit || 15}% Standard
+                &le; {currentCustomer?.tierDiscountLimit ?? 10}% ({currentCustomer?.tier || 'Standard'})
               </span>
             </div>
           </div>

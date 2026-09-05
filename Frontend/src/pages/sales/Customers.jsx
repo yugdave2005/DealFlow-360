@@ -28,7 +28,7 @@ export default function Customers() {
 
   const { data: customerAccounts = [], isLoading: isCustomersLoading } = useQuery({
     queryKey: ['adminCustomersList'],
-    queryFn: () => adminApi.getCustomers().then(res => res.data).catch(() => [])
+    queryFn: () => adminApi.getCustomers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const { data: quotations = [], isLoading: isQuotesLoading } = useQuery({
@@ -47,21 +47,24 @@ export default function Customers() {
   const isLoading = isCustomersLoading || isQuotesLoading;
 
   const customerList = useMemo(() => {
-    if (!customerAccounts || customerAccounts.length === 0) return [];
+    const rawList = Array.isArray(customerAccounts) ? customerAccounts : (customerAccounts?.data || []);
+    if (!rawList || rawList.length === 0) return [];
     
-    return customerAccounts.map(c => {
+    return rawList.map(c => {
       const relatedQuotes = quotations.filter(q => q.customerId === c.id || q.quotationNumber?.includes(c.name));
       const pipelineValue = c.pipelineValue || relatedQuotes.reduce((sum, q) => sum + Number(q.activeVersion?.totalAmount || 0), 0);
       const avgRisk = relatedQuotes.length > 0 
         ? Math.round(relatedQuotes.reduce((sum, q) => sum + (q.activeVersion?.riskScore || 0), 0) / relatedQuotes.length)
         : (c.riskScore || 0);
 
+      const tier = (c.tier || 'STANDARD').toUpperCase();
       return {
         id: c.id,
-        companyName: c.companyName || `${c.name} Enterprise`,
+        companyName: c.companyName || c.name || 'Enterprise Account',
         name: c.name,
-        tier: c.tier || (pipelineValue > 500000 ? 'ENTERPRISE' : pipelineValue > 100000 ? 'GOLD' : 'SILVER'),
-        contactName: c.contactName || c.name || 'Account Contact',
+        tier: tier,
+        tierDiscountLimit: c.tierDiscountLimit || (tier === 'ENTERPRISE' ? 15 : tier === 'GOLD' ? 12 : 10),
+        contactName: c.contactName || c.contact || c.name || 'Account Contact',
         email: c.email || 'customer@company.com',
         activeQuotesCount: relatedQuotes.length || c.activeQuotesCount || 0,
         pipelineValue: pipelineValue,

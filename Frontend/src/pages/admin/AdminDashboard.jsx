@@ -14,32 +14,33 @@ import {
   Package
 } from 'lucide-react';
 import { adminApi } from '../../features/admin/admin.api';
-
-const API_QUOTES = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
-const getToken = () => localStorage.getItem('accessToken');
+import { api } from '../../lib/axios';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
   const { data: products = [] } = useQuery({
     queryKey: ['adminProductsList'],
-    queryFn: () => adminApi.getProducts().then(res => res.data).catch(() => [])
+    queryFn: () => adminApi.getProducts().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const { data: customerTiers = [] } = useQuery({
     queryKey: ['adminCustomerTiers'],
-    queryFn: () => adminApi.getCustomerTiers().then(res => res.data).catch(() => [])
+    queryFn: () => adminApi.getCustomerTiers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const { data: quotations = [] } = useQuery({
     queryKey: ['adminQuotations'],
     queryFn: async () => {
-      const res = await fetch(API_QUOTES, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || [];
+      try {
+        const res = await api.get('/quotations');
+        return res.data?.data || [];
+      } catch (error) {
+        if (error.response?.status !== 401) {
+          console.error('Failed to fetch admin quotations:', error);
+        }
+        return [];
+      }
     }
   });
 

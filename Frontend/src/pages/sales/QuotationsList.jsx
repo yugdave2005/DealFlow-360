@@ -23,18 +23,18 @@ import RiskBadge from '../../components/common/RiskBadge';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
+import { api } from '../../lib/axios';
+
 const fetchQuotations = async () => {
-  const token = localStorage.getItem('accessToken');
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
-  if (!token) return [];
   try {
-    const res = await fetch(`${API_BASE}/quotations`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!res.ok) return [];
-    const result = await res.json();
-    return result.data || [];
-  } catch {
+    const res = await api.get(`/quotations`);
+    return res.data || [];
+  } catch (error) {
+    // If it's a 401, the interceptor handles the redirect.
+    // Let the error propagate so React Query can show error state if needed, or just return []
+    if (error.response?.status !== 401) {
+      console.error('Failed to fetch quotations:', error);
+    }
     return [];
   }
 };

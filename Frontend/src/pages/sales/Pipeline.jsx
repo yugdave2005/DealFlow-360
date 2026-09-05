@@ -26,9 +26,7 @@ import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
-const getToken = () => localStorage.getItem('accessToken');
-
+import { api } from '../../lib/axios';
 // 6 Core Commercial Pipeline Stages in Lifecycle Order
 const PIPELINE_STAGES = [
   { 
@@ -92,15 +90,12 @@ export default function Pipeline() {
     queryKey: ['pipelineQuotations'],
     queryFn: async () => {
       try {
-        const token = getToken();
-        if (!token) return [];
-        const res = await fetch(API_BASE, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json.data || [];
-      } catch {
+        const res = await api.get('/quotations');
+        return res.data?.data || [];
+      } catch (error) {
+        if (error.response?.status !== 401) {
+          console.error('Failed to fetch pipeline:', error);
+        }
         return [];
       }
     }

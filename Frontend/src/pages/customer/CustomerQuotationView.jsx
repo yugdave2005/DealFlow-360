@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import DealFlowLogo from '../../components/DealFlowLogo';
 import { useAuth } from '../../context/AuthContext';
 
-const API = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/customer-portal`;
+import { api } from '../../lib/axios';
 
 export default function CustomerQuotationView() {
   const { id } = useParams();
@@ -20,21 +20,15 @@ export default function CustomerQuotationView() {
   const { data: quote, isLoading, isError } = useQuery({
     queryKey: ['customerQuotation', id, customerId],
     queryFn: async () => {
-      const res = await fetch(`${API}/quotations/${id}?customerId=${customerId}`);
-      if (!res.ok) throw new Error('Failed to fetch quotation');
-      return (await res.json()).data;
+      const res = await api.get(`/customer-portal/quotations/${id}?customerId=${customerId}`);
+      return res.data?.data || res.data;
     }
   });
 
   const acceptMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${API}/quotations/${id}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId })
-      });
-      if (!res.ok) throw new Error('Acceptance failed');
-      return res.json();
+      const res = await api.post(`/customer-portal/quotations/${id}/accept`, { customerId });
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
@@ -44,13 +38,12 @@ export default function CustomerQuotationView() {
 
   const negotiateMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${API}/quotations/${id}/negotiate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId, notes, counterDiscount: parseFloat(counterDiscount) || 0 })
+      const res = await api.post(`/customer-portal/quotations/${id}/negotiate`, { 
+        customerId, 
+        notes, 
+        counterDiscount: parseFloat(counterDiscount) || 0 
       });
-      if (!res.ok) throw new Error('Negotiation failed');
-      return res.json();
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
@@ -161,7 +154,7 @@ export default function CustomerQuotationView() {
               </div>
             </div>
 
-            {(quote.status === 'SENT' || quote.status === 'NEGOTIATION' || quote.status === 'UNDER_NEGOTIATION') ? (
+            {(quote.status === 'SENT' || quote.status === 'APPROVED') ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
                 <div className="space-y-3">
                   <h4 className="font-bold text-slate-900 text-sm">Request Terms Revision / Counter-Offer</h4>
@@ -199,12 +192,17 @@ export default function CustomerQuotationView() {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : quote.status === 'NEGOTIATION' ? (
+              <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl text-center space-y-1">
+                 <h4 className="font-bold text-amber-900 text-lg">Counter-Offer Submitted</h4>
+                 <p className="text-xs text-amber-700">Your negotiation request is currently under review by your Sales Representative.</p>
+               </div>
+            ) : quote.status === 'CONFIRMED' ? (
                <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl text-center space-y-1">
                  <h4 className="font-bold text-emerald-900 text-lg">Proposal Confirmed & Active</h4>
                  <p className="text-xs text-emerald-700">Thank you for your business. Our operations team is processing fulfillment and order dispatch.</p>
                </div>
-            )}
+            ) : null}
             
           </div>
         </div>

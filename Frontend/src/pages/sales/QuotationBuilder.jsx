@@ -72,48 +72,37 @@ export default function QuotationBuilder() {
 
   const customers = useMemo(() => {
     const rawList = Array.isArray(dbCustomers) ? dbCustomers : (dbCustomers?.data || []);
+    let list = [];
     if (rawList.length > 0) {
-      return rawList.map(c => ({
-        id: c.id,
-        name: c.companyName || c.name,
-        companyName: c.companyName || `${c.name} Corp`,
-        tier: c.tier || 'SILVER',
-        tierDiscountLimit: c.tier === 'ENTERPRISE' ? 25 : c.tier === 'GOLD' ? 20 : 15,
-        contact: c.contactName || c.name || 'Account Rep',
-        email: c.email || `contact@${(c.name || 'account').toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
-      }));
+      list = rawList.map(c => {
+        const tier = (c.tier || 'STANDARD').toUpperCase();
+        const discountLimit = c.tierDiscountLimit ?? (tier === 'ENTERPRISE' ? 15 : tier === 'GOLD' ? 12 : 10);
+        return {
+          id: c.id,
+          name: c.companyName || c.name,
+          companyName: c.companyName || c.name,
+          tier,
+          tierDiscountLimit: discountLimit,
+          contact: c.contact || c.contactName || c.name || 'Primary Contact',
+          email: c.email || 'customer@client.com'
+        };
+      });
     }
 
-    return [
-      {
-        id: 'cust-seed-1',
-        name: 'TechCorp Solutions',
-        companyName: 'TechCorp Solutions Pvt Ltd',
-        tier: 'ENTERPRISE',
-        tierDiscountLimit: 25,
-        contact: 'Priya Sharma (VP Technology)',
-        email: 'priya.sharma@techcorp.in'
-      },
-      {
-        id: 'cust-seed-2',
-        name: 'Nexus FinTech Ltd',
-        companyName: 'Nexus FinTech Ltd',
-        tier: 'GOLD',
-        tierDiscountLimit: 20,
-        contact: 'Rahul Mehta (Head of IT)',
-        email: 'rahul.mehta@nexusfin.com'
-      },
-      {
-        id: 'cust-seed-3',
-        name: 'Global Logistics Hub',
-        companyName: 'Global Logistics Hub',
-        tier: 'SILVER',
-        tierDiscountLimit: 15,
-        contact: 'Amit Patel (Operations Director)',
-        email: 'amit.patel@globallogistics.com'
-      }
-    ];
-  }, [dbCustomers]);
+    if (existingQuote && existingQuote.customer && !list.find(c => c.id === existingQuote.customerId)) {
+      list.unshift({
+        id: existingQuote.customerId,
+        name: `${existingQuote.customer.companyName || existingQuote.customer.name} (Archived)`,
+        companyName: existingQuote.customer.companyName || existingQuote.customer.name,
+        tier: existingQuote.customer.tier || 'STANDARD',
+        tierDiscountLimit: 10,
+        contact: 'Unknown (Archived)',
+        email: existingQuote.customer.email || 'unknown@archived.com'
+      });
+    }
+
+    return list;
+  }, [dbCustomers, existingQuote]);
 
   const products = useMemo(() => {
     const rawProds = Array.isArray(backendProducts) ? backendProducts : (backendProducts?.data || []);

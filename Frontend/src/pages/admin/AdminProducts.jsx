@@ -31,7 +31,7 @@ export default function AdminProducts() {
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['adminProducts'],
-    queryFn: () => adminApi.getProducts().then(res => res.data).catch(() => [])
+    queryFn: () => adminApi.getProducts().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const { register, handleSubmit, reset, watch, control } = useForm({
@@ -212,7 +212,7 @@ export default function AdminProducts() {
 
   const { data: customerTiers = [] } = useQuery({
     queryKey: ['adminCustomerTiers'],
-    queryFn: () => adminApi.getCustomerTiers().then(res => res.data).catch(() => [])
+    queryFn: () => adminApi.getCustomerTiers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const isSaving = createMutation.isPending || updateMutation.isPending;

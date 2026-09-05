@@ -34,7 +34,9 @@ export default function CustomerDealCard({
                     <option value="" disabled>No customer accounts found</option>
                   ) : (
                     customers.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.tier} · &le;{c.tierDiscountLimit}% disc)
+                      </option>
                     ))
                   )}
                 </select>
@@ -48,7 +50,7 @@ export default function CustomerDealCard({
             {/* Customer Tier */}
             <div className="px-2.5 py-1 bg-slate-50 border border-slate-200/80 rounded-lg">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer Tier</span>
-              <span className="text-xs font-bold text-indigo-700">{currentCustomer?.tier || 'Standard'}</span>
+              <span className="text-xs font-bold text-indigo-700">{currentCustomer?.tier || 'STANDARD'}</span>
             </div>
 
             {/* Primary Contact */}
@@ -66,7 +68,7 @@ export default function CustomerDealCard({
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <div>
                 <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Discount Limit</span>
-                <span className="text-xs font-bold text-emerald-700">&le; {currentCustomer?.tierDiscountLimit || 15}% Standard</span>
+                <span className="text-xs font-bold text-emerald-700">&le; {currentCustomer?.tierDiscountLimit ?? 10}% ({currentCustomer?.tier || 'Standard'})</span>
               </div>
             </div>
           </div>

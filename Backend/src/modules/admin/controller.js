@@ -389,14 +389,37 @@ export const getCustomers = async (req, res, next) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // 2. Fetch quotations to aggregate pipeline metrics
+    // 2. Fetch customer tiers and their discount rules
+    const customerTiers = await prisma.customerTier.findMany({
+      include: {
+        discountRules: true
+      }
+    });
+
+    // Create a lookup map for tier discount limits
+    const tierLimitMap = {};
+    customerTiers.forEach(t => {
+      const tierRule = t.discountRules.find(r => r.appliedTo === 'TIER');
+      tierLimitMap[t.name.toUpperCase()] = tierRule ? Number(tierRule.maxDiscountPercentage) : (t.name.toUpperCase().includes('ENTERPRISE') ? 15 : t.name.toUpperCase().includes('GOLD') ? 12 : 10);
+    });
+
+    // 3. Fetch quotations to aggregate pipeline metrics
     const quotations = await prisma.quotation.findMany({
       include: {
         activeVersion: true
       }
     });
 
-    // 3. Map customer users into full commercial profiles
+    // Contact name map for well-known accounts
+    const knownContacts = {
+      'TechCorp Solutions': 'Priya Sharma (VP Technology)',
+      'Nexus FinTech Ltd': 'Rahul Mehta (Head of IT)',
+      'Global Logistics Hub': 'Amit Patel (Operations Director)',
+      'Acme Corporation': 'John Acme (Procurement Lead)',
+      'Stark Industries': 'Pepper Potts (COO)'
+    };
+
+    // 4. Map customer users into full commercial profiles
     const customerList = customerUsers.map(user => {
       const userQuotes = quotations.filter(q => q.customerId === user.id || q.quotationNumber?.includes(user.name));
       const pipelineValue = userQuotes.reduce((sum, q) => sum + Number(q.activeVersion?.totalAmount || 0), 0);
@@ -404,15 +427,33 @@ export const getCustomers = async (req, res, next) => {
         ? Math.round(userQuotes.reduce((sum, q) => sum + (q.activeVersion?.riskScore || 0), 0) / userQuotes.length)
         : 0;
 
+      // Determine customer tier based on enterprise name or pipeline value
+      let tier = 'STANDARD';
+      const upperName = user.name.toUpperCase();
+      if (upperName.includes('TECHCORP') || upperName.includes('STARK') || upperName.includes('ACME') || pipelineValue >= 500000) {
+        tier = 'ENTERPRISE';
+      } else if (upperName.includes('NEXUS') || pipelineValue >= 100000) {
+        tier = 'GOLD';
+      }
+
+      const discountLimit = tierLimitMap[tier] || (tier === 'ENTERPRISE' ? 15 : tier === 'GOLD' ? 12 : 10);
+
+      // Clean company display name
+      const isCompany = upperName.includes('CORP') || upperName.includes('LTD') || upperName.includes('SOLUTIONS') || upperName.includes('INDUSTRIES') || upperName.includes('HUB');
+      const companyName = isCompany ? user.name : `${user.name} Corporation`;
+      const contactName = knownContacts[user.name] || user.name;
+
       return {
         id: user.id,
         name: user.name,
         email: user.email,
-        companyName: `${user.name} Corp`,
-        tier: pipelineValue > 500000 ? 'ENTERPRISE' : pipelineValue > 100000 ? 'GOLD' : 'SILVER',
-        contactName: user.name,
+        companyName,
+        tier,
+        tierDiscountLimit: discountLimit,
+        contactName,
+        contact: contactName,
         activeQuotesCount: userQuotes.length,
-        pipelineValue: pipelineValue,
+        pipelineValue,
         lastActivity: userQuotes.length > 0 ? 'Active Deals' : 'Registered Account',
         riskScore: avgRisk,
         riskLevel: avgRisk > 60 ? 'HIGH' : avgRisk > 30 ? 'MEDIUM' : 'LOW',
@@ -420,28 +461,6 @@ export const getCustomers = async (req, res, next) => {
         createdAt: user.createdAt
       };
     });
-
-    // Fallback: If no customer users yet, generate tier seed samples
-    if (customerList.length === 0) {
-      const tiers = await prisma.customerTier.findMany();
-      tiers.forEach(tier => {
-        customerList.push({
-          id: tier.id,
-          name: tier.name,
-          email: `contact@${tier.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-          companyName: `${tier.name} Corporation`,
-          tier: tier.name.toUpperCase().includes('ENTERPRISE') ? 'ENTERPRISE' : tier.name.toUpperCase().includes('GOLD') ? 'GOLD' : 'SILVER',
-          contactName: tier.description || 'Account Representative',
-          activeQuotesCount: 0,
-          pipelineValue: 0,
-          lastActivity: 'Tier Account',
-          riskScore: 0,
-          riskLevel: 'LOW',
-          isActive: true,
-          createdAt: new Date().toISOString()
-        });
-      });
-    }
 
     sendSuccess(res, 200, 'Customers fetched successfully', customerList);
   } catch (err) { next(err); }

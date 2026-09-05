@@ -26,8 +26,7 @@ import RiskBadge from '../../components/common/RiskBadge';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-const API = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/approvals`;
-const getToken = () => localStorage.getItem('accessToken');
+import { api } from '../../lib/axios';
 
 export default function Approvals() {
   const queryClient = useQueryClient();
@@ -47,31 +46,26 @@ export default function Approvals() {
   const { data: approvals = [], isLoading, refetch } = useQuery({
     queryKey: ['approvalsQueue', statusFilter],
     queryFn: async () => {
-      const endpoint = statusFilter === 'PENDING' ? `${API}/pending` : API;
-      const res = await fetch(endpoint, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch approvals queue');
-      const data = await res.json();
-      return data.data || [];
+      try {
+        const endpoint = statusFilter === 'PENDING' ? `/approvals/pending` : `/approvals`;
+        const res = await api.get(endpoint);
+        return res.data?.data || [];
+      } catch (error) {
+        if (error.response?.status !== 401) {
+          console.error('Failed to fetch approvals queue:', error);
+        }
+        return [];
+      }
     }
   });
 
   const actionMutation = useMutation({
     mutationFn: async ({ approvalId, action, comments }) => {
-      const res = await fetch(`${API}/${approvalId}/action`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${getToken()}` 
-        },
-        body: JSON.stringify({ action, comments })
+      const res = await api.post(`/approvals/${approvalId}/action`, {
+        action,
+        comments
       });
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.message || 'Action failed');
-      }
-      return res.json();
+      return res.data;
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['approvalsQueue'] });

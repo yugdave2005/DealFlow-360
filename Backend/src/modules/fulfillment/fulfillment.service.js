@@ -63,15 +63,18 @@ export const listFulfillmentPlans = async () => {
  * Resolves by Plan ID, Order ID, Order Number, or Quotation ID.
  */
 export const getFulfillmentPlan = async (queryId) => {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(queryId);
+  const whereOr = [
+    { order: { orderNumber: queryId } }
+  ];
+  if (isUuid) {
+    whereOr.push({ id: queryId });
+    whereOr.push({ orderId: queryId });
+    whereOr.push({ order: { quotationId: queryId } });
+  }
+
   let plan = await prisma.fulfillmentPlan.findFirst({
-    where: {
-      OR: [
-        { id: queryId },
-        { orderId: queryId },
-        { order: { orderNumber: queryId } },
-        { order: { quotationId: queryId } }
-      ]
-    },
+    where: { OR: whereOr },
     include: {
       order: true,
       items: { include: { warehouse: true } }
@@ -106,11 +109,9 @@ export const getFulfillmentPlan = async (queryId) => {
           data: {
             orderNumber: `ORD-${String(orderCount + 1004).padStart(4, '0')}`,
             quotationId: quotation.id,
-            quotationVersionId: activeVer.id,
             customerId: quotation.customerId,
-            salesRepId: quotation.salesRepId,
             totalAmount: activeVer.totalAmount,
-            status: 'CONFIRMED'
+            status: 'PROCESSING'
           }
         });
       }
@@ -219,15 +220,18 @@ export const generateFulfillmentPlan = async (orderId, mode = 'BALANCED') => {
  * Accept the suggested split — mark items as SHIPPED.
  */
 export const acceptPlan = async (planId) => {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(planId);
+  const whereOr = [
+    { order: { orderNumber: planId } }
+  ];
+  if (isUuid) {
+    whereOr.push({ id: planId });
+    whereOr.push({ orderId: planId });
+    whereOr.push({ order: { quotationId: planId } });
+  }
+
   const plan = await prisma.fulfillmentPlan.findFirst({
-    where: {
-      OR: [
-        { id: planId },
-        { orderId: planId },
-        { order: { orderNumber: planId } },
-        { order: { quotationId: planId } }
-      ]
-    },
+    where: { OR: whereOr },
     include: { items: true }
   });
 

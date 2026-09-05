@@ -39,9 +39,10 @@ export default function Login() {
 
       toast.success('Welcome back to DealFlow360!');
       
+      // Direct redirect to role dashboard (use location.href to ensure AuthContext reads new localStorage on reload)
       const normalizedRole = normalizeRole(result.data.user?.role);
       const targetRoute = ROLE_DEFAULT_ROUTES[normalizedRole] || '/sales/dashboard';
-      navigate(targetRoute);
+      window.location.href = targetRoute;
     } catch (err) {
       toast.error(err.message);
     } finally {

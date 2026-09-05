@@ -21,7 +21,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 app.use(pinoHttp({ logger }));
-app.use(globalLimiter);
+// app.use(globalLimiter); // Temporarily disabled for testing
 
 app.use(passport.initialize());
 

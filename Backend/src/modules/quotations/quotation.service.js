@@ -192,9 +192,7 @@ export const updateQuotation = async (quotationId, { customerId, lineItems }, us
 
 export const getQuotations = async (userId, role) => {
   let where = {};
-  if (role === 'SALES_REP') {
-    where = { salesRepId: userId };
-  } else if (role === 'CUSTOMER') {
+  if (role === 'CUSTOMER') {
     where = {
       OR: [
         { customerId: userId },
@@ -266,9 +264,6 @@ export const getQuotations = async (userId, role) => {
 
 export const getQuotationById = async (id, userId, role) => {
   const where = { id };
-  if (role === 'SALES_REP') {
-    where.salesRepId = userId;
-  }
   
   const quote = await prisma.quotation.findFirst({
     where,

@@ -135,6 +135,11 @@ export const negotiateQuotation = async (quotationId, customerId, { notes, count
     totalDiscountValue += disc;
   }
 
+  // Verify if salesRep exists to prevent FK violation
+  const salesRepExists = await prisma.user.findUnique({
+    where: { id: quotation.salesRepId }
+  });
+
   // Create a new version for the customer counter-offer
   const newVersion = await prisma.quotationVersion.create({
     data: {
@@ -144,7 +149,7 @@ export const negotiateQuotation = async (quotationId, customerId, { notes, count
       totalDiscount: totalDiscountValue,
       riskScore: activeVersion ? Math.min(100, (activeVersion.riskScore || 25) + 15) : 40,
       internalNotes: `Customer counter-offer: ${discountPct}% discount requested. Notes: ${notes || 'None'}`,
-      createdById: quotation.salesRepId,
+      createdById: salesRepExists ? quotation.salesRepId : null,
       items: {
         create: (activeVersion?.items || []).map(it => ({
           productId: it.productId,

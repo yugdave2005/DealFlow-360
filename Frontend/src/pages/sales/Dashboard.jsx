@@ -21,19 +21,18 @@ import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
+import { api } from '../../lib/axios';
+
 const fetchDashboardData = async () => {
-  const token = localStorage.getItem('accessToken');
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
-  
   const [metricsRes, quotesRes, healthRes] = await Promise.all([
-    fetch(`${API_BASE}/dashboard/sales`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
-    fetch(`${API_BASE}/quotations`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
-    fetch(`${API_BASE}/deal-health`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
+    api.get('/dashboard/sales').catch(() => ({ data: { data: null } })),
+    api.get('/quotations').catch(() => ({ data: { data: [] } })),
+    api.get('/deal-health').catch(() => ({ data: { data: null } })),
   ]);
 
-  const metrics = metricsRes?.ok ? (await metricsRes.json()).data : null;
-  const quotes = quotesRes?.ok ? (await quotesRes.json()).data : [];
-  const health = healthRes?.ok ? (await healthRes.json()).data : null;
+  const metrics = metricsRes?.data?.data || null;
+  const quotes = quotesRes?.data?.data || [];
+  const health = healthRes?.data?.data || null;
 
   return { metrics, quotes, health };
 };
