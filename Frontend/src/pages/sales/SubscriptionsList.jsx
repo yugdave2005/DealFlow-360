@@ -39,54 +39,14 @@ export default function SubscriptionsList() {
     }
   });
 
-  // Rich fallback mock data if API is empty
-  const displaySubscriptions = subscriptions.length > 0 ? subscriptions : [
-    {
-      id: 'sub-101',
-      subscriptionNumber: 'SUB-2026-01',
-      customer: { companyName: 'Acme Corporation Ltd', tier: 'ENTERPRISE' },
-      product: { name: 'Cloud Infrastructure & Managed Security Suite' },
-      quantity: 1,
-      billingCycle: 'MONTHLY',
-      amount: 45000,
-      nextBillingDate: '2026-10-01',
-      status: 'ACTIVE',
-      startDate: '2026-04-01'
-    },
-    {
-      id: 'sub-102',
-      subscriptionNumber: 'SUB-2026-02',
-      customer: { companyName: 'Gujarat Infotech Solutions', tier: 'MID_MARKET' },
-      product: { name: '24/7 SLA Dedicated Support & Maintenance' },
-      quantity: 5,
-      billingCycle: 'YEARLY',
-      amount: 120000,
-      nextBillingDate: '2027-01-15',
-      status: 'ACTIVE',
-      startDate: '2026-01-15'
-    },
-    {
-      id: 'sub-103',
-      subscriptionNumber: 'SUB-2026-03',
-      customer: { companyName: 'Nexus Global Logistics', tier: 'SMB' },
-      product: { name: 'SaaS Platform Analytics Seat License' },
-      quantity: 10,
-      billingCycle: 'MONTHLY',
-      amount: 15000,
-      nextBillingDate: '2026-09-28',
-      status: 'ACTIVE',
-      startDate: '2026-02-28'
-    }
-  ];
-
-  const totalMRR = displaySubscriptions.reduce((acc, sub) => {
+  const totalMRR = subscriptions.reduce((acc, sub) => {
     const amt = Number(sub.amount) || 0;
     return acc + (sub.billingCycle === 'YEARLY' ? amt / 12 : amt);
   }, 0);
 
   const totalARR = totalMRR * 12;
 
-  const filteredSubscriptions = displaySubscriptions.filter(sub => {
+  const filteredSubscriptions = subscriptions.filter(sub => {
     const subNum = sub.subscriptionNumber || sub.id || '';
     const custName = sub.customer?.companyName || '';
     const matchesSearch = subNum.toLowerCase().includes(searchTerm.toLowerCase()) ||

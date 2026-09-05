@@ -74,55 +74,15 @@ export default function InvoicesList() {
     }
   });
 
-  // Rich fallback mock data if DB is fresh
-  const displayInvoices = invoices.length > 0 ? invoices : [
-    {
-      id: 'inv-101',
-      invoiceNumber: 'INV-2026-001',
-      orderNumber: 'ORD-1004',
-      customer: { companyName: 'Acme Corporation Ltd', tier: 'ENTERPRISE' },
-      type: 'ONE_TIME',
-      amount: 124000,
-      dueDate: '2026-09-30',
-      status: 'PAID',
-      createdAt: '2026-08-30',
-      itemsSummary: 'Hardware Rack & Professional Setup'
-    },
-    {
-      id: 'inv-102',
-      invoiceNumber: 'INV-2026-002',
-      orderNumber: 'ORD-1004',
-      customer: { companyName: 'Acme Corporation Ltd', tier: 'ENTERPRISE' },
-      type: 'RECURRING',
-      amount: 15000,
-      dueDate: '2026-10-10',
-      status: 'PENDING',
-      createdAt: '2026-09-01',
-      itemsSummary: 'Monthly Managed Cloud SLA (Cycle #1)'
-    },
-    {
-      id: 'inv-103',
-      invoiceNumber: 'INV-2026-003',
-      orderNumber: 'ORD-1005',
-      customer: { companyName: 'Gujarat Infotech Solutions', tier: 'MID_MARKET' },
-      type: 'ONE_TIME',
-      amount: 85000,
-      dueDate: '2026-09-15',
-      status: 'OVERDUE',
-      createdAt: '2026-08-15',
-      itemsSummary: 'Firewall Gateway Appliance'
-    }
-  ];
-
-  const totalCollected = displayInvoices
+  const totalCollected = invoices
     .filter(i => i.status === 'PAID')
     .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
-  const totalOutstanding = displayInvoices
+  const totalOutstanding = invoices
     .filter(i => i.status !== 'PAID')
     .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
-  const filteredInvoices = displayInvoices.filter(inv => {
+  const filteredInvoices = invoices.filter(inv => {
     const invNum = inv.invoiceNumber || inv.id || '';
     const custName = inv.customer?.companyName || '';
     const ordNum = inv.orderNumber || '';

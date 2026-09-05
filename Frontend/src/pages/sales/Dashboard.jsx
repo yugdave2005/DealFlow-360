@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -44,40 +45,15 @@ export default function Dashboard() {
     queryFn: fetchDashboardData
   });
 
-  const quotes = data?.quotes?.length > 0 ? data.quotes : [
-    {
-      id: 'mock-1', quotationNumber: 'QT-2026-01042', status: 'PENDING_APPROVAL', 
-      customer: { name: 'Acme Corp' }, customerId: 'c-acme',
-      activeVersionId: 'v1', versions: [{ id: 'v1', totalAmount: '124000', totalDiscount: '14880', riskScore: 68 }]
-    },
-    {
-      id: 'mock-2', quotationNumber: 'QT-2026-01043', status: 'NEGOTIATION', 
-      customer: { name: 'Globex Inc' }, customerId: 'c-globx',
-      activeVersionId: 'v1', versions: [{ id: 'v1', totalAmount: '350000', totalDiscount: '35000', riskScore: 45 }]
-    },
-    {
-      id: 'mock-3', quotationNumber: 'QT-2026-01044', status: 'SENT', 
-      customer: { name: 'Initech Solutions' }, customerId: 'c-init',
-      activeVersionId: 'v1', versions: [{ id: 'v1', totalAmount: '89000', totalDiscount: '5000', riskScore: 24 }]
-    },
-    {
-      id: 'mock-4', quotationNumber: 'QT-2026-01045', status: 'DRAFT', 
-      customer: { name: 'Stark Industries' }, customerId: 'c-stark',
-      activeVersionId: 'v1', versions: [{ id: 'v1', totalAmount: '1250000', totalDiscount: '75000', riskScore: 12 }]
-    }
-  ];
-
-  const metrics = Object.keys(data?.metrics || {}).length > 0 ? data.metrics : {
-    activeQuotations: 14,
-    pendingApprovals: 4,
-    atRiskDeals: 2
+  const quotes = data?.quotes || [];
+  const metrics = data?.metrics || {
+    activeQuotations: 0,
+    pendingApprovals: 0,
+    atRiskDeals: 0
   };
-
-  const health = Object.keys(data?.health || {}).length > 0 ? data.health : {
-    anomalyCount: 2,
-    stalledDeals: [
-      { id: 'mock-stall-1', quotationNumber: 'QT-2026-00998', daysSinceUpdate: 18, status: 'SENT' }
-    ]
+  const health = data?.health || {
+    anomalyCount: 0,
+    stalledDeals: []
   };
 
   // Compute Pipeline Value from active quotes
@@ -135,45 +111,54 @@ export default function Dashboard() {
     });
   });
 
-  // Real-time activity events
-  const activityStream = [
-    {
-      id: 1,
-      icon: CheckCircle2,
-      iconBg: 'bg-emerald-50 text-emerald-600',
-      title: 'Quotation Approved',
-      detail: 'Manager approved 12% discount for Acme Corp on QT-2026-01042',
-      time: '12m ago',
-      link: '/sales/quotations'
-    },
-    {
-      id: 2,
-      icon: MessageSquare,
-      iconBg: 'bg-amber-50 text-amber-600',
-      title: 'Negotiation Adjustment',
-      detail: 'Globex Inc counter-offered 5% additional volume discount',
-      time: '45m ago',
-      link: '/sales/quotations'
-    },
-    {
-      id: 3,
-      icon: Truck,
-      iconBg: 'bg-indigo-50 text-indigo-600',
-      title: 'Warehouse Split Generated',
-      detail: 'Optimal 3-way split created (Ahmedabad 50, Anand 30, Gandhinagar 20)',
-      time: '2h ago',
-      link: '/sales/fulfillment'
-    },
-    {
-      id: 4,
-      icon: IndianRupee,
-      iconBg: 'bg-emerald-50 text-emerald-600',
-      title: 'Payment Received',
-      detail: 'Invoice #INV-2041 marked as PAID (₹1,24,000.00)',
-      time: '4h ago',
-      link: '/sales/invoices'
-    }
-  ];
+  // Derive real activity stream from recent quotations and approvals
+  const activityStream = useMemo(() => {
+    const events = [];
+    quotes.forEach(q => {
+      if (q.status === 'PENDING_APPROVAL') {
+        events.push({
+          id: `act-${q.id}-appr`,
+          icon: CheckSquare,
+          iconBg: 'bg-purple-50 text-purple-600',
+          title: 'Submitted for Approval',
+          detail: `${q.quotationNumber} submitted for manager review`,
+          time: new Date(q.updatedAt || q.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+          link: `/sales/quotations/${q.id}`
+        });
+      } else if (q.status === 'APPROVED') {
+        events.push({
+          id: `act-${q.id}-appvd`,
+          icon: CheckCircle2,
+          iconBg: 'bg-emerald-50 text-emerald-600',
+          title: 'Quotation Approved',
+          detail: `Manager authorized terms for ${q.customer?.companyName || q.customer?.name || q.quotationNumber}`,
+          time: new Date(q.updatedAt || q.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+          link: `/sales/quotations/${q.id}`
+        });
+      } else if (q.status === 'CONFIRMED') {
+        events.push({
+          id: `act-${q.id}-conf`,
+          icon: Truck,
+          iconBg: 'bg-cyan-50 text-cyan-600',
+          title: 'Order Confirmed',
+          detail: `Order confirmed & entered warehouse allocation`,
+          time: new Date(q.updatedAt || q.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+          link: `/sales/quotations/${q.id}`
+        });
+      } else if (q.status === 'UNDER_NEGOTIATION' || q.status === 'NEGOTIATION') {
+        events.push({
+          id: `act-${q.id}-neg`,
+          icon: MessageSquare,
+          iconBg: 'bg-amber-50 text-amber-600',
+          title: 'Customer Negotiation',
+          detail: `Customer requested counter concession on ${q.quotationNumber}`,
+          time: new Date(q.updatedAt || q.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+          link: `/sales/quotations/${q.id}`
+        });
+      }
+    });
+    return events.slice(0, 6);
+  }, [quotes]);
 
   if (isLoading) {
     return (
@@ -326,29 +311,35 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-4 flex-1 overflow-y-auto">
-            {activityStream.map((event) => {
-              const Icon = event.icon;
-              return (
-                <Link
-                  key={event.id}
-                  to={event.link}
-                  className="flex items-start gap-3 group"
-                >
-                  <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${event.iconBg}`}>
-                    <Icon className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                        {event.title}
-                      </p>
-                      <span className="text-[10px] text-slate-400 shrink-0">{event.time}</span>
+            {activityStream.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400 italic">
+                No recent activity yet.
+              </div>
+            ) : (
+              activityStream.map((event) => {
+                const Icon = event.icon;
+                return (
+                  <Link
+                    key={event.id}
+                    to={event.link}
+                    className="flex items-start gap-3 group"
+                  >
+                    <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${event.iconBg}`}>
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">{event.detail}</p>
-                  </div>
-                </Link>
-              );
-            })}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                          {event.title}
+                        </p>
+                        <span className="text-[10px] text-slate-400 shrink-0">{event.time}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">{event.detail}</p>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

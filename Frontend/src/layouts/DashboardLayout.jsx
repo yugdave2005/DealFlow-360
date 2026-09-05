@@ -302,7 +302,7 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] min-h-screen">
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-slate-200/80 sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 shadow-xs/50">
           <div className="flex items-center gap-3">
@@ -424,7 +424,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page View Body */}
-        <main className="flex-1 p-0 overflow-y-auto">
+        <main className="flex-1 p-0 bg-[#f8fafc] min-h-[calc(100vh-4rem)]">
           <Outlet />
         </main>
       </div>

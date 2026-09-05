@@ -20,78 +20,40 @@ import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import EmptyState from '../../components/common/EmptyState';
 
+const API_DEAL_HEALTH = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/deal-health`;
+const API_APPROVALS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/approvals/pending`;
+const getToken = () => localStorage.getItem('accessToken');
+
 export default function DealHealth() {
   const navigate = useNavigate();
 
-  // Deal Health Categories Data
-  const stalledDeals = [
-    {
-      id: 'qt-1024',
-      quoteNumber: 'QT-1024',
-      customer: 'Acme Corporation Ltd',
-      amount: 124000,
-      daysInactive: 8,
-      status: 'UNDER_NEGOTIATION',
-      reason: 'Customer has not responded to counter-proposal sent 8 days ago.'
-    },
-    {
-      id: 'qt-1019',
-      quoteNumber: 'QT-1019',
-      customer: 'Sterling Manufacturing',
-      amount: 62000,
-      daysInactive: 12,
-      status: 'DRAFT',
-      reason: 'Draft proposal untouched since initial line item entry.'
+  const { data: healthData, isLoading: isHealthLoading } = useQuery({
+    queryKey: ['dealHealthData'],
+    queryFn: async () => {
+      const res = await fetch(API_DEAL_HEALTH, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (!res.ok) return { stalledDeals: [], discountAnomalies: [], deliverySlippage: [], summary: { stalledCount: 0, anomalyCount: 0, slippageCount: 0 } };
+      return res.json();
     }
-  ];
+  });
 
-  const discountAnomalies = [
-    {
-      id: 'qt-1024',
-      quoteNumber: 'QT-1024',
-      customer: 'Beta Industries',
-      typicalDiscount: '8%',
-      appliedDiscount: '19%',
-      exceededBy: '+11%',
-      riskScore: 68,
-      riskLevel: 'HIGH',
-      reason: 'Applied discount exceeds rep baseline by 110% without executive memo.'
-    },
-    {
-      id: 'qt-1031',
-      quoteNumber: 'QT-1031',
-      customer: 'Apex Logistics Hub',
-      typicalDiscount: '5%',
-      appliedDiscount: '15%',
-      exceededBy: '+10%',
-      riskScore: 54,
-      riskLevel: 'MEDIUM',
-      reason: 'Hardware unit price dropped below cost floor.'
+  const { data: pendingApprovals = [] } = useQuery({
+    queryKey: ['dealHealthApprovals'],
+    queryFn: async () => {
+      const res = await fetch(API_APPROVALS, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
     }
-  ];
+  });
 
-  const deliveryRisks = [
-    {
-      orderId: 'ORD-1003',
-      customer: 'Gujarat Infotech Solutions',
-      product: 'Managed Firewall Gateway X-500',
-      expectedSLA: '2 days',
-      currentEstimate: '5 days',
-      delayDays: '+3 days',
-      status: 'AT_RISK',
-      reason: 'Anand Regional Depot stock depleted, waiting for OEM re-route.'
-    }
-  ];
-
-  const approvalDelays = [
-    {
-      quoteNumber: 'QT-1024',
-      customer: 'Acme Corporation Ltd',
-      level: 'SALES_MANAGER',
-      pendingSince: '4 business days',
-      approver: 'Rajiv Malhotra (Sales Director)'
-    }
-  ];
+  const stalledDeals = healthData?.stalledDeals || [];
+  const discountAnomalies = healthData?.discountAnomalies || [];
+  const deliveryRisks = healthData?.deliverySlippage || [];
+  const approvalDelays = pendingApprovals || [];
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -164,20 +126,24 @@ export default function DealHealth() {
           </div>
 
           <div className="space-y-3">
-            {stalledDeals.map((deal) => (
+            {stalledDeals.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1.5" />
+                No stalled quotations. All deals moving actively.
+              </div>
+            ) : stalledDeals.map((deal) => (
               <div key={deal.id} className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 hover:bg-slate-100/60 transition-colors">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <span className="font-mono text-xs font-bold text-indigo-700">{deal.quoteNumber}</span>
-                    <h4 className="font-semibold text-slate-900 text-sm mt-0.5">{deal.customer}</h4>
+                    <span className="font-mono text-xs font-bold text-indigo-700">{deal.quotationNumber || `QT-${deal.id.slice(0,6)}`}</span>
+                    <h4 className="font-semibold text-slate-900 text-sm mt-0.5">{deal.status}</h4>
                   </div>
                   <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
-                    Inactive {deal.daysInactive} days
+                    Inactive {deal.daysSinceUpdate || 0} days
                   </span>
                 </div>
-                <p className="text-xs text-slate-600 mb-3">{deal.reason}</p>
-                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
-                  <span className="font-bold text-slate-900">₹{deal.amount.toLocaleString('en-IN')}</span>
+                <p className="text-xs text-slate-600 mb-3">No activity recorded for over 7 days in status: {deal.status}</p>
+                <div className="flex items-center justify-end pt-2 border-t border-slate-200/60 text-xs">
                   <button
                     onClick={() => navigate(`/sales/quotations/${deal.id}`)}
                     className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1"
@@ -199,41 +165,42 @@ export default function DealHealth() {
               <h3 className="font-bold text-slate-900 text-base">Discount Anomalies</h3>
             </div>
             <span className="text-xs bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-full border border-rose-200">
-              Risk Thresholds Exceeded
+              {discountAnomalies.length} High Risk
             </span>
           </div>
 
           <div className="space-y-3">
-            {discountAnomalies.map((deal) => (
-              <div key={deal.id} className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 hover:bg-slate-100/60 transition-colors">
+            {discountAnomalies.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1.5" />
+                No discount anomalies detected. Margins are compliant.
+              </div>
+            ) : discountAnomalies.map((deal, idx) => (
+              <div key={idx} className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 hover:bg-slate-100/60 transition-colors">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <span className="font-mono text-xs font-bold text-indigo-700">{deal.quoteNumber}</span>
-                    <h4 className="font-semibold text-slate-900 text-sm mt-0.5">{deal.customer}</h4>
+                    <span className="font-mono text-xs font-bold text-indigo-700">{deal.quotationNumber || `V${deal.versionNumber}`}</span>
+                    <h4 className="font-semibold text-slate-900 text-sm mt-0.5">Created by {deal.createdBy || 'Sales Rep'}</h4>
                   </div>
-                  <RiskBadge score={deal.riskScore} level={deal.riskLevel} />
+                  <RiskBadge score={deal.riskScore} />
                 </div>
-                <div className="grid grid-cols-3 gap-2 bg-white p-2.5 rounded-lg border border-slate-200/60 text-xs mb-2">
+                <div className="grid grid-cols-2 gap-2 bg-white p-2.5 rounded-lg border border-slate-200/60 text-xs mb-2">
                   <div>
-                    <span className="text-slate-400 block">Typical Rep:</span>
-                    <strong className="text-slate-700">{deal.typicalDiscount}</strong>
+                    <span className="text-slate-400 block">Total Amount:</span>
+                    <strong className="text-slate-900 font-bold">₹{Number(deal.totalAmount || 0).toLocaleString('en-IN')}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Applied:</span>
-                    <strong className="text-rose-600">{deal.appliedDiscount}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Anomaly:</span>
-                    <strong className="text-rose-700 font-bold">{deal.exceededBy}</strong>
+                    <span className="text-slate-400 block">Total Discount:</span>
+                    <strong className="text-rose-600 font-bold">₹{Number(deal.totalDiscount || 0).toLocaleString('en-IN')}</strong>
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-1 text-xs">
-                  <span className="text-slate-500">{deal.reason}</span>
+                  <span className="text-slate-500">Risk score exceeds tolerance limit</span>
                   <button
-                    onClick={() => navigate(`/sales/quotations/${deal.id}`)}
+                    onClick={() => navigate('/sales/quotations')}
                     className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 shrink-0 ml-2"
                   >
-                    <span>Review Quote</span>
+                    <span>Review Quotes</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -250,34 +217,35 @@ export default function DealHealth() {
               <h3 className="font-bold text-slate-900 text-base">Delivery Promise Slippage</h3>
             </div>
             <span className="text-xs bg-orange-50 text-orange-700 font-bold px-2 py-0.5 rounded-full border border-orange-200">
-              SLA Threat
+              {deliveryRisks.length} At Risk
             </span>
           </div>
 
           <div className="space-y-3">
-            {deliveryRisks.map((order) => (
-              <div key={order.orderId} className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80">
+            {deliveryRisks.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1.5" />
+                All fulfillment plans are on schedule. No SLA delays.
+              </div>
+            ) : deliveryRisks.map((order, idx) => (
+              <div key={idx} className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <span className="font-mono text-xs font-bold text-indigo-700">{order.orderId}</span>
-                    <h4 className="font-semibold text-slate-900 text-sm mt-0.5">{order.customer}</h4>
-                    <p className="text-xs text-slate-500">{order.product}</p>
+                    <span className="font-mono text-xs font-bold text-indigo-700">{order.orderId || 'Order Item'}</span>
+                    <h4 className="font-semibold text-slate-900 text-sm mt-0.5">Warehouse: {order.warehouse}</h4>
+                    <p className="text-xs text-slate-500">Quantity: {order.quantity} units</p>
                   </div>
                   <span className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
-                    Delayed ({order.delayDays})
+                    Delayed ({order.daysOverdue} days)
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border border-slate-200/60 my-2">
-                  <span>Target SLA: <strong>{order.expectedSLA}</strong></span>
-                  <span className="text-rose-600 font-bold">Estimated: {order.currentEstimate}</span>
-                </div>
                 <div className="flex justify-between items-center pt-1 text-xs">
-                  <span className="text-slate-500">{order.reason}</span>
+                  <span className="text-slate-500">Estimated delivery date elapsed</span>
                   <button
-                    onClick={() => navigate(`/sales/fulfillment/${order.orderId}`)}
+                    onClick={() => navigate('/sales/fulfillment')}
                     className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 shrink-0 ml-2"
                   >
-                    <span>Re-route Inventory</span>
+                    <span>Fulfillment Dashboard</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -291,26 +259,31 @@ export default function DealHealth() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-purple-600" />
-              <h3 className="font-bold text-slate-900 text-base">Approval Delays</h3>
+              <h3 className="font-bold text-slate-900 text-base">Pending Approval Requests</h3>
             </div>
             <span className="text-xs bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded-full border border-purple-200">
-              Escalations
+              {approvalDelays.length} Pending
             </span>
           </div>
 
           <div className="space-y-3">
-            {approvalDelays.map((app, idx) => (
-              <div key={idx} className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80">
+            {approvalDelays.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1.5" />
+                No pending approval bottlenecks in the queue.
+              </div>
+            ) : approvalDelays.map((app) => (
+              <div key={app.id} className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <span className="font-mono text-xs font-bold text-indigo-700">{app.quoteNumber}</span>
-                    <h4 className="font-semibold text-slate-900 text-sm mt-0.5">{app.customer}</h4>
+                    <span className="font-mono text-xs font-bold text-indigo-700">{app.quotationVersion?.quotation?.quotationNumber || `REQ-${app.id.slice(0,6)}`}</span>
+                    <h4 className="font-semibold text-slate-900 text-sm mt-0.5">Assigned to: {app.assignedRole}</h4>
                   </div>
                   <span className="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded">
-                    Pending {app.pendingSince}
+                    Risk: {app.quotationVersion?.riskScore ?? 0}
                   </span>
                 </div>
-                <p className="text-xs text-slate-600">Assigned Reviewer: <strong>{app.approver}</strong></p>
+                <p className="text-xs text-slate-600">Total: ₹{Number(app.quotationVersion?.totalAmount || 0).toLocaleString('en-IN')}</p>
                 <div className="flex justify-end pt-2 text-xs">
                   <button
                     onClick={() => navigate('/sales/approvals')}

@@ -26,125 +26,47 @@ import {
 import RiskBadge from '../../components/common/RiskBadge';
 import { adminApi } from '../../features/admin/admin.api';
 
-const MOCK_CUSTOMERS = [
-  {
-    id: 'bb222222-2222-2222-2222-222222222222',
-    name: 'Acme Corporation',
-    tier: 'Tier 1 Enterprise',
-    tierDiscountLimit: 25,
-    contact: 'Sarah Jenkins',
-    email: 's.jenkins@acme.com',
-  },
-  {
-    id: 'cc333333-3333-3333-3333-333333333333',
-    name: 'Globex Dynamics',
-    tier: 'Tier 2 Growth',
-    tierDiscountLimit: 15,
-    contact: 'Mark Peterson',
-    email: 'm.peterson@globex.io',
-  },
-  {
-    id: 'dd444444-4444-4444-4444-444444444444',
-    name: 'Initech Solutions',
-    tier: 'Tier 3 Standard',
-    tierDiscountLimit: 10,
-    contact: 'Peter Gibbons',
-    email: 'p.gibbons@initech.com',
-  }
-];
-
-const DEFAULT_PRODUCTS = [
-  {
-    id: 'prod-hw-01',
-    name: 'Enterprise CPQ Server X1',
-    sku: 'HW-SRV-100',
-    category: 'HARDWARE',
-    basePrice: 85000,
-    cost: 55000,
-    stock: 45,
-    allowedDiscount: 15,
-    isSubscription: false,
-    interval: null
-  },
-  {
-    id: 'prod-hw-02',
-    name: 'Deal Edge Gateway Terminal',
-    sku: 'HW-GTW-200',
-    category: 'HARDWARE',
-    basePrice: 32000,
-    cost: 21000,
-    stock: 120,
-    allowedDiscount: 12,
-    isSubscription: false,
-    interval: null
-  },
-  {
-    id: 'prod-sv-01',
-    name: 'Architecture & Deployment Setup',
-    sku: 'SVC-DEP-01',
-    category: 'SERVICES',
-    basePrice: 45000,
-    cost: 20000,
-    stock: 999,
-    allowedDiscount: 10,
-    isSubscription: false,
-    interval: null
-  },
-  {
-    id: 'prod-sv-02',
-    name: '24/7 Priority SLA SLA Support',
-    sku: 'SVC-SLA-247',
-    category: 'SERVICES',
-    basePrice: 28000,
-    cost: 10000,
-    stock: 999,
-    allowedDiscount: 8,
-    isSubscription: false,
-    interval: null
-  },
-  {
-    id: 'prod-sub-01',
-    name: 'DealFlow360 Enterprise License',
-    sku: 'SUB-LIC-ENT',
-    category: 'SUBSCRIPTIONS',
-    basePrice: 15000,
-    cost: 3000,
-    stock: 9999,
-    allowedDiscount: 20,
-    isSubscription: true,
-    interval: 'Monthly'
-  },
-  {
-    id: 'prod-sub-02',
-    name: 'AI Risk & Upsell Co-Pilot Addon',
-    sku: 'SUB-COP-AI',
-    category: 'SUBSCRIPTIONS',
-    basePrice: 8500,
-    cost: 1500,
-    stock: 9999,
-    allowedDiscount: 15,
-    isSubscription: true,
-    interval: 'Monthly'
-  },
-];
-
 export default function QuotationBuilder() {
   const navigate = useNavigate();
   const { id } = useParams();
   const queryClient = useQueryClient();
 
-  const [selectedCustomerId, setSelectedCustomerId] = useState(MOCK_CUSTOMERS[0].id);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [dismissedUpsells, setDismissedUpsells] = useState([]);
 
-  // Fetch backend products if available
+  // Fetch backend customer tiers
+  const { data: customerTiers = [] } = useQuery({
+    queryKey: ['adminCustomerTiers'],
+    queryFn: () => adminApi.getCustomerTiers().then(res => res.data).catch(() => [])
+  });
+
+  // Fetch backend products
   const { data: backendProducts = [] } = useQuery({
     queryKey: ['adminProducts'],
     queryFn: () => adminApi.getProducts().then(res => res.data).catch(() => [])
   });
 
-  // Combine backend products with rich fallback catalog
+  const customers = useMemo(() => {
+    if (!customerTiers || customerTiers.length === 0) return [];
+    return customerTiers.map(t => ({
+      id: t.id,
+      name: t.name,
+      tier: t.name,
+      tierDiscountLimit: t.name.toLowerCase().includes('enterprise') ? 25 : t.name.toLowerCase().includes('gold') ? 20 : 15,
+      contact: t.description || 'Account Rep',
+      email: `billing@${t.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+    }));
+  }, [customerTiers]);
+
+  useEffect(() => {
+    if (customers.length > 0 && !selectedCustomerId) {
+      setSelectedCustomerId(customers[0].id);
+      setValue('customerId', customers[0].id);
+    }
+  }, [customers, selectedCustomerId]);
+
   const products = useMemo(() => {
     if (backendProducts && backendProducts.length > 0) {
       return backendProducts.map(p => ({
@@ -152,34 +74,21 @@ export default function QuotationBuilder() {
         name: p.name,
         sku: p.sku || `SKU-${p.id.slice(0, 6)}`,
         category: p.category || 'HARDWARE',
-        basePrice: p.pricing?.[0]?.price ? Number(p.pricing[0].price) : 50000,
-        cost: (p.pricing?.[0]?.price ? Number(p.pricing[0].price) : 50000) * 0.65,
-        stock: p.stock || 50,
+        basePrice: Number(p.pricing?.[0]?.price || p.price || 0),
+        cost: Number(p.pricing?.[0]?.price || p.price || 0) * 0.65,
+        stock: p.quantityOnHand ?? p.stock ?? 0,
         allowedDiscount: 15,
-        isSubscription: p.type === 'SUBSCRIPTION',
-        interval: p.type === 'SUBSCRIPTION' ? 'Monthly' : null
+        isSubscription: p.isSubscription || p.type === 'SUBSCRIPTION',
+        interval: p.recurringInterval || 'Monthly'
       }));
     }
-    return DEFAULT_PRODUCTS;
+    return [];
   }, [backendProducts]);
 
   const { register, control, handleSubmit, watch, setValue } = useForm({
     defaultValues: {
-      customerId: MOCK_CUSTOMERS[0].id,
-      lineItems: [
-        {
-          productId: DEFAULT_PRODUCTS[0].id,
-          productName: DEFAULT_PRODUCTS[0].name,
-          sku: DEFAULT_PRODUCTS[0].sku,
-          category: DEFAULT_PRODUCTS[0].category,
-          quantity: 2,
-          unitPrice: DEFAULT_PRODUCTS[0].basePrice,
-          cost: DEFAULT_PRODUCTS[0].cost,
-          discountPercentage: 10,
-          isSubscription: DEFAULT_PRODUCTS[0].isSubscription,
-          allowedDiscount: DEFAULT_PRODUCTS[0].allowedDiscount
-        }
-      ]
+      customerId: '',
+      lineItems: []
     }
   });
 
@@ -189,11 +98,20 @@ export default function QuotationBuilder() {
   });
 
   const watchLineItems = watch('lineItems') || [];
-  const currentCustomer = MOCK_CUSTOMERS.find(c => c.id === selectedCustomerId) || MOCK_CUSTOMERS[0];
+  const currentCustomer = customers.find(c => c.id === selectedCustomerId) || customers[0] || {
+    id: 'default',
+    name: 'Select Customer Tier',
+    tier: 'Standard',
+    tierDiscountLimit: 15,
+    contact: '',
+    email: ''
+  };
 
-  // Dynamic calculations
+  // Dynamic calculations with Hybrid Billing
   const calculations = useMemo(() => {
     let subtotal = 0;
+    let oneTimeSubtotal = 0;
+    let recurringSubtotal = 0;
     let totalDiscount = 0;
     let totalCost = 0;
     const problematicLines = [];
@@ -213,6 +131,12 @@ export default function QuotationBuilder() {
       subtotal += lineGross;
       totalDiscount += lineDiscountAmt;
       totalCost += lineTotalCost;
+
+      if (item.isSubscription || item.category === 'SUBSCRIPTIONS') {
+        recurringSubtotal += lineNet;
+      } else {
+        oneTimeSubtotal += lineNet;
+      }
 
       if (disc > allowed) {
         problematicLines.push({
@@ -251,6 +175,8 @@ export default function QuotationBuilder() {
 
     return {
       subtotal,
+      oneTimeSubtotal,
+      recurringSubtotal,
       totalDiscount,
       tax,
       grandTotal,
@@ -264,44 +190,52 @@ export default function QuotationBuilder() {
     };
   }, [watchLineItems, currentCustomer]);
 
-  // Ranked Upsell & Cross-Sell Suggestions
+  // Ranked Upsell & Cross-Sell Suggestions from actual catalog
   const upsellSuggestions = useMemo(() => {
+    if (!products || products.length === 0) return [];
     const existingIds = new Set(watchLineItems.map(i => i.productId));
     const suggestions = [];
 
     const hasHardware = watchLineItems.some(i => i.category === 'HARDWARE');
     const hasServices = watchLineItems.some(i => i.category === 'SERVICES');
-    const hasSub = watchLineItems.some(i => i.category === 'SUBSCRIPTIONS');
+    const hasSub = watchLineItems.some(i => i.isSubscription || i.category === 'SUBSCRIPTIONS');
 
-    if (hasHardware && !hasServices && !dismissedUpsells.includes('prod-sv-01')) {
-      const p = DEFAULT_PRODUCTS.find(x => x.id === 'prod-sv-01');
-      if (p) suggestions.push({
-        product: p,
-        reason: 'Hardware bundle standard: Add deployment setup for turnkey warranty',
-        marginImpact: '+35% Margin Boost'
-      });
+    // If Hardware added without Service, suggest a Service
+    if (hasHardware && !hasServices) {
+      const serviceProd = products.find(p => p.category === 'SERVICES' && !existingIds.has(p.id) && !dismissedUpsells.includes(p.id));
+      if (serviceProd) {
+        suggestions.push({
+          product: serviceProd,
+          reason: 'Frequently paired with hardware: Add implementation & installation service',
+          marginImpact: '+35% Margin Boost'
+        });
+      }
     }
 
-    if (!hasSub && !dismissedUpsells.includes('prod-sub-01')) {
-      const p = DEFAULT_PRODUCTS.find(x => x.id === 'prod-sub-01');
-      if (p) suggestions.push({
-        product: p,
-        reason: 'Recurring ARR driver: Attach 12-mo Enterprise License',
-        marginImpact: '+₹15,000/mo ARR'
-      });
+    // If no Subscription added, suggest recurring maintenance / support
+    if (!hasSub) {
+      const subProd = products.find(p => p.isSubscription && !existingIds.has(p.id) && !dismissedUpsells.includes(p.id));
+      if (subProd) {
+        suggestions.push({
+          product: subProd,
+          reason: 'Recurring ARR driver: Attach 12-month SLA & cloud license',
+          marginImpact: `+₹${subProd.basePrice.toLocaleString('en-IN')}/mo ARR`
+        });
+      }
     }
 
-    if (hasSub && !dismissedUpsells.includes('prod-sub-02')) {
-      const p = DEFAULT_PRODUCTS.find(x => x.id === 'prod-sub-02');
-      if (p && !existingIds.has(p.id)) suggestions.push({
-        product: p,
-        reason: 'High attach rate: AI Co-Pilot module for deal optimization',
-        marginImpact: '+80% Pure Margin'
+    // Additional cross-sell
+    const remainingProd = products.find(p => !existingIds.has(p.id) && !dismissedUpsells.includes(p.id) && !suggestions.some(s => s.product.id === p.id));
+    if (remainingProd && suggestions.length < 3) {
+      suggestions.push({
+        product: remainingProd,
+        reason: 'Recommended add-on for this account tier',
+        marginImpact: 'High Attach Rate'
       });
     }
 
     return suggestions;
-  }, [watchLineItems, dismissedUpsells]);
+  }, [products, watchLineItems, dismissedUpsells]);
 
   const handleAddProduct = (prod) => {
     const existingIndex = watchLineItems.findIndex(i => i.productId === prod.id);
@@ -409,7 +343,7 @@ export default function QuotationBuilder() {
                 }}
                 className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
               >
-                {MOCK_CUSTOMERS.map(c => (
+                {customers.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
@@ -480,39 +414,69 @@ export default function QuotationBuilder() {
 
           {/* Product Items List */}
           <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
-            {filteredCatalogProducts.map(prod => (
-              <div 
-                key={prod.id}
-                className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-200 transition-all flex items-center justify-between gap-3 group"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-900 truncate">{prod.name}</span>
-                    {prod.isSubscription && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 bg-purple-50 text-purple-700 rounded border border-purple-200 shrink-0">
-                        {prod.interval}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-                    <span className="font-mono text-[10px]">{prod.sku}</span>
-                    <span>&bull;</span>
-                    <span className="font-bold text-slate-800">₹{prod.basePrice.toLocaleString('en-IN')}</span>
-                    <span>&bull;</span>
-                    <span className="text-[10px] text-emerald-600">Stock: {prod.stock}</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleAddProduct(prod)}
-                  className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shrink-0 shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add
-                </button>
+            {filteredCatalogProducts.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                No products found in this category.
               </div>
-            ))}
+            ) : filteredCatalogProducts.map(prod => {
+              const isHw = prod.category === 'HARDWARE';
+              const isSvc = prod.category === 'SERVICES';
+              const isSub = prod.isSubscription || prod.category === 'SUBSCRIPTIONS';
+
+              return (
+                <div 
+                  key={prod.id}
+                  className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-200 transition-all flex items-center justify-between gap-3 group"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-bold text-slate-900 truncate">{prod.name}</span>
+                      {isHw && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded border border-blue-200 shrink-0">
+                          Hardware
+                        </span>
+                      )}
+                      {isSvc && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded border border-emerald-200 shrink-0">
+                          Service
+                        </span>
+                      )}
+                      {isSub && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 bg-purple-50 text-purple-700 rounded border border-purple-200 shrink-0">
+                          Recurring ({prod.interval || 'Monthly'})
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1 flex-wrap">
+                      <span className="font-mono text-[10px]">{prod.sku}</span>
+                      <span>&bull;</span>
+                      <span className="font-bold text-slate-800">₹{prod.basePrice.toLocaleString('en-IN')}</span>
+                      {isHw && (
+                        <>
+                          <span>&bull;</span>
+                          <span className="text-[10px] text-emerald-600 font-medium">Stock: {prod.stock} units</span>
+                        </>
+                      )}
+                      {isSvc && (
+                        <>
+                          <span>&bull;</span>
+                          <span className="text-[10px] text-slate-500">Service SLA</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAddProduct(prod)}
+                    className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shrink-0 shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -543,7 +507,14 @@ export default function QuotationBuilder() {
                   <div key={field.id} className="p-3.5 rounded-xl border border-slate-200/80 bg-white space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h4 className="text-xs font-bold text-slate-900">{item.productName || 'Line Item'}</h4>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-xs font-bold text-slate-900">{item.productName || 'Line Item'}</h4>
+                          {item.isSubscription && (
+                            <span className="text-[9px] font-bold px-1 py-0.2 bg-purple-50 text-purple-700 rounded border border-purple-200">
+                              Recurring
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] font-mono text-slate-400">{item.sku || 'SKU-NONE'}</p>
                       </div>
                       <button
@@ -627,13 +598,25 @@ export default function QuotationBuilder() {
         {/* RIGHT COLUMN: Deal Intelligence & Summary (4 cols on lg) */}
         <div className="lg:col-span-4 space-y-4">
           
-          {/* 1. Quotation Summary */}
+          {/* 1. Quotation Summary with Hybrid Billing */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-              Quotation Summary
+              Quotation Summary & Billing Structure
             </h3>
 
             <div className="space-y-2 text-xs">
+              {/* Hybrid Billing Split */}
+              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5 mb-2">
+                <div className="flex justify-between text-slate-700 font-medium">
+                  <span>One-Time Hardware & Services:</span>
+                  <span className="font-bold text-slate-900">₹{calculations.oneTimeSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                </div>
+                <div className="flex justify-between text-purple-700 font-medium">
+                  <span>Recurring Subscriptions:</span>
+                  <span className="font-bold text-purple-900">₹{calculations.recurringSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}/mo</span>
+                </div>
+              </div>
+
               <div className="flex justify-between text-slate-500">
                 <span>Subtotal (Gross):</span>
                 <span className="font-semibold text-slate-800">₹{calculations.subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
@@ -648,7 +631,7 @@ export default function QuotationBuilder() {
               </div>
 
               <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline">
-                <span className="font-bold text-slate-900 text-sm">Grand Total:</span>
+                <span className="font-bold text-slate-900 text-sm">Grand Total (Agreed):</span>
                 <span className="font-black text-slate-900 text-lg">
                   ₹{calculations.grandTotalWithTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </span>
