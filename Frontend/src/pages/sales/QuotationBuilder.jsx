@@ -1,30 +1,26 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { 
-  Search, 
-  Plus, 
-  Trash2, 
-  AlertTriangle, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Sparkles, 
-  RefreshCw, 
-  Package, 
-  Wrench, 
-  Layers, 
-  Save, 
-  Send, 
-  CheckCircle,
-  Building,
-  Check,
-  ChevronDown,
-  Info
-} from 'lucide-react';
-import RiskBadge from '../../components/common/RiskBadge';
+
 import { adminApi } from '../../features/admin/admin.api';
+
+// Subcomponents
+import QuotationHeader from './quotation-builder/QuotationHeader';
+import QuotationStepper from './quotation-builder/QuotationStepper';
+import CustomerSummary from './quotation-builder/CustomerSummary';
+import ProductCatalog from './quotation-builder/ProductCatalog';
+import QuotationItemsTable from './quotation-builder/QuotationItemsTable';
+import QuotationItemDrawer from './quotation-builder/QuotationItemDrawer';
+import RecommendationPreview from './quotation-builder/RecommendationPreview';
+import RecommendationsDrawer from './quotation-builder/RecommendationsDrawer';
+import QuoteSummary from './quotation-builder/QuoteSummary';
+import CustomerDetailsDrawer from './quotation-builder/CustomerDetailsDrawer';
+import GovernanceDrawer from './quotation-builder/GovernanceDrawer';
+import BillingDrawer from './quotation-builder/BillingDrawer';
+import QuotePreviewModal from './quotation-builder/QuotePreviewModal';
+import QuotationActionBar from './quotation-builder/QuotationActionBar';
 
 export default function QuotationBuilder() {
   const navigate = useNavigate();
@@ -35,15 +31,32 @@ export default function QuotationBuilder() {
   const [productSearch, setProductSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [dismissedUpsells, setDismissedUpsells] = useState([]);
+  
+  // Drawer & Modal open states for Progressive Disclosure
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeDrawerIndex, setActiveDrawerIndex] = useState(null);
+  const [customerDetailsOpen, setCustomerDetailsOpen] = useState(false);
+  const [governanceDrawerOpen, setGovernanceDrawerOpen] = useState(false);
+  const [billingDrawerOpen, setBillingDrawerOpen] = useState(false);
+  const [recommendationsDrawerOpen, setRecommendationsDrawerOpen] = useState(false);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+
+  // Default validity date (30 days ahead)
+  const defaultValidDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  }, []);
+  const [validUntilDate, setValidUntilDate] = useState(defaultValidDate);
 
   // Fetch backend customer tiers
-  const { data: customerTiers = [] } = useQuery({
+  const { data: customerTiers = [], isLoading: isTiersLoading } = useQuery({
     queryKey: ['adminCustomerTiers'],
     queryFn: () => adminApi.getCustomerTiers().then(res => res.data).catch(() => [])
   });
 
   // Fetch backend products
-  const { data: backendProducts = [] } = useQuery({
+  const { data: backendProducts = [], isLoading: isProductsLoading, refetch: refetchProducts } = useQuery({
     queryKey: ['adminProducts'],
     queryFn: () => adminApi.getProducts().then(res => res.data).catch(() => [])
   });
@@ -85,7 +98,7 @@ export default function QuotationBuilder() {
     return [];
   }, [backendProducts]);
 
-  const { register, control, handleSubmit, watch, setValue } = useForm({
+  const { register, control, handleSubmit, watch, setValue, formState: { isDirty } } = useForm({
     defaultValues: {
       customerId: '',
       lineItems: []
@@ -100,14 +113,14 @@ export default function QuotationBuilder() {
   const watchLineItems = watch('lineItems') || [];
   const currentCustomer = customers.find(c => c.id === selectedCustomerId) || customers[0] || {
     id: 'default',
-    name: 'Select Customer Tier',
+    name: 'Standard Account',
     tier: 'Standard',
     tierDiscountLimit: 15,
-    contact: '',
-    email: ''
+    contact: 'Primary Contact',
+    email: 'billing@clientcorp.com'
   };
 
-  // Dynamic calculations with Hybrid Billing
+  // Dynamic calculations with Hybrid Billing & Deal Governance Risk
   const calculations = useMemo(() => {
     if (watchLineItems.length === 0) {
       return {
@@ -138,7 +151,7 @@ export default function QuotationBuilder() {
       const qty = Number(item.quantity || 1);
       const unit = Number(item.unitPrice || 0);
       const disc = Number(item.discountPercentage || 0);
-      const cost = Number(item.unitCost || unit * 0.65);
+      const cost = Number(item.unitCost || item.cost || unit * 0.65);
       const allowed = Number(item.allowedDiscount || currentCustomer.tierDiscountLimit || 15);
 
       const lineGross = qty * unit;
@@ -168,12 +181,11 @@ export default function QuotationBuilder() {
     });
 
     const grandTotal = subtotal - totalDiscount;
-    const tax = grandTotal * 0.18; // 18% GST standard in India
+    const tax = grandTotal * 0.18;
     const grandTotalWithTax = grandTotal + tax;
     const margin = grandTotal - totalCost;
     const marginPercentage = grandTotal > 0 ? ((margin / grandTotal) * 100) : 0;
 
-    // Risk calculation model
     let calculatedRisk = 10;
     if (problematicLines.length > 0) {
       const maxExceeded = Math.max(...problematicLines.map(p => Number(p.exceeded)));
@@ -185,7 +197,6 @@ export default function QuotationBuilder() {
     const riskScore = Math.min(Math.round(calculatedRisk), 95);
     const riskLevel = riskScore >= 70 ? 'CRITICAL' : riskScore >= 45 ? 'HIGH' : riskScore >= 20 ? 'MEDIUM' : 'LOW';
 
-    // Approval requirement
     let approvalRequirement = 'NONE';
     if (riskScore >= 45 || problematicLines.length > 0) {
       approvalRequirement = riskScore >= 70 ? 'FINANCE_AND_MANAGER' : 'MANAGER';
@@ -208,7 +219,15 @@ export default function QuotationBuilder() {
     };
   }, [watchLineItems, currentCustomer]);
 
-  // Ranked Upsell & Cross-Sell Suggestions from actual catalog
+  // Stepper Current Step
+  const currentStep = useMemo(() => {
+    if (!selectedCustomerId) return 1;
+    if (watchLineItems.length === 0) return 2;
+    if (calculations.problematicLines.length > 0) return 3;
+    return 4;
+  }, [selectedCustomerId, watchLineItems.length, calculations.problematicLines.length]);
+
+  // Ranked Upsell & Cross-Sell Suggestions
   const upsellSuggestions = useMemo(() => {
     if (!products || products.length === 0) return [];
     const existingIds = new Set(watchLineItems.map(i => i.productId));
@@ -218,37 +237,34 @@ export default function QuotationBuilder() {
     const hasServices = watchLineItems.some(i => i.category === 'SERVICES');
     const hasSub = watchLineItems.some(i => i.isSubscription || i.category === 'SUBSCRIPTIONS');
 
-    // If Hardware added without Service, suggest a Service
     if (hasHardware && !hasServices) {
       const serviceProd = products.find(p => p.category === 'SERVICES' && !existingIds.has(p.id) && !dismissedUpsells.includes(p.id));
       if (serviceProd) {
         suggestions.push({
           product: serviceProd,
-          reason: 'Frequently paired with hardware: Add implementation & installation service',
+          reason: 'Frequently paired with hardware: Add implementation & setup service',
           marginImpact: '+35% Margin Boost'
         });
       }
     }
 
-    // If no Subscription added, suggest recurring maintenance / support
     if (!hasSub) {
       const subProd = products.find(p => p.isSubscription && !existingIds.has(p.id) && !dismissedUpsells.includes(p.id));
       if (subProd) {
         suggestions.push({
           product: subProd,
-          reason: 'Recurring ARR driver: Attach 12-month SLA & cloud license',
+          reason: 'Recurring ARR driver: Attach 12-month SLA & support license',
           marginImpact: `+₹${subProd.basePrice.toLocaleString('en-IN')}/mo ARR`
         });
       }
     }
 
-    // Additional cross-sell
     const remainingProd = products.find(p => !existingIds.has(p.id) && !dismissedUpsells.includes(p.id) && !suggestions.some(s => s.product.id === p.id));
-    if (remainingProd && suggestions.length < 3) {
+    if (remainingProd && suggestions.length < 4) {
       suggestions.push({
         product: remainingProd,
         reason: 'Recommended add-on for this account tier',
-        marginImpact: 'High Attach Rate'
+        marginImpact: 'High Attach'
       });
     }
 
@@ -263,7 +279,7 @@ export default function QuotationBuilder() {
         ...existing,
         quantity: Number(existing.quantity) + 1
       });
-      toast.info(`Increased ${prod.name} quantity`);
+      toast.info(`Increased ${prod.name} quantity to ${Number(existing.quantity) + 1}`);
     } else {
       append({
         productId: prod.id,
@@ -277,8 +293,28 @@ export default function QuotationBuilder() {
         isSubscription: prod.isSubscription,
         allowedDiscount: prod.allowedDiscount
       });
-      toast.success(`Added ${prod.name} to cart`);
+      toast.success(`Added ${prod.name} to quotation`);
     }
+  };
+
+  const handleOpenDrawer = (index) => {
+    setActiveDrawerIndex(index);
+    setDrawerOpen(true);
+  };
+
+  const handleUpdateItem = (index, updatedItem) => {
+    update(index, updatedItem);
+  };
+
+  const handleRemoveItem = (index) => {
+    const item = watchLineItems[index];
+    remove(index);
+    if (item) toast.info(`Removed ${item.productName || 'item'} from quote`);
+  };
+
+  const handleClearAll = () => {
+    setValue('lineItems', []);
+    toast.info('Cleared quotation cart');
   };
 
   const createMutation = useMutation({
@@ -323,506 +359,155 @@ export default function QuotationBuilder() {
     return true;
   });
 
+  const isApprovalRequired = calculations.approvalRequirement !== 'NONE';
+
+  const handlePrimarySubmit = () => {
+    if (isApprovalRequired) {
+      createMutation.mutate({ status: 'PENDING_APPROVAL' });
+    } else {
+      createMutation.mutate({ status: 'SENT' });
+    }
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Quotation Workspace</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">Formulate commercial line items, govern discounts & calculate deal risk</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/sales/quotations')}
-            className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
+    <div className="max-w-[1440px] mx-auto px-6 py-6 sm:px-8 sm:py-8 space-y-5">
+      
+      {/* 1. Simple, Compact Page Header */}
+      <QuotationHeader
+        onSaveDraft={() => createMutation.mutate({ status: 'DRAFT' })}
+        onPreview={() => setPreviewModalOpen(true)}
+        onSubmit={handlePrimarySubmit}
+        isPending={createMutation.isPending}
+        hasItems={watchLineItems.length > 0}
+        approvalRequired={isApprovalRequired}
+      />
 
-      {/* Customer Selection Banner (Tier & Governance) */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 flex-1 min-w-0">
-            <div className="p-3 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-200/60 shrink-0">
-              <Building className="w-5 h-5" />
-            </div>
-            <div className="flex-1 max-w-sm">
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Target Account / Customer
-              </label>
-              <select
-                value={selectedCustomerId}
-                onChange={(e) => {
-                  setSelectedCustomerId(e.target.value);
-                  setValue('customerId', e.target.value);
-                }}
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all cursor-pointer"
-              >
-                {customers.length === 0 ? (
-                  <option value="" disabled>No customer accounts found</option>
-                ) : (
-                  customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))
-                )}
-              </select>
-            </div>
-          </div>
+      {/* 2. Subtle Workflow Stepper */}
+      <QuotationStepper currentStep={currentStep} />
 
-          <div className="flex items-center gap-4 flex-wrap text-xs bg-slate-50/80 p-3 rounded-xl border border-slate-200/80 shrink-0">
-            <div>
-              <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Customer Tier</span>
-              <span className="font-bold text-indigo-700">{currentCustomer.tier || 'Standard'}</span>
-            </div>
-            <div className="border-l border-slate-200 pl-4">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Primary Contact</span>
-              <span className="font-semibold text-slate-800">
-                {currentCustomer.contact 
-                  ? `${currentCustomer.contact}${currentCustomer.email ? ` (${currentCustomer.email})` : ''}`
-                  : 'Standard Account'}
-              </span>
-            </div>
-            <div className="border-l border-slate-200 pl-4">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Discount Limit</span>
-              <span className="font-bold text-emerald-700">&le; {currentCustomer.tierDiscountLimit || 15}% Standard</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 3. Simplified Customer Section */}
+      <CustomerSummary
+        customers={customers}
+        selectedCustomerId={selectedCustomerId}
+        onSelectCustomer={(id) => {
+          setSelectedCustomerId(id);
+          setValue('customerId', id);
+        }}
+        currentCustomer={currentCustomer}
+        validUntilDate={validUntilDate}
+        onValidUntilChange={setValidUntilDate}
+        onOpenDetails={() => setCustomerDetailsOpen(true)}
+      />
 
-      {/* 3-Column Quotation Workspace */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 lg:grid-cols-12 gap-6 items-start">
+      {/* 4. Main 3-Column SaaS Workspace (25% Catalog / 50% Quotation Items / 25% Summary) */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 lg:grid-cols-12 gap-5 items-start">
         
-        {/* LEFT COLUMN: Product Catalog */}
-        <div className="xl:col-span-4 lg:col-span-6 col-span-12 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <Package className="w-4 h-4 text-indigo-600" />
-                Products & Services
-              </h2>
-              <span className="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{filteredCatalogProducts.length} items</span>
-            </div>
-
-            {/* Search */}
-            <div className="relative mb-3">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Search catalog or SKU..."
-                className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all"
-              />
-            </div>
-
-            {/* Category tabs */}
-            <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-              {['ALL', 'HARDWARE', 'SERVICES', 'SUBSCRIPTIONS'].map(cat => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
-                    selectedCategory === cat
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Product Items List */}
-          <div className="space-y-2.5 h-[520px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
-            {filteredCatalogProducts.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center border-2 border-dashed border-slate-100 rounded-xl">
-                <Package className="w-8 h-8 text-slate-300 mb-2" />
-                <p className="text-xs font-semibold text-slate-600">No products available</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Master products can be added in Product Catalog.</p>
-              </div>
-            ) : filteredCatalogProducts.map(prod => {
-              const isHw = prod.category === 'HARDWARE';
-              const isSvc = prod.category === 'SERVICES';
-              const isSub = prod.isSubscription || prod.category === 'SUBSCRIPTIONS';
-
-              return (
-                <div 
-                  key={prod.id}
-                  className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-indigo-200 hover:shadow-xs transition-all flex items-center justify-between gap-3 group"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-slate-900 truncate">{prod.name}</span>
-                      {isHw && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded border border-blue-200 shrink-0">
-                          Hardware
-                        </span>
-                      )}
-                      {isSvc && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded border border-emerald-200 shrink-0">
-                          Service
-                        </span>
-                      )}
-                      {isSub && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 bg-purple-50 text-purple-700 rounded border border-purple-200 shrink-0">
-                          Recurring ({prod.interval || 'Monthly'})
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1 flex-wrap">
-                      <span className="font-mono text-[10px]">{prod.sku}</span>
-                      <span>&bull;</span>
-                      <span className="font-bold text-slate-800">₹{prod.basePrice.toLocaleString('en-IN')}</span>
-                      {isHw && (
-                        <>
-                          <span>&bull;</span>
-                          <span className="text-[10px] text-emerald-600 font-medium">Stock: {prod.stock}</span>
-                        </>
-                      )}
-                      {isSvc && (
-                        <>
-                          <span>&bull;</span>
-                          <span className="text-[10px] text-slate-500">SLA</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleAddProduct(prod)}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0 shadow-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+        {/* Left Column: Product Catalog (~25-28% width) */}
+        <div className="xl:col-span-3 lg:col-span-3 col-span-12">
+          <ProductCatalog
+            products={filteredCatalogProducts}
+            searchTerm={productSearch}
+            onSearchChange={setProductSearch}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            onAddProduct={handleAddProduct}
+            onRefresh={refetchProducts}
+            isLoading={isProductsLoading}
+          />
         </div>
 
-        {/* CENTER COLUMN: Quotation Cart */}
-        <div className="xl:col-span-4 lg:col-span-6 col-span-12 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-600" />
-              Quotation Line Items
-            </h2>
-            <span className="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{fields.length} line(s)</span>
-          </div>
+        {/* Center Column: Quotation Items Table (50% width - Main Focus) */}
+        <div className="xl:col-span-6 lg:col-span-6 col-span-12 space-y-4">
+          <QuotationItemsTable
+            items={watchLineItems}
+            onUpdateItem={handleUpdateItem}
+            onRemoveItem={handleRemoveItem}
+            onOpenDrawer={handleOpenDrawer}
+            tierDiscountLimit={currentCustomer.tierDiscountLimit}
+            onClearAll={handleClearAll}
+          />
 
-          {fields.length === 0 ? (
-            <div className="h-[520px] flex flex-col items-center justify-center py-12 px-4 text-center border-2 border-dashed border-slate-100 rounded-xl">
-              <Layers className="w-8 h-8 text-slate-300 mb-2" />
-              <p className="text-xs font-semibold text-slate-600">Quotation cart is empty</p>
-              <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">Select products from the catalog on the left to start formulating commercial terms.</p>
-            </div>
-          ) : (
-            <div className="space-y-3 h-[520px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
-              {fields.map((field, index) => {
-                const item = watchLineItems[index] || {};
-                const qty = Number(item.quantity || 1);
-                const price = Number(item.unitPrice || 0);
-                const disc = Number(item.discountPercentage || 0);
-                const lineTotal = (qty * price) * (1 - disc / 100);
-
-                return (
-                  <div key={field.id} className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/40 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="text-xs font-bold text-slate-900">{item.productName || 'Line Item'}</h4>
-                          {item.isSubscription && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 bg-purple-50 text-purple-700 rounded border border-purple-200">
-                              Recurring
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] font-mono text-slate-400">{item.sku || 'SKU-NONE'}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => remove(index)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Remove item"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60">
-                      {/* Qty with +/- buttons */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qty</label>
-                        <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden bg-white">
-                          <button
-                            type="button"
-                            onClick={() => update(index, { ...item, quantity: Math.max(1, qty - 1) })}
-                            className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold text-xs"
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })}
-                            className="w-full text-center bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
-                            min="1"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => update(index, { ...item, quantity: qty + 1 })}
-                            className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold text-xs"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Unit Price (₹) */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Price (₹)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register(`lineItems.${index}.unitPrice`, { valueAsNumber: true })}
-                          className="w-full p-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600"
-                        />
-                      </div>
-
-                      {/* Discount % */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Disc %</label>
-                        <input
-                          type="number"
-                          step="0.5"
-                          max="90"
-                          min="0"
-                          {...register(`lineItems.${index}.discountPercentage`, { valueAsNumber: true })}
-                          className={`w-full p-1.5 rounded-lg border text-xs font-bold focus:outline-none focus:ring-1 ${
-                            disc > (item.allowedDiscount || 15)
-                              ? 'border-rose-300 bg-rose-50 text-rose-700'
-                              : 'border-slate-200 bg-white text-slate-900'
-                          }`}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 font-semibold">
-                      <span className="text-slate-500 text-[11px]">Net Line Total:</span>
-                      <span className="text-slate-900 font-bold">₹{lineTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {/* Compact Recommendation Section */}
+          <RecommendationPreview
+            suggestions={upsellSuggestions}
+            onAddSuggestion={handleAddProduct}
+            onOpenAllRecommendations={() => setRecommendationsDrawerOpen(true)}
+          />
         </div>
 
-        {/* RIGHT COLUMN: Deal Intelligence & Summary */}
-        <div className="xl:col-span-4 lg:col-span-12 col-span-12 space-y-4">
-          
-          {/* 1. Quotation Summary with Hybrid Billing */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-              Quotation Summary & Billing Structure
-            </h3>
-
-            <div className="space-y-2 text-xs">
-              {/* Hybrid Billing Split */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5 mb-2">
-                <div className="flex justify-between text-slate-700 font-medium">
-                  <span>One-Time Hardware & Services:</span>
-                  <span className="font-bold text-slate-900">₹{calculations.oneTimeSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                </div>
-                <div className="flex justify-between text-purple-700 font-medium">
-                  <span>Recurring Subscriptions:</span>
-                  <span className="font-bold text-purple-900">₹{calculations.recurringSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}/mo</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between text-slate-500">
-                <span>Subtotal (Gross):</span>
-                <span className="font-semibold text-slate-800">₹{calculations.subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between text-rose-600">
-                <span>Total Discount:</span>
-                <span className="font-semibold">{calculations.totalDiscount > 0 ? `-₹${calculations.totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹0'}</span>
-              </div>
-              <div className="flex justify-between text-slate-500">
-                <span>Estimated GST (18%):</span>
-                <span className="font-semibold text-slate-800">₹{calculations.tax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-              </div>
-
-              <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline">
-                <span className="font-bold text-slate-900 text-sm">Grand Total:</span>
-                <span className="font-black text-slate-900 text-lg">
-                  ₹{calculations.grandTotalWithTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                </span>
-              </div>
-
-              <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200/60 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-emerald-800 uppercase block">Expected Margin</span>
-                  <span className="text-xs font-extrabold text-emerald-900">₹{calculations.margin.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                </div>
-                <span className="text-sm font-black text-emerald-700">{calculations.marginPercentage}%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Discount Governance & Risk Score */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-indigo-600" />
-                Deal Governance Risk
-              </h3>
-              <RiskBadge score={calculations.riskScore} level={calculations.riskLevel} />
-            </div>
-
-            {calculations.problematicLines.length === 0 ? (
-              <div className="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200/60 text-xs text-emerald-800 font-medium">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>All line discounts within allowed threshold limits.</span>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-[11px] font-bold text-rose-700">Discounts Exceeding Governance Rules:</p>
-                {calculations.problematicLines.map((line, idx) => (
-                  <div key={idx} className="p-2.5 bg-rose-50 rounded-xl border border-rose-200 text-xs space-y-1">
-                    <p className="font-bold text-slate-900">{line.name}</p>
-                    <div className="flex justify-between text-[11px] text-slate-600">
-                      <span>Allowed: {line.allowed}%</span>
-                      <span>Applied: <strong className="text-rose-700">{line.applied}%</strong></span>
-                      <span className="text-rose-700 font-bold">+{line.exceeded}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Approval Routing Notice */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-              <div className="flex items-center justify-between font-bold text-slate-800 mb-1">
-                <span>Approval Status:</span>
-                <span className={calculations.approvalRequirement === 'NONE' ? 'text-emerald-600' : 'text-purple-700'}>
-                  {calculations.approvalRequirement === 'NONE' ? 'Approval not required' :
-                   calculations.approvalRequirement === 'MANAGER' ? 'Manager Approval Required' : 'Finance & Manager Approval Required'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500">
-                {calculations.approvalRequirement === 'NONE' 
-                  ? 'Quotation can be confirmed directly by representative.'
-                  : 'Requires managerial review before quotation can be sent to client.'}
-              </p>
-            </div>
-          </div>
-
-          {/* 3. Ranked Upsell & Cross-sell suggestions */}
-          {upsellSuggestions.length > 0 && (
-            <div className="bg-gradient-to-br from-indigo-50/60 to-purple-50/60 rounded-2xl border border-indigo-200/80 p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                  Upsell & Cross-Sell Engine
-                </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full">
-                  AI Ranked
-                </span>
-              </div>
-
-              <div className="space-y-2.5">
-                {upsellSuggestions.map((s) => (
-                  <div key={s.product.id} className="p-3 bg-white rounded-xl border border-indigo-100 shadow-2xs space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">{s.product.name}</h4>
-                        <p className="text-[10px] text-slate-500 mt-0.5">{s.reason}</p>
-                      </div>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded shrink-0">
-                        {s.marginImpact}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                      <span className="text-xs font-bold text-slate-900">₹{s.product.basePrice.toLocaleString('en-IN')}</span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setDismissedUpsells([...dismissedUpsells, s.product.id])}
-                          className="px-2 py-1 text-[10px] text-slate-400 hover:text-slate-600 font-semibold"
-                        >
-                          Dismiss
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleAddProduct(s.product)}
-                          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-lg transition-colors shadow-xs"
-                        >
-                          + Add to Quote
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Right Column: Clean Sticky Summary & Governance (~22-25% width) */}
+        <div className="xl:col-span-3 lg:col-span-3 col-span-12">
+          <QuoteSummary
+            calculations={calculations}
+            onOpenBilling={() => setBillingDrawerOpen(true)}
+            onOpenGovernance={() => setGovernanceDrawerOpen(true)}
+          />
         </div>
+
       </div>
 
-      {/* Sticky Bottom Action Bar */}
-      <div className="sticky bottom-4 z-30 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl px-6 py-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
-        <div>
-          <button
-            type="button"
-            disabled={createMutation.isPending || fields.length === 0}
-            onClick={() => createMutation.mutate({ status: 'DRAFT' })}
-            className="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
-          >
-            Save Draft
-          </button>
-        </div>
+      {/* 5. Sticky Action Bar */}
+      <QuotationActionBar
+        onSaveDraft={() => createMutation.mutate({ status: 'DRAFT' })}
+        onPreview={() => setPreviewModalOpen(true)}
+        onSubmit={handlePrimarySubmit}
+        isPending={createMutation.isPending}
+        hasItems={watchLineItems.length > 0}
+        approvalRequired={isApprovalRequired}
+        isDirty={isDirty}
+      />
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            disabled={createMutation.isPending || fields.length === 0}
-            onClick={() => createMutation.mutate({ status: 'SENT' })}
-            className="px-4 py-2 border border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
-          >
-            Preview & Send to Customer
-          </button>
+      {/* 6. Customer Details Drawer */}
+      <CustomerDetailsDrawer
+        isOpen={customerDetailsOpen}
+        onClose={() => setCustomerDetailsOpen(false)}
+        customer={currentCustomer}
+      />
 
-          {calculations.approvalRequirement !== 'NONE' ? (
-            <button
-              type="button"
-              disabled={createMutation.isPending || fields.length === 0}
-              onClick={() => createMutation.mutate({ status: 'PENDING_APPROVAL' })}
-              className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50 shadow-xs flex items-center gap-1.5"
-            >
-              <ShieldAlert className="w-3.5 h-3.5" />
-              Submit for Manager Approval
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={createMutation.isPending || fields.length === 0}
-              onClick={() => createMutation.mutate({ status: 'CONFIRMED' })}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50 shadow-xs"
-            >
-              Confirm Quotation
-            </button>
-          )}
-        </div>
-      </div>
+      {/* 7. Quotation Item Edit Drawer */}
+      <QuotationItemDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        item={activeDrawerIndex !== null ? watchLineItems[activeDrawerIndex] : null}
+        index={activeDrawerIndex}
+        onSave={handleUpdateItem}
+        tierDiscountLimit={currentCustomer.tierDiscountLimit}
+      />
+
+      {/* 8. Governance Drawer */}
+      <GovernanceDrawer
+        isOpen={governanceDrawerOpen}
+        onClose={() => setGovernanceDrawerOpen(false)}
+        calculations={calculations}
+      />
+
+      {/* 9. Billing Schedule Drawer */}
+      <BillingDrawer
+        isOpen={billingDrawerOpen}
+        onClose={() => setBillingDrawerOpen(false)}
+        oneTimeSubtotal={calculations.oneTimeSubtotal}
+        recurringSubtotal={calculations.recurringSubtotal}
+        items={watchLineItems}
+      />
+
+      {/* 10. Recommendations Drawer */}
+      <RecommendationsDrawer
+        isOpen={recommendationsDrawerOpen}
+        onClose={() => setRecommendationsDrawerOpen(false)}
+        suggestions={upsellSuggestions}
+        onAddSuggestion={handleAddProduct}
+      />
+
+      {/* 11. Customer-Facing Preview Modal */}
+      <QuotePreviewModal
+        isOpen={previewModalOpen}
+        onClose={() => setPreviewModalOpen(false)}
+        currentCustomer={currentCustomer}
+        items={watchLineItems}
+        calculations={calculations}
+        validUntilDate={validUntilDate}
+      />
+
     </div>
   );
 }
