@@ -1,47 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    /* ========================================
+       DealFlow360 — Premium Warm Design Tokens
+       ======================================== */
+
+    /* Backgrounds */
+    --df-bg: #FAF9F6;
+    --df-sidebar: #F7F5F1;
+    --df-header: #FAF9F6;
+
+    /* Surfaces */
+    --df-surface: #FFFFFF;
+    --df-surface-secondary: #F5F2ED;
+    --df-surface-hover: #F2EFEA;
+
+    /* Borders */
+    --df-border: #E6E1D9;
+    --df-border-subtle: #EEEAE4;
+
+    /* Brand — Coral / Orange */
+    --df-primary: #D97757;
+    --df-primary-hover: #C96648;
+    --df-primary-soft: #F8E9E3;
+    --df-primary-border: #E9B8A7;
+
+    /* Typography */
+    --df-foreground: #171717;
+    --df-secondary: #6F6B66;
+    --df-muted: #96918A;
+    --df-disabled: #B4AEA6;
+
+    /* Semantic Colors */
+    --df-success: #3F8F63;
+    --df-success-soft: #EAF5EE;
+    --df-warning: #C98A32;
+    --df-warning-soft: #FBF2E3;
+    --df-danger: #C95757;
+    --df-danger-soft: #FBEAEA;
+    --df-info: #5D83A8;
+    --df-info-soft: #EBF1F7;
+
+    /* shadcn/ui compatibility tokens (HSL format preserved for Tailwind) */
+    --background: 40 20% 97%;
+    --foreground: 0 0% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
- 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
- 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --card-foreground: 0 0% 9%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
- 
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+
+    --primary: 16 60% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 30 10% 95%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 30 10% 95%;
+    --muted-foreground: 25 5% 45%;
+
+    --accent: 30 10% 95%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 45% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 33 14% 87%;
+    --input: 33 14% 87%;
+    --ring: 16 60% 60%;
+
     --radius: 0.5rem;
   }
- 
+
   html, body, #root {
     min-height: 100vh;
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: var(--df-bg);
+    color: var(--df-foreground);
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Hide the native browser eye icon for password inputs */
@@ -49,7 +97,7 @@
   input[type="password"]::-ms-clear {
     display: none;
   }
-  
+
   input[type="password"]::-webkit-reveal,
   input[type="password"]::-webkit-clear {
     display: none !important;
@@ -58,4 +106,186 @@
   * {
     @apply border-border;
   }
+}
+
+/* ========================================
+   Utility Classes — DealFlow360 Design System
+   ======================================== */
+@layer components {
+  .df-page {
+    @apply p-6 sm:p-8 lg:p-10 max-w-[1400px] mx-auto;
+  }
+
+  .df-card {
+    background: var(--df-surface);
+    border: 1px solid var(--df-border);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .df-card-padded {
+    background: var(--df-surface);
+    border: 1px solid var(--df-border);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    padding: 22px 24px;
+  }
+
+  .df-btn-primary {
+    background: var(--df-primary);
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 14px;
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 9px;
+    transition: background 150ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    border: none;
+  }
+  .df-btn-primary:hover {
+    background: var(--df-primary-hover);
+  }
+  .df-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .df-btn-secondary {
+    background: var(--df-surface);
+    color: #35322F;
+    font-weight: 600;
+    font-size: 14px;
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 9px;
+    border: 1px solid var(--df-border);
+    transition: background 150ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .df-btn-secondary:hover {
+    background: var(--df-surface-secondary);
+  }
+
+  .df-btn-ghost {
+    background: transparent;
+    color: #35322F;
+    font-weight: 500;
+    font-size: 14px;
+    height: 42px;
+    padding: 0 12px;
+    border-radius: 9px;
+    border: none;
+    transition: background 150ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .df-btn-ghost:hover {
+    background: var(--df-surface-hover);
+  }
+
+  .df-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    background: var(--df-surface);
+    border: 1px solid var(--df-border);
+    border-radius: 9px;
+    font-size: 14px;
+    color: var(--df-foreground);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .df-input::placeholder {
+    color: var(--df-muted);
+  }
+  .df-input:focus {
+    outline: none;
+    border-color: var(--df-primary);
+    box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15);
+  }
+
+  .df-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--df-foreground);
+    margin-bottom: 6px;
+  }
+
+  .df-section-title {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--df-muted);
+  }
+
+  .df-metric-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--df-secondary);
+  }
+
+  .df-metric-value {
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--df-foreground);
+    line-height: 1.1;
+  }
+
+  /* Table styles */
+  .df-table-header {
+    background: var(--df-bg);
+    border-bottom: 1px solid var(--df-border);
+  }
+  .df-table-header th {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--df-muted);
+    padding: 12px 16px;
+    text-align: left;
+  }
+  .df-table-row {
+    border-bottom: 1px solid var(--df-border-subtle);
+    transition: background 150ms ease;
+  }
+  .df-table-row:hover {
+    background: #FBFAF8;
+  }
+  .df-table-row td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--df-foreground);
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--df-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--df-muted);
 }
