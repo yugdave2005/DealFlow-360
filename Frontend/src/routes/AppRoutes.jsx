@@ -19,11 +19,13 @@ import QuotationBuilder from '../pages/sales/QuotationBuilder';
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/" element={<Navigate to="/auth/login" replace />} />
+
+      {/* Auth routes under /auth/* */}
+      <Route path="/auth" element={<AuthLayout />}>
+        <Route path="login" element={<Login />} />
+        <Route path="signup" element={<Signup />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
