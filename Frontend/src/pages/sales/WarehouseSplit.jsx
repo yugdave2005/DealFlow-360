@@ -17,7 +17,8 @@ import {
   Boxes,
   MapPin,
   ChevronRight,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { api } from '../../lib/axios';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -94,6 +95,8 @@ export default function WarehouseSplit() {
   const totalAllocated = warehouses.reduce((sum, w) => sum + (Number(w.allocated) || 0), 0);
   const remainingNeeded = Math.max(0, requiredUnits - totalAllocated);
   const backorderCount = totalAllocated < requiredUnits ? requiredUnits - totalAllocated : 0;
+  const totalAvailableAcrossHubs = warehouses.reduce((sum, w) => sum + (Number(w.available) || 0), 0);
+  const canConsolidateBackorder = backorderCount > 0 && totalAvailableAcrossHubs >= requiredUnits;
   const activeShipments = warehouses.filter(w => (Number(w.allocated) || 0) > 0).length;
   
   const currentCost = warehouses.reduce((sum, w) => {
@@ -133,6 +136,17 @@ export default function WarehouseSplit() {
     toast.info('Reset to AI Recommended Multi-Warehouse Plan');
   };
 
+  const handleConsolidateBackorder = () => {
+    let needed = requiredUnits;
+    const updated = warehouses.map(w => {
+      const allocate = Math.min(w.available, needed);
+      needed -= allocate;
+      return { ...w, allocated: allocate };
+    });
+    setWarehouses(updated);
+    toast.success('Backorders successfully consolidated across available warehouse hubs!');
+  };
+
   const acceptMutation = useMutation({
     mutationFn: () => api.post(`/fulfillment/${orderId}/accept`, {
       splits: warehouses.filter(w => w.allocated > 0).map(w => ({
@@ -147,113 +161,126 @@ export default function WarehouseSplit() {
       queryClient.invalidateQueries({ queryKey: ['inventory', productId] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      toast.success('Warehouse Split Plan Confirmed & Dispatched to Carrier Logistics');
-      navigate('/sales/fulfillment');
+      toast.success('Warehouse Split Plan Confirmed & Dispatched to Logistics');
     },
     onError: (err) => {
-      toast.error(err.response?.data?.message || err.message || 'Dispatch failed');
+      toast.error(err.response?.data?.message || 'Failed to dispatch shipment');
     }
   });
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto space-y-6">
-      {/* Back Button & Header (Uncarded canvas) */}
-      <div>
-        <button
-          onClick={() => navigate('/sales/fulfillment')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6F6B66] hover:text-[#171717] transition-colors mb-3"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Fulfillment Queue</span>
-        </button>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6 pb-24">
+      {/* 1. Header with Breadcrumb */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#FFFFFF] p-6 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/sales/fulfillment')}
+            className="p-2.5 text-[#78716C] hover:text-[#1E1B18] hover:bg-[#F5EFEB] rounded-xl transition-colors shrink-0 cursor-pointer"
+            title="Back to Fulfillment List"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-[34px] font-semibold text-[#171717] tracking-tight">
-                Warehouse Fulfillment Split
-              </h1>
-              <span className="font-mono text-xs font-bold text-[#D97757] bg-[#F8E9E3] border border-[#F2D7CD] px-2.5 py-1 rounded-md">
-                {orderId || 'ORD-1004'}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-2xl font-bold text-[#1E1B18] font-mono tracking-tight">{orderId}</h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F5EFEB] text-[#B85D19] border border-[#E8DFD8]">
+                Multi-Hub Fulfillment
               </span>
-              {isAlreadyShipped && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#EAF5EE] text-[#3F8F63] border border-[#CEEADB]">
-                  <Check className="w-3.5 h-3.5" />
-                  Fulfilled
-                </span>
-              )}
             </div>
-            <p className="text-[15px] text-[#6F6B66] mt-1">
-              Client: <strong className="text-[#171717]">{customerName}</strong> ({customerTier}) &bull; Intelligent multi-hub inventory allocation
+            <p className="text-xs sm:text-sm text-[#78716C] mt-0.5 flex items-center gap-2">
+              <Building2 className="w-3.5 h-3.5 text-[#A8A29E]" />
+              <span className="font-semibold text-[#1E1B18]">{customerName}</span>
+              <span>&bull;</span>
+              <span>Account Tier: {customerTier}</span>
             </p>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            {isAlreadyShipped ? (
-              <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#EAF5EE] text-[#3F8F63] border border-[#CEEADB] text-xs font-semibold rounded-[9px]">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Dispatched & Delivered</span>
-              </span>
-            ) : (
-              <button
-                onClick={() => acceptMutation.mutate()}
-                disabled={acceptMutation.isPending || totalAllocated === 0}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#D97757] hover:bg-[#C96648] text-[#FFFFFF] text-xs font-semibold rounded-[9px] shadow-xs transition-colors disabled:opacity-50"
-              >
-                <Check className="w-4 h-4" />
-                <span>{acceptMutation.isPending ? 'Dispatching...' : 'Accept & Dispatch Split'}</span>
-              </button>
-            )}
+        <div className="flex items-center gap-2">
+          {isAlreadyShipped ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Fulfilled & Dispatched</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              <Clock className="w-4 h-4" />
+              <span>Pending Allocation</span>
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Order SKU Overview Card */}
+      <div className="bg-[#FFFFFF] p-6 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[#F5EFEB] border border-[#E8DFD8] flex items-center justify-center text-[#B85D19] shrink-0">
+            <Package className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-[#1E1B18]">{productName}</h2>
+            <p className="text-xs text-[#78716C] mt-0.5 font-mono">
+              SKU: {productId?.slice(0, 8) || 'GEN-SKU-99'} &bull; Total Demand: <strong>{requiredUnits} Units</strong>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6 self-start md:self-auto text-xs">
+          <div>
+            <span className="text-[#A8A29E] block uppercase font-bold text-[10px]">Allocated Units</span>
+            <span className={`text-base font-bold ${totalAllocated >= requiredUnits ? 'text-emerald-700' : 'text-amber-700'}`}>
+              {totalAllocated} / {requiredUnits}
+            </span>
+          </div>
+          <div className="border-l border-[#EBE8E2] pl-6">
+            <span className="text-[#A8A29E] block uppercase font-bold text-[10px]">Backorder Remainder</span>
+            <span className={`text-base font-bold ${backorderCount > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+              {backorderCount} units
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Order Requirement & Warehouse Split Table */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Order Requirement Card */}
-          <div className="bg-[#FFFFFF] p-6 rounded-xl border border-[#E6E1D9] shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-semibold text-[#D97757] uppercase tracking-wider block">Order Requirement</span>
-                <h3 className="text-lg font-bold text-[#171717] mt-0.5">{productName}</h3>
-              </div>
-              <div className="text-right">
-                <span className="text-xs text-[#96918A] font-medium block">Target Quantity</span>
-                <p className="text-2xl font-bold text-[#171717]">{requiredUnits} <span className="text-xs font-medium text-[#6F6B66]">units</span></p>
-              </div>
+      {/* 3. Automatic Backorder Consolidation Prompt (PDF Page 7) */}
+      {canConsolidateBackorder && (
+        <div className="bg-amber-50 rounded-2xl border border-amber-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
+              <RefreshCw className="w-4 h-4" />
             </div>
-
-            {/* Progress allocation bar */}
-            <div className="space-y-1.5 pt-3 border-t border-[#EEEAE4]">
-              <div className="flex justify-between text-xs font-medium">
-                <span className="text-[#6F6B66]">Allocated: <strong>{totalAllocated}</strong> of {requiredUnits} units</span>
-                <span className={backorderCount > 0 ? 'text-[#C98A32] font-semibold' : 'text-[#3F8F63] font-semibold'}>
-                  {backorderCount > 0 ? `${backorderCount} units backordered` : '✓ 100% Stock Covered'}
-                </span>
-              </div>
-              <div className="w-full h-2.5 bg-[#E6E1D9] rounded-full overflow-hidden flex">
-                <div 
-                  className={`h-full transition-all duration-300 ${backorderCount > 0 ? 'bg-[#C98A32]' : 'bg-[#3F8F63]'}`}
-                  style={{ width: `${Math.min(100, (totalAllocated / requiredUnits) * 100)}%` }}
-                />
-              </div>
+            <div>
+              <h4 className="font-bold text-sm text-amber-900">Stock Replenishment Detected: Consolidate Remaining Backorder?</h4>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Additional stock is available across warehouses to fulfill all {backorderCount} remaining backordered units.
+              </p>
             </div>
           </div>
 
-          {/* Warehouse Allocation Table */}
-          <div className="bg-[#FFFFFF] rounded-xl border border-[#E6E1D9] shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-[#E6E1D9] bg-[#FAF9F6] flex items-center justify-between">
+          <button
+            onClick={handleConsolidateBackorder}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer"
+          >
+            Consolidate Remaining Backorder
+          </button>
+        </div>
+      )}
+
+      {/* 4. Split Allocation Table & Logistics Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        
+        {/* Left 2 Cols: Warehouse Matrix Table */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div className="p-5 border-b border-[#EBE8E2] flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-[#171717] text-sm">Warehouse Inventory & Split</h3>
-                <p className="text-xs text-[#6F6B66]">Adjust quantities per hub or use algorithm recommended balance</p>
+                <h3 className="text-base font-bold text-[#1E1B18]">Warehouse Allocation Matrix</h3>
+                <p className="text-xs text-[#78716C]">Adjust quantities per hub or use algorithm recommended balance</p>
               </div>
               <div className="flex items-center gap-2">
                 {isManualMode ? (
                   <button
                     onClick={handleResetToOptimal}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#D97757] bg-[#F8E9E3] hover:bg-[#F2D7CD] rounded-[9px] transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#B85D19] bg-[#F5EFEB] hover:bg-[#E8DFD8] rounded-xl transition-colors cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Reset Recommended</span>
@@ -261,9 +288,9 @@ export default function WarehouseSplit() {
                 ) : (
                   <button
                     onClick={() => setIsManualMode(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#6F6B66] bg-[#F5F2ED] hover:bg-[#EEEAE4] rounded-[9px] transition-colors border border-[#E6E1D9]"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#44403C] bg-[#FAF8F5] hover:bg-[#F5EFEB] rounded-xl transition-colors border border-[#EBE8E2] cursor-pointer"
                   >
-                    <Sliders className="w-3.5 h-3.5" />
+                    <Sliders className="w-3.5 h-3.5 text-[#78716C]" />
                     <span>Manual Override</span>
                   </button>
                 )}
@@ -273,7 +300,7 @@ export default function WarehouseSplit() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-[#FAF9F6] border-b border-[#E6E1D9] text-[11px] font-medium text-[#96918A] uppercase tracking-[0.05em]">
+                  <tr className="bg-[#FAF8F5] border-b border-[#EBE8E2] text-[11px] font-semibold text-[#78716C] uppercase tracking-wider">
                     <th className="py-3 px-5">Warehouse Location</th>
                     <th className="py-3 px-5">In-Stock Available</th>
                     <th className="py-3 px-5">Allocated Units</th>
@@ -281,21 +308,21 @@ export default function WarehouseSplit() {
                     <th className="py-3 px-5 text-right">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#EEEAE4]">
+                <tbody className="divide-y divide-[#EBE8E2]/60">
                   {warehouses.map(wh => {
                     const isAllocated = (Number(wh.allocated) || 0) > 0;
                     return (
-                      <tr key={wh.id} className={isAllocated ? 'bg-[#FAF9F6]' : 'hover:bg-[#FBFAF8]'}>
+                      <tr key={wh.id} className={isAllocated ? 'bg-[#FAF8F5]/60' : 'hover:bg-[#FAF8F5]/30'}>
                         <td className="py-4 px-5">
                           <div className="flex items-start gap-2.5">
-                            <MapPin className="w-4 h-4 text-[#96918A] shrink-0 mt-0.5" />
+                            <MapPin className="w-4 h-4 text-[#A8A29E] shrink-0 mt-0.5" />
                             <div>
-                              <div className="font-semibold text-[#171717] text-sm">{wh.name}</div>
-                              <div className="text-xs text-[#96918A]">{wh.location}</div>
+                              <div className="font-semibold text-[#1E1B18] text-sm">{wh.name}</div>
+                              <div className="text-xs text-[#78716C]">{wh.location}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="py-4 px-5 font-medium text-[#6F6B66]">
+                        <td className="py-4 px-5 font-medium text-[#44403C]">
                           {wh.available} units
                         </td>
                         <td className="py-4 px-5">
@@ -307,25 +334,25 @@ export default function WarehouseSplit() {
                                 max={wh.available}
                                 value={wh.allocated}
                                 onChange={(e) => handleQuantityChange(wh.id, e.target.value)}
-                                className="w-20 px-2.5 py-1 text-sm font-bold text-[#171717] bg-[#FFFFFF] border border-[#E6E1D9] rounded-[7px] focus:outline-none focus:border-[#D97757]"
+                                className="w-20 px-2.5 py-1 text-sm font-bold text-[#1E1B18] bg-[#FFFFFF] border border-[#EBE8E2] rounded-xl focus:outline-none focus:border-[#B85D19]"
                               />
-                              <span className="text-xs text-[#96918A]">/ {wh.available}</span>
+                              <span className="text-xs text-[#A8A29E]">/ {wh.available}</span>
                             </div>
                           ) : (
-                            <span className="font-bold text-[#171717] text-sm">{wh.allocated} units</span>
+                            <span className="font-bold text-[#1E1B18] text-sm">{wh.allocated} units</span>
                           )}
                         </td>
-                        <td className="py-4 px-5 text-xs font-semibold text-[#6F6B66]">
+                        <td className="py-4 px-5 text-xs font-semibold text-[#78716C]">
                           {isAllocated ? `₹${(wh.allocated * wh.ratePerKg + 200).toLocaleString('en-IN')}` : '—'}
                         </td>
                         <td className="py-4 px-5 text-right">
                           {isAllocated ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EAF5EE] text-[#3F8F63] border border-[#CEEADB]">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                               <Check className="w-3 h-3" />
                               Allocated
                             </span>
                           ) : (
-                            <span className="text-xs text-[#96918A] font-medium">Standby</span>
+                            <span className="text-xs text-[#A8A29E] font-medium">Standby</span>
                           )}
                         </td>
                       </tr>
@@ -339,43 +366,43 @@ export default function WarehouseSplit() {
 
         {/* Right Col: Logistics Optimization Summary */}
         <div className="space-y-6">
-          <div className="bg-[#FFFFFF] p-6 rounded-xl border border-[#E6E1D9] shadow-xs space-y-6">
+          <div className="bg-[#FFFFFF] p-6 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-6">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#D97757]" />
-              <h3 className="font-bold text-[#171717] text-sm">Cost & SLA Optimization</h3>
+              <Sparkles className="w-4 h-4 text-[#B85D19]" />
+              <h3 className="font-bold text-[#1E1B18] text-sm">Cost & SLA Optimization</h3>
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 bg-[#FAF9F6] rounded-xl border border-[#E6E1D9] space-y-1">
-                <span className="text-[11px] font-semibold text-[#96918A] uppercase tracking-wider block">Estimated Freight Cost</span>
-                <p className="text-3xl font-bold text-[#171717]">
+              <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] space-y-1">
+                <span className="text-[11px] font-semibold text-[#78716C] uppercase tracking-wider block">Estimated Freight Cost</span>
+                <p className="text-3xl font-bold text-[#1E1B18]">
                   ₹{currentCost.toLocaleString('en-IN')}
                 </p>
-                <p className="text-xs text-[#3F8F63] font-medium mt-1">Lowest cost route across Gujarat fulfillment grid</p>
+                <p className="text-xs text-emerald-700 font-medium mt-1">Lowest cost route across multi-warehouse fulfillment grid</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-[#FFFFFF] border border-[#E6E1D9] rounded-xl">
-                  <span className="text-xs text-[#96918A] block">Hub Dispatches</span>
-                  <strong className="text-sm font-bold text-[#171717]">{activeShipments} Dispatches</strong>
+                <div className="p-3 bg-[#FFFFFF] border border-[#EBE8E2] rounded-xl">
+                  <span className="text-xs text-[#78716C] block">Hub Dispatches</span>
+                  <strong className="text-sm font-bold text-[#1E1B18]">{activeShipments} Dispatches</strong>
                 </div>
-                <div className="p-3 bg-[#FFFFFF] border border-[#E6E1D9] rounded-xl">
-                  <span className="text-xs text-[#96918A] block">Delivery SLA</span>
-                  <strong className="text-sm font-bold text-[#171717]">2–3 Days</strong>
+                <div className="p-3 bg-[#FFFFFF] border border-[#EBE8E2] rounded-xl">
+                  <span className="text-xs text-[#78716C] block">Delivery SLA</span>
+                  <strong className="text-sm font-bold text-[#1E1B18]">2–3 Days</strong>
                 </div>
               </div>
             </div>
 
             {isAlreadyShipped ? (
-              <div className="w-full py-3 bg-[#EAF5EE] text-[#3F8F63] border border-[#CEEADB] font-semibold text-xs rounded-[9px] flex items-center justify-center gap-1.5">
+              <div className="w-full py-3 bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Shipment Dispatched & Delivered</span>
+                <span>Shipment Dispatched & In Transit</span>
               </div>
             ) : (
               <button
                 onClick={() => acceptMutation.mutate()}
                 disabled={acceptMutation.isPending || totalAllocated === 0}
-                className="w-full py-3 bg-[#D97757] hover:bg-[#C96648] text-[#FFFFFF] font-semibold text-xs rounded-[9px] transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 bg-[#B85D19] hover:bg-[#9E4E13] text-white font-bold text-xs rounded-xl transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>{acceptMutation.isPending ? 'Confirming...' : 'Dispatch Shipment'}</span>

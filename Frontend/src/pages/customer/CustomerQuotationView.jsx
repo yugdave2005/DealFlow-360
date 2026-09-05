@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { MessageSquare, CheckCircle2, HelpCircle, ArrowRight, CornerDownRight, X, Send } from 'lucide-react';
 import DealFlowLogo from '../../components/DealFlowLogo';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/axios';
@@ -13,6 +14,10 @@ export default function CustomerQuotationView() {
   const { user } = useAuth();
   const [notes, setNotes] = useState('');
   const [counterDiscount, setCounterDiscount] = useState('');
+  
+  // Line-level inquiry state
+  const [activeLineInquiry, setActiveLineInquiry] = useState(null);
+  const [lineCommentText, setLineCommentText] = useState('');
 
   const customerId = user?.id || user?.customerId || 'bb222222-2222-2222-2222-222222222222';
 
@@ -35,22 +40,56 @@ export default function CustomerQuotationView() {
     }
   });
 
-  const negotiateMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.post(`/customer-portal/quotations/${id}/negotiate`, { 
-        customerId, 
-        notes, 
-        counterDiscount: parseFloat(counterDiscount) || 0 
+  const declineMutation = useMutation({
+    mutationFn: async (reason) => {
+      const res = await api.post(`/customer-portal/quotations/${id}/decline`, { 
+        customerId,
+        reason: reason || 'Declined by customer from portal'
       });
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
-      toast.success('Negotiation request submitted');
-      setNotes('');
-      setCounterDiscount('');
+      toast.success('Quotation declined');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to decline quotation');
     }
   });
+
+  const negotiateMutation = useMutation({
+    mutationFn: async ({ explicitNotes, discountVal }) => {
+      const res = await api.post(`/customer-portal/quotations/${id}/negotiate`, { 
+        customerId, 
+        notes: explicitNotes || notes, 
+        counterDiscount: parseFloat(discountVal !== undefined ? discountVal : counterDiscount) || 0 
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
+      toast.success('Negotiation request / inquiry submitted to your Sales Rep');
+      setNotes('');
+      setCounterDiscount('');
+      setActiveLineInquiry(null);
+      setLineCommentText('');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to submit negotiation');
+    }
+  });
+
+  const handleLineInquirySubmit = (item) => {
+    if (!lineCommentText.trim()) {
+      toast.error('Please enter your question or modification request');
+      return;
+    }
+    const combinedNotes = `[Line Item: ${item.product?.name || 'Product'}]: ${lineCommentText.trim()}`;
+    negotiateMutation.mutate({
+      explicitNotes: combinedNotes,
+      discountVal: counterDiscount || 0
+    });
+  };
 
   if (isLoading) return <div className="p-12 text-center text-[#78716C]">Loading Quotation Securely...</div>;
   if (isError || !quote) return <div className="p-12 text-center text-rose-600">Quotation not found or you do not have access.</div>;
@@ -89,32 +128,104 @@ export default function CustomerQuotationView() {
           </div>
 
           <div className="p-8">
-            <h3 className="text-lg font-bold text-[#1E1B18] border-b border-[#EBE8E2] pb-3 mb-4">Commercial Line Items</h3>
+            <div className="flex items-center justify-between border-b border-[#EBE8E2] pb-3 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-[#1E1B18]">Commercial Line Items</h3>
+                <p className="text-xs text-[#78716C]">Review items or click the comment tool on any line to ask questions</p>
+              </div>
+            </div>
+
+            {/* Line items with line-level commenting tool */}
             <div className="space-y-3 mb-8">
               {items.map((item, idx) => {
                 const qty = Number(item.quantity || 1);
                 const unitPrice = Number(item.unitPrice || 0);
                 const disc = Number(item.discountPercentage || 0);
                 const lineTotal = (qty * unitPrice) * (1 - disc / 100);
+                const isInquiring = activeLineInquiry === idx;
 
                 return (
-                  <div key={item.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-[#FAF8F5] border border-[#EBE8E2] gap-3">
-                    <div>
-                      <p className="font-bold text-[#1E1B18] text-base">{item.product?.name || item.productName || `Item #${idx + 1}`}</p>
-                      <p className="text-xs text-[#78716C] mt-0.5">
-                        {qty} units &times; ₹{unitPrice.toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 sm:text-right">
-                      {disc > 0 && (
-                        <span className="text-xs font-bold text-emerald-700 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
-                          -{disc}% Discount Applied
-                        </span>
-                      )}
+                  <div key={item.id || idx} className="rounded-2xl bg-[#FAF8F5] border border-[#EBE8E2] p-4 space-y-3 transition-all">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <p className="font-extrabold text-[#1E1B18] text-lg">₹{lineTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                        <p className="font-bold text-[#1E1B18] text-base">{item.product?.name || item.productName || `Item #${idx + 1}`}</p>
+                        <p className="text-xs text-[#78716C] mt-0.5">
+                          {qty} units &times; ₹{unitPrice.toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4 sm:text-right">
+                        {disc > 0 && (
+                          <span className="text-xs font-bold text-emerald-700 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
+                            -{disc}% Discount Applied
+                          </span>
+                        )}
+                        <div>
+                          <p className="font-extrabold text-[#1E1B18] text-lg">₹{lineTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                        </div>
+                        {quote.status === 'SENT' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isInquiring) {
+                                setActiveLineInquiry(null);
+                              } else {
+                                setActiveLineInquiry(idx);
+                                setLineCommentText('');
+                              }
+                            }}
+                            className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
+                              isInquiring 
+                                ? 'bg-[#1E1B18] text-white' 
+                                : 'bg-[#FFFFFF] text-[#78716C] hover:text-[#1E1B18] border border-[#EBE8E2]'
+                            }`}
+                            title="Ask question or request line change"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Comment</span>
+                          </button>
+                        )}
                       </div>
                     </div>
+
+                    {/* Line Inquiry Inline Input */}
+                    {isInquiring && (
+                      <div className="pt-2 border-t border-[#EBE8E2] space-y-2 bg-[#FFFFFF] p-3 rounded-xl">
+                        <div className="flex items-center justify-between text-xs font-bold text-[#1E1B18]">
+                          <span className="flex items-center gap-1.5 text-[#B85D19]">
+                            <CornerDownRight className="w-3.5 h-3.5" />
+                            Ask question or request change for {item.product?.name || 'this line'}:
+                          </span>
+                          <button onClick={() => setActiveLineInquiry(null)} className="text-[#A8A29E] hover:text-[#1E1B18]">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="e.g. Can we adjust quantity to 15 or bundle setup support?"
+                          value={lineCommentText}
+                          onChange={(e) => setLineCommentText(e.target.value)}
+                          className="w-full p-2.5 bg-[#FAF8F5] border border-[#EBE8E2] rounded-xl text-xs text-[#1E1B18] focus:outline-none focus:border-[#B85D19]"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setActiveLineInquiry(null)}
+                            className="px-3 py-1.5 text-xs text-[#78716C] hover:bg-[#FAF8F5] rounded-lg"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleLineInquirySubmit(item)}
+                            disabled={negotiateMutation.isPending}
+                            className="px-3.5 py-1.5 bg-[#B85D19] hover:bg-[#9E4E13] text-white text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>{negotiateMutation.isPending ? 'Submitting...' : 'Send Line Inquiry'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -173,28 +284,46 @@ export default function CustomerQuotationView() {
                     />
                   </div>
                   <button 
-                    onClick={() => negotiateMutation.mutate()} disabled={negotiateMutation.isPending}
+                    onClick={() => negotiateMutation.mutate({})} disabled={negotiateMutation.isPending}
                     className="w-full bg-[#FFFFFF] border border-[#EBE8E2] text-[#1E1B18] font-bold py-2.5 px-4 rounded-xl hover:bg-[#F5EFEB] transition-colors shadow-xs text-xs disabled:opacity-50 cursor-pointer"
                   >
                     {negotiateMutation.isPending ? 'Submitting...' : 'Submit Negotiation Request'}
                   </button>
                 </div>
                 
-                <div className="flex flex-col justify-center border-t md:border-t-0 md:border-l border-[#EBE8E2] md:pl-6 pt-4 md:pt-0 text-center space-y-3">
-                  <h4 className="font-bold text-[#1E1B18] text-base">Accept & Confirm Proposal</h4>
-                  <p className="text-xs text-[#78716C]">By confirming, this quotation converts into an active order dispatched for fulfillment.</p>
+                <div className="flex flex-col justify-center border-t md:border-t-0 md:border-l border-[#EBE8E2] md:pl-6 pt-4 md:pt-0 text-center space-y-4">
+                  <div>
+                    <h4 className="font-bold text-[#1E1B18] text-base">Accept & Confirm Proposal</h4>
+                    <p className="text-xs text-[#78716C] mt-1">By confirming, this quotation converts into an active order dispatched for fulfillment.</p>
+                  </div>
                   <button 
                     onClick={() => acceptMutation.mutate()} disabled={acceptMutation.isPending}
-                    className="bg-[#B85D19] hover:bg-[#9E4E13] text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md hover:shadow-lg text-sm disabled:opacity-50 cursor-pointer"
+                    className="w-full bg-[#B85D19] hover:bg-[#9E4E13] text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md hover:shadow-lg text-sm disabled:opacity-50 cursor-pointer"
                   >
                     {acceptMutation.isPending ? 'Confirming...' : 'Accept & Confirm Quotation'}
                   </button>
+
+                  <div className="pt-2 border-t border-[#EBE8E2]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to decline this commercial proposal?')) {
+                          declineMutation.mutate('Customer declined terms from portal');
+                        }
+                      }}
+                      disabled={declineMutation.isPending}
+                      className="text-xs font-semibold text-[#A8A29E] hover:text-[#C95757] transition-colors cursor-pointer"
+                    >
+                      {declineMutation.isPending ? 'Declining...' : 'Decline this proposal'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            ) : quote.status === 'NEGOTIATION' ? (
+
+            ) : quote.status === 'NEGOTIATION' || quote.status === 'PENDING_APPROVAL' ? (
               <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl text-center space-y-1">
                  <h4 className="font-bold text-amber-900 text-lg">Counter-Offer Submitted</h4>
-                 <p className="text-xs text-amber-700">Your negotiation request is currently under review by your Sales Representative.</p>
+                 <p className="text-xs text-amber-700">Your negotiation request is currently under review by your Sales Representative & Governance Team.</p>
                </div>
             ) : quote.status === 'CONFIRMED' ? (
                <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl text-center space-y-1">

@@ -264,3 +264,37 @@ export const acceptQuotation = async (quotationId, customerId) => {
   return result;
 };
 
+export const declineQuotation = async (quotationId, customerId, reason = 'Commercial terms declined by customer') => {
+  const quotation = await prisma.quotation.findFirst({
+    where: { id: quotationId },
+    include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } }
+  });
+  if (!quotation) throw new NotFoundError('Quotation not found');
+
+  const updated = await prisma.quotation.update({
+    where: { id: quotationId },
+    data: { status: 'CANCELLED' }
+  });
+
+  const activeVersion = quotation.versions[0];
+  if (activeVersion) {
+    await prisma.negotiationMessage.create({
+      data: {
+        quotationVersionId: activeVersion.id,
+        authorId: customerId || quotation.customerId,
+        senderRole: 'CUSTOMER',
+        content: `Customer declined quotation: ${reason}`,
+        isCommercialChange: false
+      }
+    });
+  }
+
+  broadcastEvent('QUOTATION_UPDATED', {
+    quotationId,
+    status: 'CANCELLED',
+    message: `Quotation ${quotation.quotationNumber} declined by customer.`
+  });
+
+  return updated;
+};
+

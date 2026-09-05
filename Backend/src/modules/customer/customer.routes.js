@@ -13,5 +13,7 @@ router.get('/quotations', ctrl.listQuotations);
 router.get('/quotations/:id', ctrl.getQuotation);
 router.post('/quotations/:id/negotiate', ctrl.negotiate);
 router.post('/quotations/:id/accept', ctrl.accept);
+router.post('/quotations/:id/decline', ctrl.decline);
 
 export default router;
+

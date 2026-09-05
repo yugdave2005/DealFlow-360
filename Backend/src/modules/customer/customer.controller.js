@@ -32,3 +32,12 @@ export const accept = async (req, res, next) => {
     sendSuccess(res, 200, 'Quotation accepted', result);
   } catch (err) { next(err); }
 };
+
+export const decline = async (req, res, next) => {
+  try {
+    const customerId = req.body.customerId || req.user?.id;
+    const result = await customerService.declineQuotation(req.params.id, customerId, req.body?.reason);
+    sendSuccess(res, 200, 'Quotation declined', result);
+  } catch (err) { next(err); }
+};
+

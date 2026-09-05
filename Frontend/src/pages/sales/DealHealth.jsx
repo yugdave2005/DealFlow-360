@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Activity, 
@@ -9,151 +9,223 @@ import {
   Truck, 
   ShieldAlert, 
   ArrowRight, 
-  ChevronRight, 
   CheckCircle2, 
-  Building, 
-  Percent, 
-  Calendar,
-  AlertCircle
+  ChevronRight,
+  Sparkles,
+  Percent,
+  Layers,
+  Send,
+  Zap,
+  ArrowUpRight
 } from 'lucide-react';
-import StatusBadge from '../../components/common/StatusBadge';
+import { toast } from 'sonner';
 import RiskBadge from '../../components/common/RiskBadge';
-import EmptyState from '../../components/common/EmptyState';
-
-const API_DEAL_HEALTH = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/deal-health`;
-const API_APPROVALS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/approvals/pending`;
-const getToken = () => localStorage.getItem('accessToken');
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { api } from '../../lib/axios';
 
 export default function DealHealth() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const { data: healthData, isLoading: isHealthLoading } = useQuery({
-    queryKey: ['dealHealthData'],
+  const { data: healthData, isLoading, refetch } = useQuery({
+    queryKey: ['dealHealth'],
     queryFn: async () => {
-      const res = await fetch(API_DEAL_HEALTH, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) return { stalledDeals: [], discountAnomalies: [], deliverySlippage: [], summary: { stalledCount: 0, anomalyCount: 0, slippageCount: 0 } };
-      return res.json();
+      try {
+        const res = await api.get('/dealhealth');
+        return res.data?.data || res.data || {};
+      } catch (e) {
+        return {};
+      }
     }
   });
 
-  const { data: pendingApprovals = [] } = useQuery({
-    queryKey: ['dealHealthApprovals'],
-    queryFn: async () => {
-      const res = await fetch(API_APPROVALS, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || [];
+  // Automated Nudge Mutation
+  const nudgeMutation = useMutation({
+    mutationFn: async ({ quotationId, recipientRole }) => {
+      const res = await api.post('/dealhealth/nudge', { quotationId, recipientRole });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.data?.message || 'Automated follow-up reminder dispatched!');
+      queryClient.invalidateQueries({ queryKey: ['dealHealth'] });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to dispatch nudge');
+    }
+  });
+
+  // Governance Escalation Mutation
+  const escalateMutation = useMutation({
+    mutationFn: async ({ quotationId, reason }) => {
+      const res = await api.post('/dealhealth/escalate', { quotationId, reason });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.data?.message || 'Deal escalated to Executive Leadership!');
+      queryClient.invalidateQueries({ queryKey: ['dealHealth'] });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to escalate deal');
+    }
+  });
+
+  // Expedite Fulfillment Mutation
+  const expediteMutation = useMutation({
+    mutationFn: async ({ fulfillmentItemId }) => {
+      const res = await api.post('/dealhealth/expedite', { fulfillmentItemId });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.data?.message || 'Carrier expedited to Overnight Express!');
+      queryClient.invalidateQueries({ queryKey: ['dealHealth'] });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to expedite fulfillment');
     }
   });
 
   const stalledDeals = healthData?.stalledDeals || [];
   const discountAnomalies = healthData?.discountAnomalies || [];
   const deliveryRisks = healthData?.deliverySlippage || [];
-  const approvalDelays = pendingApprovals || [];
+  const summary = healthData?.summary || { stalledCount: 0, anomalyCount: 0, slippageCount: 0 };
+
+  const totalAtRisk = summary.stalledCount + summary.anomalyCount + summary.slippageCount;
 
   return (
-    <div className="w-full px-6 sm:px-8 pt-0 pb-8 space-y-5 font-sans">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-0">
-        <div>
-          <h1 className="text-3xl sm:text-[34px] font-semibold text-[#171717] tracking-tight leading-tight">
-            Deal Health & Risk Radar
-          </h1>
-          <p className="text-sm sm:text-[14.5px] text-[#6F6B66] mt-1">
-            Automated detection of stalled negotiations, discount anomalies & delivery slippage
-          </p>
+    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6 pb-24">
+      {/* 1. Page Header */}
+      <div className="bg-[#FFFFFF] p-6 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-[#F5EFEB] border border-[#E8DFD8] flex items-center justify-center text-[#B85D19] shadow-xs">
+            <Activity className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#1E1B18] tracking-tight">
+              Deal Health & Anomaly Radar
+            </h1>
+            <p className="text-xs sm:text-sm text-[#78716C] mt-0.5">
+              Live monitoring of stalled negotiations, margin slippages, and fulfillment delays
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${
+            totalAtRisk > 0 
+              ? 'bg-rose-50 text-rose-700 border-rose-200' 
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          }`}>
+            {totalAtRisk > 0 ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+            <span>{totalAtRisk} Active Deal Alert{totalAtRisk === 1 ? '' : 's'}</span>
+          </span>
         </div>
       </div>
 
-      {/* Summary Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-[14px] p-5 border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-colors">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-semibold text-[#96918A] uppercase tracking-wider">Stalled Deals</span>
-            <div className="w-9 h-9 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#D9A654]">
-              <Clock className="w-4 h-4" />
+      {/* 2. Top Summary KPI Cards */}
+      {isLoading ? (
+        <LoadingSkeleton count={3} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-[#FFFFFF] p-5 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#A8A29E] uppercase tracking-wider">
+                Stalled Negotiations
+              </span>
+              <span className="w-8 h-8 rounded-xl bg-[#F5EFEB] text-amber-600 flex items-center justify-center">
+                <Clock className="w-4 h-4" />
+              </span>
             </div>
+            <p className="text-2xl sm:text-3xl font-bold text-[#1E1B18] tracking-tight">
+              {summary.stalledCount}
+            </p>
+            <span className="text-xs text-[#78716C] block">
+              Inactive &gt; 7 days without revision
+            </span>
           </div>
-          <h2 className="text-3xl font-bold text-[#D9A654] mt-2">{stalledDeals.length}</h2>
-          <p className="text-[#96918A] text-xs mt-2">&gt; 7 days without progress</p>
-        </div>
 
-        <div className="bg-white rounded-[14px] p-5 border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-colors">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-semibold text-[#96918A] uppercase tracking-wider">Discount Anomalies</span>
-            <div className="w-9 h-9 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#C95757]">
-              <Percent className="w-4 h-4" />
+          <div className="bg-[#FFFFFF] p-5 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#A8A29E] uppercase tracking-wider">
+                Discount Anomalies
+              </span>
+              <span className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <Percent className="w-4 h-4" />
+              </span>
             </div>
+            <p className="text-2xl sm:text-3xl font-bold text-rose-600 tracking-tight">
+              {summary.anomalyCount}
+            </p>
+            <span className="text-xs text-[#78716C] block">
+              Risk score exceeding governance tolerance
+            </span>
           </div>
-          <h2 className="text-3xl font-bold text-[#C95757] mt-2">{discountAnomalies.length}</h2>
-          <p className="text-[#96918A] text-xs mt-2">Exceeds rep baseline</p>
-        </div>
 
-        <div className="bg-white rounded-[14px] p-5 border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-colors">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-semibold text-[#96918A] uppercase tracking-wider">Delivery At-Risk</span>
-            <div className="w-9 h-9 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#D97757]">
-              <Truck className="w-4 h-4" />
+          <div className="bg-[#FFFFFF] p-5 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#A8A29E] uppercase tracking-wider">
+                Delivery Slippage
+              </span>
+              <span className="w-8 h-8 rounded-xl bg-[#F5EFEB] text-[#B85D19] flex items-center justify-center">
+                <Truck className="w-4 h-4" />
+              </span>
             </div>
+            <p className="text-2xl sm:text-3xl font-bold text-[#1E1B18] tracking-tight">
+              {summary.slippageCount}
+            </p>
+            <span className="text-xs text-[#78716C] block">
+              Shipments delayed past promised ETA
+            </span>
           </div>
-          <h2 className="text-3xl font-bold text-[#D97757] mt-2">{deliveryRisks.length}</h2>
-          <p className="text-[#96918A] text-xs mt-2">SLA slippage detected</p>
         </div>
+      )}
 
-        <div className="bg-white rounded-[14px] p-5 border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-colors">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-semibold text-[#96918A] uppercase tracking-wider">Approval Bottlenecks</span>
-            <div className="w-9 h-9 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#8B6CC7]">
-              <ShieldAlert className="w-4 h-4" />
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold text-[#8B6CC7] mt-2">{approvalDelays.length}</h2>
-          <p className="text-[#96918A] text-xs mt-2">&gt; 48h in review queue</p>
-        </div>
-      </div>
-
-      {/* Grid of Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Section 1: STALLED DEALS */}
-        <div className="bg-white rounded-[14px] border border-[#E6E1D9] shadow-xs p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between">
+      {/* 3. Detailed Radar Anomaly Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        
+        {/* Column 1: STALLED DEALS */}
+        <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#EBE8E2]">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#D9A654]" />
-              <h3 className="text-[15px] font-semibold text-[#171717]">Stalled Deals</h3>
+              <Clock className="w-4 h-4 text-amber-600" />
+              <h3 className="text-base font-bold text-[#1E1B18]">Stalled Negotiations</h3>
             </div>
-            <span className="text-xs bg-amber-50 text-[#D9A654] font-semibold px-2.5 py-0.5 rounded-full border border-amber-200">
-              {stalledDeals.length} Action Needed
+            <span className="text-xs bg-amber-50 text-amber-800 font-bold px-2.5 py-0.5 rounded-full border border-amber-200">
+              {stalledDeals.length} Stuck
             </span>
           </div>
 
           <div className="space-y-3">
             {stalledDeals.length === 0 ? (
-              <div className="p-6 text-center text-[#96918A] text-xs font-medium bg-[#FAF9F6] rounded-[10px] border border-dashed border-[#E6E1D9]">
-                <CheckCircle2 className="w-6 h-6 text-[#3F8F63] mx-auto mb-1.5" />
-                No stalled quotations. All deals moving actively.
+              <div className="p-6 text-center text-[#78716C] text-xs font-medium bg-[#FAF8F5] rounded-xl border border-dashed border-[#EBE8E2]">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1.5" />
+                No stalled deals. Velocity is healthy!
               </div>
-            ) : stalledDeals.map((deal) => (
-              <div key={deal.id} className="p-4 bg-[#FAF9F6] rounded-[10px] border border-[#E6E1D9] hover:border-[#D8D1C8] transition-colors">
-                <div className="flex justify-between items-start mb-2">
+            ) : stalledDeals.map(deal => (
+              <div key={deal.id} className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] hover:border-[#B85D19]/30 transition-all space-y-2.5">
+                <div className="flex justify-between items-start">
                   <div>
-                    <span className="font-mono text-xs font-semibold text-[#D97757]">{deal.quotationNumber || `QT-${deal.id.slice(0,6)}`}</span>
-                    <h4 className="font-semibold text-[#171717] text-sm mt-0.5">{deal.status}</h4>
+                    <span className="font-mono text-xs font-bold text-[#B85D19]">{deal.quotationNumber || `QT-${deal.id.slice(0,6)}`}</span>
+                    <h4 className="font-bold text-[#1E1B18] text-sm mt-0.5">{deal.status}</h4>
                   </div>
-                  <span className="text-xs font-semibold text-[#D9A654] bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                    Inactive {deal.daysSinceUpdate || 0} days
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    Inactive {deal.daysSinceUpdate || 0}d
                   </span>
                 </div>
-                <p className="text-xs text-[#6F6B66] mb-3">No activity recorded for over 7 days in status: {deal.status}</p>
-                <div className="flex items-center justify-end pt-2 border-t border-[#E6E1D9]/60 text-xs">
+                <p className="text-xs text-[#78716C]">No update for over 7 days. Customer may need a follow-up concession.</p>
+                <div className="flex items-center justify-between pt-2 border-t border-[#EBE8E2] text-xs gap-2">
+                  <button
+                    onClick={() => nudgeMutation.mutate({ quotationId: deal.id, recipientRole: 'CUSTOMER' })}
+                    disabled={nudgeMutation.isPending}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#B85D19] hover:bg-[#9E4E13] px-2.5 py-1.5 rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <Send className="w-3 h-3" />
+                    <span>Send Nudge</span>
+                  </button>
                   <button
                     onClick={() => navigate(`/sales/quotations/${deal.id}`)}
-                    className="text-[#D97757] hover:text-[#C96648] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                    className="text-[#78716C] hover:text-[#1E1B18] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                   >
-                    <span>Open Deal</span>
+                    <span>Inspect</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -162,50 +234,57 @@ export default function DealHealth() {
           </div>
         </div>
 
-        {/* Section 2: DISCOUNT ANOMALIES */}
-        <div className="bg-white rounded-[14px] border border-[#E6E1D9] shadow-xs p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between">
+        {/* Column 2: DISCOUNT ANOMALIES */}
+        <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#EBE8E2]">
             <div className="flex items-center gap-2">
-              <Percent className="w-4 h-4 text-[#C95757]" />
-              <h3 className="text-[15px] font-semibold text-[#171717]">Discount Anomalies</h3>
+              <Percent className="w-4 h-4 text-rose-600" />
+              <h3 className="text-base font-bold text-[#1E1B18]">Discount Anomalies</h3>
             </div>
-            <span className="text-xs bg-rose-50 text-[#C95757] font-semibold px-2.5 py-0.5 rounded-full border border-rose-200">
+            <span className="text-xs bg-rose-50 text-rose-700 font-bold px-2.5 py-0.5 rounded-full border border-rose-200">
               {discountAnomalies.length} High Risk
             </span>
           </div>
 
           <div className="space-y-3">
             {discountAnomalies.length === 0 ? (
-              <div className="p-6 text-center text-[#96918A] text-xs font-medium bg-[#FAF9F6] rounded-[10px] border border-dashed border-[#E6E1D9]">
-                <CheckCircle2 className="w-6 h-6 text-[#3F8F63] mx-auto mb-1.5" />
-                No discount anomalies detected. Margins are compliant.
+              <div className="p-6 text-center text-[#78716C] text-xs font-medium bg-[#FAF8F5] rounded-xl border border-dashed border-[#EBE8E2]">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1.5" />
+                No discount anomalies. Margins compliant.
               </div>
             ) : discountAnomalies.map((deal, idx) => (
-              <div key={idx} className="p-4 bg-[#FAF9F6] rounded-[10px] border border-[#E6E1D9] hover:border-[#D8D1C8] transition-colors">
-                <div className="flex justify-between items-start mb-2">
+              <div key={idx} className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] hover:border-[#B85D19]/30 transition-all space-y-2.5">
+                <div className="flex justify-between items-start">
                   <div>
-                    <span className="font-mono text-xs font-semibold text-[#D97757]">{deal.quotationNumber || `V${deal.versionNumber}`}</span>
-                    <h4 className="font-semibold text-[#171717] text-sm mt-0.5">Created by {deal.createdBy || 'Sales Rep'}</h4>
+                    <span className="font-mono text-xs font-bold text-[#B85D19]">{deal.quotationNumber || `Rev v${deal.versionNumber}`}</span>
+                    <h4 className="font-bold text-[#1E1B18] text-sm mt-0.5">By {deal.createdBy || 'Sales Rep'}</h4>
                   </div>
                   <RiskBadge score={deal.riskScore} />
                 </div>
-                <div className="grid grid-cols-2 gap-2 bg-white p-2.5 rounded-[8px] border border-[#E6E1D9] text-xs mb-2">
+                <div className="grid grid-cols-2 gap-2 bg-[#FFFFFF] p-2.5 rounded-xl border border-[#EBE8E2] text-xs">
                   <div>
-                    <span className="text-[#96918A] block">Total Amount:</span>
-                    <strong className="text-[#171717] font-bold">₹{Number(deal.totalAmount || 0).toLocaleString('en-IN')}</strong>
+                    <span className="text-[#A8A29E] text-[10px] uppercase font-bold block">Total Amount:</span>
+                    <strong className="text-[#1E1B18] font-bold">₹{Number(deal.totalAmount || 0).toLocaleString('en-IN')}</strong>
                   </div>
                   <div>
-                    <span className="text-[#96918A] block">Total Discount:</span>
-                    <strong className="text-[#C95757] font-bold">₹{Number(deal.totalDiscount || 0).toLocaleString('en-IN')}</strong>
+                    <span className="text-[#A8A29E] text-[10px] uppercase font-bold block">Total Concession:</span>
+                    <strong className="text-rose-600 font-bold">-₹{Number(deal.totalDiscount || 0).toLocaleString('en-IN')}</strong>
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-1 text-xs">
-                  <span className="text-[#96918A]">Risk score exceeds tolerance limit</span>
+                <div className="flex items-center justify-between pt-2 border-t border-[#EBE8E2] text-xs gap-2">
                   <button
-                    onClick={() => navigate('/sales/quotations')}
-                    className="text-[#D97757] hover:text-[#C96648] font-semibold flex items-center gap-1 shrink-0 ml-2 cursor-pointer transition-colors"
+                    onClick={() => escalateMutation.mutate({ quotationId: deal.id, reason: 'High Risk Margin Concession' })}
+                    disabled={escalateMutation.isPending}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-rose-600 hover:bg-rose-700 px-2.5 py-1.5 rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    <span>Review Quotes</span>
+                    <Zap className="w-3 h-3" />
+                    <span>Escalate to VP</span>
+                  </button>
+                  <button
+                    onClick={() => navigate(`/sales/quotations/${deal.id || ''}`)}
+                    className="text-[#78716C] hover:text-[#1E1B18] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span>Review</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -214,43 +293,50 @@ export default function DealHealth() {
           </div>
         </div>
 
-        {/* Section 3: DELIVERY RISK */}
-        <div className="bg-white rounded-[14px] border border-[#E6E1D9] shadow-xs p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between">
+        {/* Column 3: DELIVERY SLIPPAGE */}
+        <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#EBE8E2]">
             <div className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-[#D97757]" />
-              <h3 className="text-[15px] font-semibold text-[#171717]">Delivery Promise Slippage</h3>
+              <Truck className="w-4 h-4 text-[#B85D19]" />
+              <h3 className="text-base font-bold text-[#1E1B18]">Delivery Promise Slippage</h3>
             </div>
-            <span className="text-xs bg-orange-50 text-[#D97757] font-semibold px-2.5 py-0.5 rounded-full border border-orange-200">
+            <span className="text-xs bg-[#F5EFEB] text-[#B85D19] font-bold px-2.5 py-0.5 rounded-full border border-[#E8DFD8]">
               {deliveryRisks.length} At Risk
             </span>
           </div>
 
           <div className="space-y-3">
             {deliveryRisks.length === 0 ? (
-              <div className="p-6 text-center text-[#96918A] text-xs font-medium bg-[#FAF9F6] rounded-[10px] border border-dashed border-[#E6E1D9]">
-                <CheckCircle2 className="w-6 h-6 text-[#3F8F63] mx-auto mb-1.5" />
-                All fulfillment plans are on schedule. No SLA delays.
+              <div className="p-6 text-center text-[#78716C] text-xs font-medium bg-[#FAF8F5] rounded-xl border border-dashed border-[#EBE8E2]">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1.5" />
+                All fulfillment dispatches on schedule.
               </div>
             ) : deliveryRisks.map((order, idx) => (
-              <div key={idx} className="p-4 bg-[#FAF9F6] rounded-[10px] border border-[#E6E1D9] hover:border-[#D8D1C8] transition-colors">
-                <div className="flex justify-between items-start mb-2">
+              <div key={idx} className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] hover:border-[#B85D19]/30 transition-all space-y-2.5">
+                <div className="flex justify-between items-start">
                   <div>
-                    <span className="font-mono text-xs font-semibold text-[#D97757]">{order.orderId || 'Order Item'}</span>
-                    <h4 className="font-semibold text-[#171717] text-sm mt-0.5">Warehouse: {order.warehouse}</h4>
-                    <p className="text-xs text-[#96918A]">Quantity: {order.quantity} units</p>
+                    <span className="font-mono text-xs font-bold text-[#B85D19]">{order.orderId || 'ORD-1004'}</span>
+                    <h4 className="font-bold text-[#1E1B18] text-sm mt-0.5">Warehouse: {order.warehouse}</h4>
+                    <p className="text-xs text-[#78716C]">Allocated: {order.quantity} units</p>
                   </div>
-                  <span className="text-xs font-semibold text-[#C95757] bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
-                    Delayed ({order.daysOverdue} days)
+                  <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                    Delayed ({order.daysOverdue}d)
                   </span>
                 </div>
-                <div className="flex justify-between items-center pt-1 text-xs">
-                  <span className="text-[#96918A]">Estimated delivery date elapsed</span>
+                <div className="flex items-center justify-between pt-2 border-t border-[#EBE8E2] text-xs gap-2">
+                  <button
+                    onClick={() => expediteMutation.mutate({ fulfillmentItemId: order.id })}
+                    disabled={expediteMutation.isPending}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-700 hover:bg-emerald-800 px-2.5 py-1.5 rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <Zap className="w-3 h-3" />
+                    <span>Expedite ETA</span>
+                  </button>
                   <button
                     onClick={() => navigate('/sales/fulfillment')}
-                    className="text-[#D97757] hover:text-[#C96648] font-semibold flex items-center gap-1 shrink-0 ml-2 cursor-pointer transition-colors"
+                    className="text-[#78716C] hover:text-[#1E1B18] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                   >
-                    <span>View Fulfillment</span>
+                    <span>Fulfillment</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -259,49 +345,6 @@ export default function DealHealth() {
           </div>
         </div>
 
-        {/* Section 4: APPROVAL DELAYS */}
-        <div className="bg-white rounded-[14px] border border-[#E6E1D9] shadow-xs p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-[#8B6CC7]" />
-              <h3 className="text-[15px] font-semibold text-[#171717]">Pending Approval Requests</h3>
-            </div>
-            <span className="text-xs bg-purple-50 text-[#8B6CC7] font-semibold px-2.5 py-0.5 rounded-full border border-purple-200">
-              {approvalDelays.length} Pending
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {approvalDelays.length === 0 ? (
-              <div className="p-6 text-center text-[#96918A] text-xs font-medium bg-[#FAF9F6] rounded-[10px] border border-dashed border-[#E6E1D9]">
-                <CheckCircle2 className="w-6 h-6 text-[#3F8F63] mx-auto mb-1.5" />
-                No pending approval bottlenecks in the queue.
-              </div>
-            ) : approvalDelays.map((app) => (
-              <div key={app.id} className="p-4 bg-[#FAF9F6] rounded-[10px] border border-[#E6E1D9] hover:border-[#D8D1C8] transition-colors">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <span className="font-mono text-xs font-semibold text-[#D97757]">{app.quotationVersion?.quotation?.quotationNumber || `REQ-${app.id.slice(0,6)}`}</span>
-                    <h4 className="font-semibold text-[#171717] text-sm mt-0.5">Assigned to: {app.assignedRole}</h4>
-                  </div>
-                  <span className="text-xs font-semibold text-[#8B6CC7] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
-                    Risk: {app.quotationVersion?.riskScore ?? 0}
-                  </span>
-                </div>
-                <p className="text-xs text-[#6F6B66]">Total: ₹{Number(app.quotationVersion?.totalAmount || 0).toLocaleString('en-IN')}</p>
-                <div className="flex justify-end pt-2 text-xs">
-                  <button
-                    onClick={() => navigate('/sales/approvals')}
-                    className="text-[#D97757] hover:text-[#C96648] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <span>Open Approval Queue</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

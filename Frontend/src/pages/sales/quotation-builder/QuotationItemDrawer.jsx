@@ -13,7 +13,8 @@ export default function QuotationItemDrawer({
     quantity: 1,
     unitPrice: 0,
     discountPercentage: 0,
-    notes: ''
+    notes: '',
+    selectedVariant: ''
   });
 
   useEffect(() => {
@@ -22,7 +23,8 @@ export default function QuotationItemDrawer({
         quantity: item.quantity || 1,
         unitPrice: item.unitPrice || 0,
         discountPercentage: item.discountPercentage || 0,
-        notes: item.notes || ''
+        notes: item.notes || '',
+        selectedVariant: item.selectedVariant || ''
       });
     }
   }, [item]);
@@ -167,6 +169,43 @@ export default function QuotationItemDrawer({
                   />
                 </div>
               </div>
+
+              {/* Variant / Custom Specification Selector */}
+              {Array.isArray(item.variantAttributes) && item.variantAttributes.length > 0 && (
+                <div className="p-3.5 bg-[#FAF9F6] border border-[#E6E1D9] rounded-[10px] space-y-2">
+                  <label className="block text-[12px] font-semibold text-[#171717]">
+                    Product Specification / Variant
+                  </label>
+                  <select
+                    value={formData.selectedVariant}
+                    onChange={(e) => {
+                      const selectedVal = e.target.value;
+                      const matched = item.variantAttributes.find(v => (v.attribute || v.name) === selectedVal || v.values?.includes(selectedVal));
+                      let addedPrice = 0;
+                      if (matched?.extraPrice) {
+                        const num = parseFloat(matched.extraPrice.replace(/[^0-9.-]+/g, ''));
+                        if (!isNaN(num)) addedPrice = num;
+                      }
+                      setFormData(prev => ({
+                        ...prev,
+                        selectedVariant: selectedVal,
+                        notes: selectedVal ? `Variant: ${selectedVal}` : prev.notes
+                      }));
+                    }}
+                    className="w-full h-10 px-3 bg-white border border-[#E6E1D9] rounded-[8px] text-[13px] font-medium text-[#171717] focus:outline-none focus:border-[#D97757]"
+                  >
+                    <option value="">Default Standard Configuration</option>
+                    {item.variantAttributes.map((v, vIdx) => {
+                      const label = v.attribute ? `${v.attribute}: ${v.values} ${v.extraPrice ? `(${v.extraPrice})` : ''}` : (v.name || `Variant ${vIdx + 1}`);
+                      return (
+                        <option key={vIdx} value={v.attribute || v.name || v.values}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[12px] font-semibold text-[#6F6B66] mb-1.5">

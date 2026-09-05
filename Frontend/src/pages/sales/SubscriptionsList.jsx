@@ -80,6 +80,8 @@ export default function SubscriptionsList() {
   const [selectedSub, setSelectedSub] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isEditingCycle, setIsEditingCycle] = useState(false);
+  const [isProratingSeats, setIsProratingSeats] = useState(false);
+  const [targetSeats, setTargetSeats] = useState(1);
   const [newCycle, setNewCycle] = useState('MONTHLY');
   const [showCancelModal, setShowCancelModal] = useState(false);
 
@@ -148,7 +150,9 @@ export default function SubscriptionsList() {
   const handleOpenDrawer = (sub) => {
     setSelectedSub(sub);
     setNewCycle(sub.billingCycle || sub.interval || 'MONTHLY');
+    setTargetSeats(sub.quantity || 1);
     setIsEditingCycle(false);
+    setIsProratingSeats(false);
     setShowCancelModal(false);
     setDrawerOpen(true);
   };
@@ -157,13 +161,14 @@ export default function SubscriptionsList() {
     setDrawerOpen(false);
     setSelectedSub(null);
     setIsEditingCycle(false);
+    setIsProratingSeats(false);
     setShowCancelModal(false);
   };
 
-  // Modify Subscription Mutation (e.g. change billing cycle or pause)
+  // Modify Subscription Mutation (e.g. change billing cycle or pause or seats proration)
   const modifyMutation = useMutation({
-    mutationFn: async ({ id, interval, status }) => {
-      const res = await api.patch(`/subscriptions/${id}`, { interval, status });
+    mutationFn: async ({ id, interval, status, quantity }) => {
+      const res = await api.patch(`/subscriptions/${id}`, { interval, status, quantity });
       return res.data?.data || res.data;
     },
     onSuccess: (updated) => {
@@ -172,7 +177,16 @@ export default function SubscriptionsList() {
         setSelectedSub(prev => ({ ...prev, ...updated }));
       }
       setIsEditingCycle(false);
-      toast.success('Subscription terms updated successfully');
+      setIsProratingSeats(false);
+      if (updated?.proration) {
+        toast.success(
+          `Proration applied! ${updated.proration.deltaQuantity > 0 ? 'Debit Invoice' : 'Credit Note'} ${
+            updated.proration.invoiceNumber || updated.proration.creditNoteNumber
+          } issued for ${formatINR(Math.abs(updated.proration.proratedAmount))}`
+        );
+      } else {
+        toast.success('Subscription terms updated successfully');
+      }
     },
     onError: (err) => {
       toast.error(err?.response?.data?.message || err?.message || 'Update failed');
@@ -182,7 +196,7 @@ export default function SubscriptionsList() {
   // Cancel Subscription Mutation
   const cancelMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await api.post(`/subscriptions/${id}/cancel`);
+      const res = await api.post(`/subscriptions/${id}/cancel`, { immediate: true, reason: 'Sales Ops cancellation' });
       return res.data?.data || res.data;
     },
     onSuccess: (updated) => {
@@ -193,12 +207,34 @@ export default function SubscriptionsList() {
         setSelectedSub(prev => ({ ...prev, status: 'CANCELLED' }));
       }
       setShowCancelModal(false);
-      toast.success('Subscription contract cancelled successfully');
+      if (updated?.creditNote) {
+        toast.success(
+          `Cancelled with Credit Note ${updated.creditNote.creditNoteNumber} issued for ${formatINR(updated.creditNote.refundAmount)} (${updated.creditNote.daysRefunded} days unused)`
+        );
+      } else {
+        toast.success('Subscription contract cancelled successfully');
+      }
     },
     onError: (err) => {
       toast.error(err?.response?.data?.message || err?.message || 'Cancellation failed');
     }
   });
+
+  // Proration live calculations for active drawer sub
+  const daysRemainingInCycle = useMemo(() => {
+    if (!selectedSub?.nextBillingDate) return 18;
+    const nextDate = new Date(selectedSub.nextBillingDate);
+    const now = new Date();
+    const diff = Math.max(0, nextDate.getTime() - now.getTime());
+    return Math.max(1, Math.min(30, Math.ceil(diff / (1000 * 60 * 60 * 24))));
+  }, [selectedSub]);
+
+  const currentSeats = selectedSub?.quantity || 1;
+  const currentUnitPrice = selectedSub?.unitPrice || 4999;
+  const seatDelta = targetSeats - currentSeats;
+  const daysInCycle = selectedSub?.billingCycle === 'YEARLY' ? 365 : selectedSub?.billingCycle === 'QUARTERLY' ? 90 : 30;
+  const liveProratedAmount = Math.round((currentUnitPrice / daysInCycle) * daysRemainingInCycle * seatDelta);
+  const cancelRefundAmount = Math.round((currentUnitPrice * currentSeats / daysInCycle) * daysRemainingInCycle);
 
 
   return (
@@ -720,6 +756,96 @@ export default function SubscriptionsList() {
                 </div>
               </div>
 
+              {/* Mid-Cycle Seat Adjustment & Proration Tool */}
+              {selectedSub.status !== 'CANCELLED' && (
+                <div className="p-4 bg-[#FAF9F6] border border-[#E6E1D9] rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-[#171717] block">Mid-Cycle Seat Proration</span>
+                      <span className="text-[11px] text-[#6F6B66]">Prorate charges/credits for mid-cycle quantity change</span>
+                    </div>
+                    {!isProratingSeats ? (
+                      <button
+                        onClick={() => { setIsProratingSeats(true); setTargetSeats(currentSeats); }}
+                        className="text-xs font-semibold text-[#D97757] hover:underline cursor-pointer"
+                      >
+                        Adjust Seats
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIsProratingSeats(false)}
+                        className="text-xs text-[#96918A] hover:underline cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+
+                  {isProratingSeats && (
+                    <div className="space-y-3 pt-2 border-t border-[#EEEAE4]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#35322F]">Target Seat Count:</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setTargetSeats(prev => Math.max(1, prev - 1))}
+                            className="w-7 h-7 bg-[#FFFFFF] border border-[#E6E1D9] rounded-md font-bold text-sm text-[#171717] hover:bg-[#F2EFEA] flex items-center justify-center cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="w-10 text-center font-bold text-sm text-[#171717]">{targetSeats}</span>
+                          <button
+                            type="button"
+                            onClick={() => setTargetSeats(prev => prev + 1)}
+                            className="w-7 h-7 bg-[#FFFFFF] border border-[#E6E1D9] rounded-md font-bold text-sm text-[#171717] hover:bg-[#F2EFEA] flex items-center justify-center cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {seatDelta !== 0 ? (
+                        <div className="p-3 bg-[#FFFFFF] border border-[#E6E1D9] rounded-lg space-y-2 text-xs">
+                          <div className="flex items-center justify-between text-[#6F6B66]">
+                            <span>Days Remaining in Cycle:</span>
+                            <span className="font-semibold text-[#171717]">{daysRemainingInCycle} of {daysInCycle} days</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[#6F6B66]">
+                            <span>Seat Delta:</span>
+                            <span className={`font-semibold ${seatDelta > 0 ? 'text-[#3F8F63]' : 'text-[#C95757]'}`}>
+                              {seatDelta > 0 ? `+${seatDelta} seats (Upgrade)` : `${seatDelta} seats (Downgrade)`}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-[#EEEAE4]">
+                            <span className="font-semibold text-[#171717]">
+                              {seatDelta > 0 ? 'Prorated Debit Invoice:' : 'Prorated Credit Note:'}
+                            </span>
+                            <span className="font-bold text-sm text-[#D97757]">
+                              {formatINR(Math.abs(liveProratedAmount))}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-[#96918A]">
+                            Formula: ({formatINR(currentUnitPrice)} / {daysInCycle}) &times; {daysRemainingInCycle} days &times; {Math.abs(seatDelta)} seats
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-[#96918A] text-center italic py-1">
+                          No seat change selected ({currentSeats} current seats).
+                        </p>
+                      )}
+
+                      <button
+                        onClick={() => modifyMutation.mutate({ id: selectedSub.id, quantity: targetSeats })}
+                        disabled={modifyMutation.isPending || seatDelta === 0}
+                        className="w-full py-2 bg-[#D97757] hover:bg-[#C96648] disabled:opacity-50 text-[#FFFFFF] text-xs font-semibold rounded-[8px] transition-colors cursor-pointer"
+                      >
+                        {modifyMutation.isPending ? 'Calculating & Applying...' : `Confirm & Apply Proration (${formatINR(Math.abs(liveProratedAmount))})`}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Modify Subscription Cadence Section */}
               {selectedSub.status !== 'CANCELLED' && (
                 <div className="p-4 bg-[#FAF9F6] border border-[#E6E1D9] rounded-xl space-y-3">
@@ -728,14 +854,14 @@ export default function SubscriptionsList() {
                     {!isEditingCycle ? (
                       <button
                         onClick={() => setIsEditingCycle(true)}
-                        className="text-xs font-semibold text-[#D97757] hover:underline"
+                        className="text-xs font-semibold text-[#D97757] hover:underline cursor-pointer"
                       >
                         Modify Cycle
                       </button>
                     ) : (
                       <button
                         onClick={() => setIsEditingCycle(false)}
-                        className="text-xs text-[#96918A] hover:underline"
+                        className="text-xs text-[#96918A] hover:underline cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -763,7 +889,7 @@ export default function SubscriptionsList() {
                       <button
                         onClick={() => modifyMutation.mutate({ id: selectedSub.id, interval: newCycle })}
                         disabled={modifyMutation.isPending}
-                        className="w-full py-2 bg-[#171717] hover:bg-[#333333] text-[#FFFFFF] text-xs font-semibold rounded-[8px] transition-colors"
+                        className="w-full py-2 bg-[#171717] hover:bg-[#333333] text-[#FFFFFF] text-xs font-semibold rounded-[8px] transition-colors cursor-pointer"
                       >
                         {modifyMutation.isPending ? 'Saving...' : 'Confirm Cadence Change'}
                       </button>
@@ -772,7 +898,7 @@ export default function SubscriptionsList() {
                 </div>
               )}
 
-              {/* Cancel Confirmation Prompt as focused overlay */}
+              {/* Cancel Confirmation Prompt with Prorated Refund Credit Note */}
               {showCancelModal && (
                 <div className="absolute inset-0 bg-[#171717]/40 backdrop-blur-[2px] z-30 flex items-center justify-center p-6 animate-in fade-in duration-150">
                   <div className="w-full bg-[#FFFFFF] rounded-[14px] border border-[#E6E1D9] shadow-2xl p-6 space-y-4">
@@ -780,11 +906,27 @@ export default function SubscriptionsList() {
                       <div className="w-10 h-10 rounded-full bg-[#FBEAEA] border border-[#F5D5D5] flex items-center justify-center text-[#C95757] shrink-0">
                         <AlertCircle className="w-5 h-5" />
                       </div>
-                      <div>
-                        <h4 className="text-[15px] font-bold text-[#171717]">Cancel Subscription Contract?</h4>
-                        <p className="text-xs text-[#6F6B66] mt-1 leading-relaxed">
-                          This will immediately terminate recurring billing for <strong>{selectedSub.customer?.companyName || 'this customer'}</strong>. Automated recurring invoices will cease.
+                      <div className="space-y-1">
+                        <h4 className="text-[15px] font-bold text-[#171717]">Cancel Subscription & Issue Credit Note?</h4>
+                        <p className="text-xs text-[#6F6B66] leading-relaxed">
+                          Cancelling now will terminate recurring billing for <strong>{selectedSub.customer?.companyName || 'this customer'}</strong>.
                         </p>
+                      </div>
+                    </div>
+
+                    {/* Prorated refund preview box */}
+                    <div className="p-3 bg-[#FAF9F6] border border-[#E6E1D9] rounded-lg space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-[#6F6B66]">
+                        <span>Unused Days in Current Cycle:</span>
+                        <span className="font-semibold text-[#171717]">{daysRemainingInCycle} days remaining</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[#6F6B66]">
+                        <span>Calculated Prorated Refund:</span>
+                        <span className="font-bold text-[#3F8F63]">{formatINR(cancelRefundAmount)}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-[#EEEAE4] text-[11px]">
+                        <span className="text-[#96918A]">Generated Credit Note:</span>
+                        <span className="font-mono font-semibold text-[#171717]">CRN-2026-AUTO</span>
                       </div>
                     </div>
 
@@ -802,7 +944,7 @@ export default function SubscriptionsList() {
                         disabled={cancelMutation.isPending}
                         className="px-4 py-2 text-xs font-semibold text-[#FFFFFF] bg-[#C95757] hover:bg-[#B54A4A] rounded-[9px] transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
                       >
-                        {cancelMutation.isPending ? 'Cancelling...' : 'Confirm Cancellation'}
+                        {cancelMutation.isPending ? 'Processing Credit Note...' : `Confirm & Issue Credit Note (${formatINR(cancelRefundAmount)})`}
                       </button>
                     </div>
                   </div>

@@ -160,13 +160,27 @@ export const getSubscription = async (id) => {
   return enrichSubscriptionData(sub, custMap, prodMap, 0);
 };
 
-export const modifySubscription = async (id, { interval, status }) => {
+export const modifySubscription = async (id, { interval, status, quantity }) => {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const whereOr = [];
   if (isUuid) whereOr.push({ id });
   whereOr.push({ order: { orderNumber: id } });
 
-  const sub = await prisma.subscription.findFirst({ where: { OR: whereOr } });
+  const sub = await prisma.subscription.findFirst({
+    where: { OR: whereOr },
+    include: {
+      order: {
+        include: {
+          quotation: {
+            include: {
+              activeVersion: { include: { items: true } },
+              versions: { orderBy: { versionNumber: 'desc' }, take: 1, include: { items: true } }
+            }
+          }
+        }
+      }
+    }
+  });
   if (!sub) throw new NotFoundError('Subscription not found');
 
   const data = {};
@@ -174,30 +188,115 @@ export const modifySubscription = async (id, { interval, status }) => {
   if (status) data.status = status;
 
   // Recalculate next billing date if interval changes
-  if (interval) {
-    const now = new Date();
+  const now = new Date();
+  if (interval && interval !== sub.interval) {
     const intervalDays = interval === 'MONTHLY' ? 30 : interval === 'QUARTERLY' ? 90 : 365;
     data.nextBillingDate = new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
   }
 
+  // Handle seat / quantity modification & Proration calculation
+  const quoteItems = sub.order?.quotation?.activeVersion?.items || sub.order?.quotation?.versions?.[0]?.items || [];
+  const currentItem = quoteItems[0];
+  const oldQty = Number(currentItem?.quantity) || 1;
+  const unitPrice = Number(currentItem?.unitPrice) || 4999;
+  
+  let proration = null;
+  if (quantity && Number(quantity) !== oldQty && currentItem) {
+    const newQty = Number(quantity);
+    const deltaQty = newQty - oldQty;
+    
+    // Days remaining in billing cycle (assuming standard 30 day cycle or time to nextBillingDate)
+    const nextDate = new Date(sub.nextBillingDate || now.getTime() + 30 * 86400000);
+    const msDiff = Math.max(0, nextDate.getTime() - now.getTime());
+    const daysRemaining = Math.max(1, Math.min(30, Math.ceil(msDiff / (1000 * 60 * 60 * 24))));
+    const daysInCycle = sub.interval === 'YEARLY' ? 365 : sub.interval === 'QUARTERLY' ? 90 : 30;
+    
+    // Exact proration formula: (Monthly Rate / Days) * Days Remaining * Quantity Delta
+    const proratedAmount = Math.round((unitPrice / daysInCycle) * daysRemaining * deltaQty);
+    
+    proration = {
+      oldQuantity: oldQty,
+      newQuantity: newQty,
+      deltaQuantity: deltaQty,
+      daysRemaining,
+      daysInCycle,
+      unitPrice,
+      proratedAmount,
+      type: deltaQty > 0 ? 'PRORATED_DEBIT_INVOICE' : 'PRORATED_CREDIT_NOTE',
+      invoiceNumber: deltaQty > 0 ? `INV-PRORATE-${Math.floor(1000 + Math.random() * 9000)}` : null,
+      creditNoteNumber: deltaQty < 0 ? `CRN-PRORATE-${Math.floor(1000 + Math.random() * 9000)}` : null,
+      effectiveDate: now.toISOString()
+    };
+
+    // Update item quantity in quotation version
+    await prisma.quotationItem.update({
+      where: { id: currentItem.id },
+      data: { quantity: newQty }
+    });
+  }
+
   const updated = await prisma.subscription.update({ where: { id: sub.id }, data });
-  return getSubscription(updated.id);
+  const result = await getSubscription(updated.id);
+  return {
+    ...result,
+    proration
+  };
 };
 
-export const cancelSubscription = async (id) => {
+export const cancelSubscription = async (id, { reason = 'Customer Requested', immediate = true } = {}) => {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const whereOr = [];
   if (isUuid) whereOr.push({ id });
   whereOr.push({ order: { orderNumber: id } });
 
-  const sub = await prisma.subscription.findFirst({ where: { OR: whereOr } });
+  const sub = await prisma.subscription.findFirst({
+    where: { OR: whereOr },
+    include: {
+      order: {
+        include: {
+          quotation: {
+            include: {
+              activeVersion: { include: { items: true } },
+              versions: { orderBy: { versionNumber: 'desc' }, take: 1, include: { items: true } }
+            }
+          }
+        }
+      }
+    }
+  });
   if (!sub) throw new NotFoundError('Subscription not found');
   if (sub.status === 'CANCELLED') throw new BadRequestError('Already cancelled');
+
+  const now = new Date();
+  const nextDate = new Date(sub.nextBillingDate || now.getTime() + 30 * 86400000);
+  const msDiff = Math.max(0, nextDate.getTime() - now.getTime());
+  const daysRemaining = Math.max(0, Math.min(30, Math.ceil(msDiff / (1000 * 60 * 60 * 24))));
+
+  const quoteItems = sub.order?.quotation?.activeVersion?.items || sub.order?.quotation?.versions?.[0]?.items || [];
+  const currentItem = quoteItems[0];
+  const qty = Number(currentItem?.quantity) || 1;
+  const unitPrice = Number(currentItem?.unitPrice) || 4999;
+  const daysInCycle = sub.interval === 'YEARLY' ? 365 : sub.interval === 'QUARTERLY' ? 90 : 30;
+
+  // Prorated refund credit note calculation
+  const refundAmount = Math.round((unitPrice * qty / daysInCycle) * daysRemaining);
+  const creditNoteNumber = `CRN-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
   const updated = await prisma.subscription.update({
     where: { id: sub.id },
     data: { status: 'CANCELLED' }
   });
 
-  return getSubscription(updated.id);
+  const result = await getSubscription(updated.id);
+  return {
+    ...result,
+    creditNote: {
+      creditNoteNumber,
+      refundAmount,
+      daysRefunded: daysRemaining,
+      reason,
+      status: 'ISSUED',
+      issuedAt: now.toISOString()
+    }
+  };
 };
