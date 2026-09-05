@@ -59,52 +59,7 @@ export default function FulfillmentList() {
     }
   });
 
-  // Mock sample fallback orders for rich visualization if API returns empty
-  const displayPlans = plans.length > 0 ? plans : [
-    {
-      id: 'plan-101',
-      orderId: 'ORD-1004',
-      order: {
-        orderNumber: 'ORD-1004',
-        customer: { companyName: 'Acme Technologies Ltd', tier: 'ENTERPRISE' }
-      },
-      productName: 'Enterprise Rack Server Pro / Workstations',
-      requiredQty: 100,
-      availableStock: 265,
-      warehouseCount: 3,
-      shipmentCount: 3,
-      totalCost: 2450,
-      status: 'CONFIRMED',
-      estimatedDelivery: '2-4 Days',
-      items: [
-        { warehouse: { name: 'Ahmedabad Central Hub' }, quantity: 50, status: 'DISPATCHED' },
-        { warehouse: { name: 'Anand Regional Depot' }, quantity: 30, status: 'PENDING' },
-        { warehouse: { name: 'Gandhinagar Express' }, quantity: 20, status: 'PENDING' }
-      ]
-    },
-    {
-      id: 'plan-102',
-      orderId: 'ORD-1005',
-      order: {
-        orderNumber: 'ORD-1005',
-        customer: { companyName: 'Gujarat Infotech Solutions', tier: 'MID_MARKET' }
-      },
-      productName: 'Managed Firewall Gateway X-500',
-      requiredQty: 40,
-      availableStock: 35,
-      warehouseCount: 2,
-      shipmentCount: 2,
-      totalCost: 1800,
-      status: 'BACKORDER',
-      estimatedDelivery: '5-7 Days',
-      items: [
-        { warehouse: { name: 'Ahmedabad Central Hub' }, quantity: 35, status: 'DISPATCHED' },
-        { warehouse: null, quantity: 5, status: 'BACKORDER' }
-      ]
-    }
-  ];
-
-  const filteredPlans = displayPlans.filter(p => {
+  const filteredPlans = (plans || []).filter(p => {
     const orderNum = p.order?.orderNumber || p.orderId || '';
     const custName = p.order?.customer?.companyName || '';
     const matchesSearch = orderNum.toLowerCase().includes(searchTerm.toLowerCase()) ||
