@@ -7,7 +7,38 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
       colors: {
+        /* DealFlow360 warm design tokens */
+        df: {
+          bg: '#FAF9F6',
+          sidebar: '#F7F5F1',
+          surface: '#FFFFFF',
+          'surface-secondary': '#F5F2ED',
+          'surface-hover': '#F2EFEA',
+          border: '#E6E1D9',
+          'border-subtle': '#EEEAE4',
+          primary: '#D97757',
+          'primary-hover': '#C96648',
+          'primary-soft': '#F8E9E3',
+          'primary-border': '#E9B8A7',
+          foreground: '#171717',
+          secondary: '#6F6B66',
+          muted: '#96918A',
+          disabled: '#B4AEA6',
+          success: '#3F8F63',
+          'success-soft': '#EAF5EE',
+          warning: '#C98A32',
+          'warning-soft': '#FBF2E3',
+          danger: '#C95757',
+          'danger-soft': '#FBEAEA',
+          info: '#5D83A8',
+          'info-soft': '#EBF1F7',
+        },
+
+        /* shadcn/ui compatibility */
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -46,6 +77,11 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        'df': '0 1px 2px rgba(0, 0, 0, 0.04)',
+        'df-md': '0 2px 8px rgba(0, 0, 0, 0.06)',
+        'df-lg': '0 4px 16px rgba(0, 0, 0, 0.08)',
       },
     },
   },

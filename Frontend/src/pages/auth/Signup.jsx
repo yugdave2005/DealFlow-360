@@ -20,38 +20,16 @@ import {
 } from 'lucide-react';
 
 const ROLES = [
-  {
-    id: 'SALES_REP',
-    title: 'Sales Representative',
-    icon: Briefcase
-  },
-  {
-    id: 'SALES_MANAGER',
-    title: 'Sales Manager',
-    icon: UserCheck
-  },
-  {
-    id: 'FINANCE',
-    title: 'Finance Controller',
-    icon: CreditCard
-  },
-  {
-    id: 'OPERATIONS',
-    title: 'Operations / Fulfillment',
-    icon: Truck
-  },
-  {
-    id: 'CUSTOMER',
-    title: 'Customer Client',
-    icon: User
-  }
+  { id: 'SALES_REP', title: 'Sales Representative', icon: Briefcase },
+  { id: 'SALES_MANAGER', title: 'Sales Manager', icon: UserCheck },
+  { id: 'FINANCE', title: 'Finance Controller', icon: CreditCard },
+  { id: 'OPERATIONS', title: 'Operations / Fulfillment', icon: Truck },
+  { id: 'CUSTOMER', title: 'Customer Client', icon: User }
 ];
 
 export default function Signup() {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
-    defaultValues: {
-      role: 'SALES_REP'
-    }
+    defaultValues: { role: 'SALES_REP' }
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -77,12 +55,9 @@ export default function Signup() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || 'Signup failed');
       
-      // Update global AuthContext and localStorage
       login(result.data.user, result.data.accessToken);
-
       toast.success(`Account created successfully! Welcome to DealFlow360.`);
       
-      // Direct redirect to role dashboard (use location.href to ensure AuthContext reads new localStorage on reload)
       const normalizedRole = normalizeRole(result.data.user?.role);
       const targetRoute = ROLE_DEFAULT_ROUTES[normalizedRole] || '/sales/dashboard';
       window.location.href = targetRoute;
@@ -98,45 +73,42 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 py-8">
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-200/80">
-        <div className="p-6 sm:p-10">
+    <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center p-4 py-8">
+      <div className="w-full max-w-xl">
+        <div className="bg-white rounded-xl border border-[#E6E1D9] shadow-df-md p-6 sm:p-10">
           <div className="flex flex-col items-center mb-8">
-            <DealFlowLogo variant="light" size="lg" className="mb-2" />
-            <p className="text-slate-500 mt-1 text-sm text-center">
-              Create your account to start managing quotes, approvals, and deals.
+            <DealFlowLogo variant="light" size="lg" className="mb-3" />
+            <h1 className="text-xl font-semibold text-[#171717] mt-2">Create your account</h1>
+            <p className="text-sm text-[#96918A] mt-1 text-center">
+              Start managing quotes, approvals, and deals.
             </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate autoComplete="off">
             {/* Full Name */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Full Name
-              </label>
+              <label className="df-label">Full Name</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <UserIcon className="w-5 h-5" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#96918A]">
+                  <UserIcon className="w-[18px] h-[18px]" />
                 </div>
                 <input 
                   type="text" 
                   autoComplete="off"
                   {...register('name', { required: 'Full name is required' })} 
-                  className={`w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border ${errors.name ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-600'} focus:outline-none focus:ring-2 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base`}
+                  className={`df-input pl-10 ${errors.name ? 'border-[#C95757] focus:border-[#C95757] focus:ring-[#C95757]/15' : ''}`}
                   placeholder="Jane Doe" 
                 />
               </div>
-              {errors.name && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.name.message}</span>}
+              {errors.name && <span className="text-[#C95757] text-xs mt-1 block font-medium">{errors.name.message}</span>}
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Work Email Address
-              </label>
+              <label className="df-label">Work Email Address</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Mail className="w-5 h-5" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#96918A]">
+                  <Mail className="w-[18px] h-[18px]" />
                 </div>
                 <input 
                   type="email" 
@@ -148,21 +120,19 @@ export default function Signup() {
                       message: 'Please enter a valid work email format (e.g. name@company.com)'
                     }
                   })} 
-                  className={`w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border ${errors.email ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-600'} focus:outline-none focus:ring-2 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base`}
+                  className={`df-input pl-10 ${errors.email ? 'border-[#C95757] focus:border-[#C95757] focus:ring-[#C95757]/15' : ''}`}
                   placeholder="jane@company.com" 
                 />
               </div>
-              {errors.email && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.email.message}</span>}
+              {errors.email && <span className="text-[#C95757] text-xs mt-1 block font-medium">{errors.email.message}</span>}
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Password
-              </label>
+              <label className="df-label">Password</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-5 h-5" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#96918A]">
+                  <Lock className="w-[18px] h-[18px]" />
                 </div>
                 <input 
                   type={showPassword ? 'text' : 'password'} 
@@ -171,30 +141,26 @@ export default function Signup() {
                     required: 'Password is required', 
                     minLength: { value: 8, message: 'Password must be at least 8 characters' } 
                   })} 
-                  className={`w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border ${errors.password ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-600'} focus:outline-none focus:ring-2 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base`}
+                  className={`df-input pl-10 pr-10 ${errors.password ? 'border-[#C95757] focus:border-[#C95757] focus:ring-[#C95757]/15' : ''}`}
                   placeholder="••••••••" 
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#96918A] hover:text-[#6F6B66] transition-colors focus:outline-none"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
                 </button>
               </div>
-              {errors.password && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.password.message}</span>}
+              {errors.password && <span className="text-[#C95757] text-xs mt-1 block font-medium">{errors.password.message}</span>}
             </div>
 
             {/* Role Selection */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-semibold text-slate-700">
-                  Select Role
-                </label>
-                <span className="text-xs text-slate-500">
-                  Choose your account type
-                </span>
+                <label className="df-label mb-0">Select Role</label>
+                <span className="text-xs text-[#96918A]">Choose your account type</span>
               </div>
               <input type="hidden" {...register('role', { required: 'Please select a role' })} value={selectedRole} />
               
@@ -207,14 +173,14 @@ export default function Signup() {
                       type="button"
                       key={role.id}
                       onClick={() => handleRoleSelect(role.id)}
-                      className={`relative flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all ${
+                      className={`relative flex items-center gap-2.5 p-3 rounded-[10px] border transition-all ${
                         isSelected 
-                          ? 'border-indigo-600 bg-indigo-50/70 shadow-xs text-indigo-950 font-semibold ring-1 ring-indigo-600/20' 
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-medium'
+                          ? 'border-[#D97757] bg-[#F8E9E3]/40 text-[#171717] font-semibold' 
+                          : 'border-[#E6E1D9] bg-white hover:border-[#D97757]/40 hover:bg-[#F8E9E3]/10 text-[#6F6B66] font-medium'
                       }`}
                     >
                       <div className={`p-1.5 rounded-lg shrink-0 ${
-                        isSelected ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                        isSelected ? 'bg-[#D97757] text-white' : 'bg-[#F5F2ED] text-[#96918A]'
                       }`}>
                         <Icon className="w-4 h-4" />
                       </div>
@@ -222,7 +188,7 @@ export default function Signup() {
                         {role.title}
                       </span>
                       {isSelected && (
-                        <CheckCircle2 className="w-4 h-4 text-indigo-600 ml-auto shrink-0 fill-indigo-600 text-white" />
+                        <CheckCircle2 className="w-4 h-4 text-[#D97757] ml-auto shrink-0" />
                       )}
                     </button>
                   );
@@ -233,7 +199,7 @@ export default function Signup() {
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-xs"
+              className="w-full df-btn-primary h-11 text-[15px]"
             >
               {isLoading ? (
                 <>
@@ -247,15 +213,15 @@ export default function Signup() {
           </form>
 
           <div className="mt-6 flex items-center justify-center space-x-4">
-            <div className="flex-1 border-t border-slate-200"></div>
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">or continue with</span>
-            <div className="flex-1 border-t border-slate-200"></div>
+            <div className="flex-1 border-t border-[#EEEAE4]"></div>
+            <span className="text-xs text-[#96918A]">or continue with</span>
+            <div className="flex-1 border-t border-[#EEEAE4]"></div>
           </div>
 
           <button 
             type="button"
             onClick={loginWithGoogle}
-            className="w-full mt-4 bg-white border border-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 transition-colors flex justify-center items-center gap-2.5 shadow-xs text-sm"
+            className="w-full mt-5 df-btn-secondary h-11"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -266,8 +232,8 @@ export default function Signup() {
             Google
           </button>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
-            Already have an account? <Link to="/auth/login" className="text-indigo-600 hover:text-indigo-500 font-semibold">Log in</Link>
+          <p className="mt-6 text-center text-sm text-[#6F6B66]">
+            Already have an account? <Link to="/auth/login" className="text-[#D97757] hover:text-[#C96648] font-medium">Log in</Link>
           </p>
         </div>
       </div>

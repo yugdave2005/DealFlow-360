@@ -12,29 +12,24 @@ export default function EmptyState({
   className = ''
 }) {
   return (
-    <div className={`flex flex-col items-center justify-center p-10 sm:p-14 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs ${className}`}>
-      <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 mb-4">
-        <Icon className="w-6 h-6" />
+    <div className={`flex flex-col items-center justify-center py-12 px-6 text-center ${className}`}>
+      <div className="w-11 h-11 rounded-xl bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#96918A] mb-4">
+        <Icon className="w-5 h-5" />
       </div>
-      <h3 className="text-base font-bold text-slate-900 mb-1">{title}</h3>
-      <p className="text-xs text-slate-500 max-w-sm mb-6 leading-relaxed">{description}</p>
+      <h3 className="text-sm font-semibold text-[#171717] mb-1">{title}</h3>
+      <p className="text-xs text-[#96918A] max-w-sm mb-5 leading-relaxed">{description}</p>
       
       {actionLabel && actionTo && (
         <Link 
           to={actionTo}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
+          className="df-btn-primary text-sm"
         >
           <Plus className="w-4 h-4" />
           {actionLabel}
         </Link>
       )}
-
       {actionLabel && onAction && !actionTo && (
-        <button 
-          type="button"
-          onClick={onAction}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
-        >
+        <button onClick={onAction} className="df-btn-primary text-sm">
           <Plus className="w-4 h-4" />
           {actionLabel}
         </button>

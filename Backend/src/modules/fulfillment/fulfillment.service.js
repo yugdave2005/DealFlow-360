@@ -18,14 +18,17 @@ export const listFulfillmentPlans = async () => {
   const customerIds = [...new Set(plans.map(p => p.order?.customerId).filter(Boolean))];
   const productIds = [...new Set(plans.flatMap(p => p.items.map(i => i.productId)).filter(Boolean))];
 
-  const [customers, products] = await Promise.all([
+  const [customers, products, inventories] = await Promise.all([
     prisma.user.findMany({
       where: { id: { in: customerIds } },
       select: { id: true, name: true, email: true }
     }),
     prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, name: true, category: true }
+      select: { id: true, name: true, category: true, quantityOnHand: true }
+    }),
+    prisma.inventory.findMany({
+      where: { productId: { in: productIds } }
     })
   ]);
 
@@ -36,6 +39,9 @@ export const listFulfillmentPlans = async () => {
     const cust = custMap.get(p.order?.customerId);
     const firstProd = prodMap.get(p.items[0]?.productId);
     const totalUnits = p.items.reduce((sum, it) => sum + (it.quantity || 0), 0);
+    const prodInventories = inventories.filter(inv => inv.productId === firstProd?.id);
+    const totalAvailable = prodInventories.reduce((sum, inv) => sum + (inv.availableQuantity || 0), 0);
+    const distinctWarehouses = new Set(p.items.map(i => i.warehouseId).filter(Boolean)).size || (p.shipmentCount > 0 ? p.shipmentCount : 1);
 
     return {
       ...p,
@@ -53,7 +59,9 @@ export const listFulfillmentPlans = async () => {
         }
       } : null,
       productName: firstProd?.name || 'Commercial Hardware Package',
-      requiredQty: totalUnits || 1
+      requiredQty: totalUnits || 1,
+      availableStock: totalAvailable || firstProd?.quantityOnHand || 0,
+      warehouseCount: distinctWarehouses
     };
   });
 };

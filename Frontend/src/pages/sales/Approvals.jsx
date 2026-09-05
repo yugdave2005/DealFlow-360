@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
   CheckSquare, 
   Search, 
-  Filter, 
   CheckCircle2, 
   XCircle, 
   RotateCcw, 
@@ -13,38 +12,49 @@ import {
   ChevronRight, 
   Eye, 
   Clock, 
-  Building, 
+  User as UserIcon, 
   ShieldAlert, 
+  ShieldCheck, 
   FileText,
-  MessageSquare,
+  ChevronDown,
   ArrowRight,
-  Info,
-  X
+  X,
+  Layers,
+  Send
 } from 'lucide-react';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
-import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-
 import { api } from '../../lib/axios';
 import { approvalsApi } from '../../features/approvals/approvals.api';
+
+function formatCurrency(amount) {
+  const num = Number(amount || 0);
+  if (num >= 10000000) {
+    return `₹${(num / 10000000).toFixed(2)}Cr`;
+  }
+  if (num >= 100000) {
+    return `₹${(num / 100000).toFixed(1)}L`;
+  }
+  return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
 
 export default function Approvals() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [statusFilter, setStatusFilter] = useState('PENDING'); // PENDING | ALL | APPROVED | REJECTED
+  const [statusFilter, setStatusFilter] = useState('PENDING'); // PENDING | ALL
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState('ALL');
   const [levelFilter, setLevelFilter] = useState('ALL');
   
-  // Selected approval for detailed modal/drawer
+  // Selected approval for detailed Review Drawer
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [actionType, setActionType] = useState(null); // 'APPROVED' | 'REJECTED' | 'RETURNED'
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: approvals = [], isLoading, refetch } = useQuery({
+  const { data: approvals = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['approvalsQueue', statusFilter],
     queryFn: async () => {
       try {
@@ -76,9 +86,9 @@ export default function Approvals() {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       
       const actionLabels = {
-        APPROVED: 'Quotation approved successfully',
+        APPROVED: 'Quotation authorized and approved',
         REJECTED: 'Quotation rejected',
-        RETURNED: 'Quotation returned for revision'
+        RETURNED: 'Quotation returned for sales revision'
       };
       toast.success(actionLabels[variables.action] || 'Decision recorded');
       setSelectedApproval(null);
@@ -86,13 +96,13 @@ export default function Approvals() {
       setCommentText('');
     },
     onError: (err) => {
-      toast.error(err.message || 'Failed to submit decision');
+      toast.error(err.message || 'Failed to submit authorization decision');
     }
   });
 
-  const handleOpenActionModal = (approval, type) => {
+  const handleOpenReviewDrawer = (approval, preselectAction = null) => {
     setSelectedApproval(approval);
-    setActionType(type);
+    setActionType(preselectAction);
     setCommentText('');
   };
 
@@ -114,7 +124,7 @@ export default function Approvals() {
     }
   };
 
-  // Filter list
+  // Filter approvals list
   const filteredApprovals = useMemo(() => {
     return (Array.isArray(approvals) ? approvals : []).filter(item => {
       const v = item.quotationVersion || {};
@@ -125,7 +135,12 @@ export default function Approvals() {
         (cust.companyName || cust.name || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const riskScore = v.riskScore || 0;
-      const riskLevel = v.riskLevel || (riskScore > 60 ? 'HIGH' : riskScore > 30 ? 'MEDIUM' : 'LOW');
+      let riskLevel = v.riskLevel;
+      if (!riskLevel) {
+        if (riskScore >= 45) riskLevel = 'HIGH';
+        else if (riskScore >= 20) riskLevel = 'MEDIUM';
+        else riskLevel = 'LOW';
+      }
       const matchesRisk = riskFilter === 'ALL' || riskLevel === riskFilter;
 
       const itemRole = item.assignedRole || item.level;
@@ -135,40 +150,45 @@ export default function Approvals() {
     });
   }, [approvals, searchTerm, riskFilter, levelFilter]);
 
+  if (isLoading) {
+    return (
+      <div className="w-full px-6 sm:px-8 py-6 space-y-6">
+        <LoadingSkeleton type="table" rows={6} />
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
+    <div className="w-full px-6 sm:px-8 pt-0 pb-8 space-y-5 font-sans">
+      {/* 1. Page Header (Clean, uncarded canvas) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-0">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shadow-xs">
-              <CheckSquare className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Approval Queue</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Review quotations requiring authorization and governance sign-off</p>
-            </div>
-          </div>
+          <h1 className="text-3xl sm:text-[34px] font-semibold text-[#171717] tracking-tight leading-tight">
+            Approval Queue
+          </h1>
+          <p className="text-sm sm:text-[14.5px] text-[#6F6B66] mt-1">
+            Review quotations requiring authorization and governance sign-off.
+          </p>
         </div>
 
-        {/* Quick status tabs */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+        {/* Segmented Control [ Pending Review ] [ All History ] */}
+        <div className="flex items-center bg-[#F5F2ED] p-1 rounded-[10px] border border-[#E6E1D9] h-[38px] shrink-0">
           <button
             onClick={() => setStatusFilter('PENDING')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`h-7 px-3.5 rounded-[8px] text-xs sm:text-sm font-medium transition-all cursor-pointer select-none active:scale-95 ${
               statusFilter === 'PENDING'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-[#171717] font-semibold shadow-xs border border-[#E6E1D9]'
+                : 'text-[#6F6B66] hover:text-[#171717]'
             }`}
           >
             Pending Review
           </button>
           <button
             onClick={() => setStatusFilter('ALL')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`h-7 px-3.5 rounded-[8px] text-xs sm:text-sm font-medium transition-all cursor-pointer select-none active:scale-95 ${
               statusFilter === 'ALL'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-[#171717] font-semibold shadow-xs border border-[#E6E1D9]'
+                : 'text-[#6F6B66] hover:text-[#171717]'
             }`}
           >
             All History
@@ -176,329 +196,462 @@ export default function Approvals() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search quotation # or customer name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-            />
-          </div>
+      {/* 2. Filter Toolbar (Lightweight, uncarded) */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-[#96918A] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search quotation # or customer name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-10 pl-9 pr-8 bg-white border border-[#E6E1D9] rounded-[9px] text-xs sm:text-sm text-[#171717] placeholder:text-[#96918A] focus:outline-none focus:ring-1 focus:ring-[#D97757] focus:border-[#D97757] transition-all shadow-xs"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#96918A] hover:text-[#171717] p-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-500">Risk:</span>
+        {/* Dropdown Filters */}
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          {/* Risk Filter */}
+          <div className="relative">
             <select
               value={riskFilter}
               onChange={(e) => setRiskFilter(e.target.value)}
-              className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-purple-500"
+              className="appearance-none h-10 pl-3.5 pr-8 bg-white border border-[#E6E1D9] rounded-[9px] text-xs sm:text-sm font-medium text-[#171717] focus:outline-none focus:ring-1 focus:ring-[#D97757] focus:border-[#D97757] transition-all shadow-xs cursor-pointer"
             >
-              <option value="ALL">All Risk</option>
-              <option value="LOW">Low Risk</option>
-              <option value="MEDIUM">Medium Risk</option>
-              <option value="HIGH">High Risk</option>
-              <option value="CRITICAL">Critical</option>
+              <option value="ALL">Risk: All Risk Levels</option>
+              <option value="LOW">Low Risk (&lt;20)</option>
+              <option value="MEDIUM">Medium Risk (20-45)</option>
+              <option value="HIGH">High Risk (&gt;45)</option>
+              <option value="CRITICAL">Critical Risk (&gt;70)</option>
             </select>
+            <ChevronDown className="w-3.5 h-3.5 text-[#96918A] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-500">Level:</span>
+          {/* Level Filter */}
+          <div className="relative">
             <select
               value={levelFilter}
               onChange={(e) => setLevelFilter(e.target.value)}
-              className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-purple-500"
+              className="appearance-none h-10 pl-3.5 pr-8 bg-white border border-[#E6E1D9] rounded-[9px] text-xs sm:text-sm font-medium text-[#171717] focus:outline-none focus:ring-1 focus:ring-[#D97757] focus:border-[#D97757] transition-all shadow-xs cursor-pointer"
             >
-              <option value="ALL">All Levels</option>
+              <option value="ALL">Level: All Approval Levels</option>
               <option value="SALES_MANAGER">Sales Manager</option>
-              <option value="FINANCE">Finance</option>
+              <option value="FINANCE">Finance Review</option>
               <option value="VP_SALES">VP of Sales</option>
             </select>
+            <ChevronDown className="w-3.5 h-3.5 text-[#96918A] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
+
+          {/* Clear Filters Reset */}
+          {(searchTerm || riskFilter !== 'ALL' || levelFilter !== 'ALL') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setRiskFilter('ALL');
+                setLevelFilter('ALL');
+              }}
+              className="inline-flex items-center gap-1 text-xs font-medium text-[#C95757] hover:text-[#A83D3D] px-2.5 py-2 transition-colors rounded-[9px] hover:bg-[#FBEAEA] cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Approvals Table */}
-      <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        {isLoading ? (
-          <div className="p-6"><LoadingSkeleton rows={5} /></div>
-        ) : filteredApprovals.length === 0 ? (
-          <div className="p-12">
-            <EmptyState
-              icon={CheckSquare}
-              title={statusFilter === 'PENDING' ? 'No approvals waiting for your review.' : 'No approval records found.'}
-              description="Quotations with discount limits exceeded or high margin risk will appear here for governance authorization."
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Quote #</th>
-                  <th className="py-3.5 px-4">Customer</th>
-                  <th className="py-3.5 px-4">Sales Rep</th>
-                  <th className="py-3.5 px-4">Total Amount</th>
-                  <th className="py-3.5 px-4">Discount</th>
-                  <th className="py-3.5 px-4">Risk</th>
-                  <th className="py-3.5 px-4">Approval Level</th>
-                  <th className="py-3.5 px-4">Requested At</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredApprovals.map((approval) => {
-                  const version = approval.quotationVersion || {};
-                  const quote = version.quotation || {};
-                  const customer = quote.customer || {};
-                  const amount = Number(version.totalAmount || quote.totalAmount || 0);
-                  const discount = Number(version.totalDiscount || 0);
-                  const riskScore = version.riskScore || 20;
-
-                  return (
-                    <tr key={approval.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-4 px-4 font-mono font-bold text-indigo-700">
-                        <button
-                          onClick={() => navigate(`/sales/quotations/${quote.id || approval.quotationId}`)}
-                          className="hover:underline flex items-center gap-1"
-                        >
-                          {quote.quotationNumber || `QT-${(approval.id || '').slice(0, 6)}`}
-                        </button>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="font-semibold text-slate-900">{customer.companyName || 'Corporate Client'}</div>
-                        <div className="text-xs text-slate-500">{customer.tier || 'STANDARD'} Tier</div>
-                      </td>
-                      <td className="py-4 px-4 text-slate-600 text-xs font-medium">
-                        {quote.salesRep?.name || 'Sales Rep'}
-                      </td>
-                      <td className="py-4 px-4 font-bold text-slate-900">
-                        ₹{amount.toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-4 px-4 font-medium text-rose-600">
-                        ₹{discount.toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-4 px-4">
-                        <RiskBadge score={riskScore} level={version.riskLevel} />
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-                          {approval.level?.replace('_', ' ') || 'SALES MANAGER'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-xs text-slate-500">
-                        {approval.createdAt ? new Date(approval.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
-                      </td>
-                      <td className="py-4 px-4">
-                        <StatusBadge status={approval.status || 'PENDING'} />
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => setSelectedApproval(approval)}
-                            title="Inspect details"
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          
-                          {approval.status === 'PENDING' && (
-                            <>
-                              <button
-                                onClick={() => handleOpenActionModal(approval, 'APPROVED')}
-                                title="Quick Approve"
-                                className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs transition-colors"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleOpenActionModal(approval, 'REJECTED')}
-                                title="Reject"
-                                className="px-2.5 py-1 text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* 3. Approval Contextual Summary */}
+      <div className="flex items-center justify-between text-xs sm:text-sm text-[#6F6B66] px-0.5">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-[#171717]">
+            {statusFilter === 'PENDING' ? 'Pending Review' : 'Authorization History'}
+          </span>
+          <span className="text-[#E6E1D9]">•</span>
+          <span>
+            {filteredApprovals.length === 0 
+              ? "You're all caught up" 
+              : `${filteredApprovals.length} quotation${filteredApprovals.length > 1 ? 's' : ''} require authorization`}
+          </span>
+        </div>
       </div>
 
-      {/* Detail & Decision Drawer / Modal */}
-      {selectedApproval && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">Approval Review</span>
-                <h3 className="text-lg font-bold">
-                  {selectedApproval.quotationVersion?.quotation?.quotationNumber || 'Quotation Authorization'}
-                </h3>
-              </div>
-              <button
-                onClick={() => { setSelectedApproval(null); setActionType(null); }}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* 4. Error State */}
+      {isError && (
+        <div className="p-4 rounded-[12px] bg-[#FBEAEA] border border-[#F4C8C8] flex items-center justify-between gap-3 text-xs sm:text-sm text-[#C95757]">
+          <span>Unable to load approval queue records.</span>
+          <button
+            onClick={() => refetch()}
+            className="px-3 py-1 bg-white border border-[#F4C8C8] text-[#C95757] font-semibold rounded-[8px] hover:bg-[#F5F2ED] transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6 text-sm">
-              {/* Commercial Summary Banner */}
-              <div className="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
-                <div>
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Customer</span>
-                  <p className="text-sm font-bold text-slate-900 mt-0.5">
-                    {selectedApproval.quotationVersion?.quotation?.customer?.companyName || 'Acme Corp'}
-                  </p>
+      {/* 5. Approval List & Empty State */}
+      {filteredApprovals.length === 0 ? (
+        <div className="bg-white rounded-[14px] border border-[#E6E1D9] shadow-xs p-8 sm:p-10 flex flex-col items-center justify-center text-center min-h-[180px] max-w-xl mx-auto">
+          <div className="w-10 h-10 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#3F8F63] mb-3 shrink-0">
+            <CheckCircle2 className="w-5 h-5 stroke-[2]" />
+          </div>
+          <h3 className="text-sm sm:text-[15px] font-semibold text-[#171717]">
+            {statusFilter === 'PENDING' ? 'No approvals waiting for your review' : 'No approval records found'}
+          </h3>
+          <p className="text-xs sm:text-[13px] text-[#96918A] mt-1 max-w-sm">
+            You're all caught up. Quotations requiring governance authorization or discount exceptions will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3.5">
+          {filteredApprovals.map((approval) => {
+            const version = approval.quotationVersion || {};
+            const quote = version.quotation || {};
+            const customer = quote.customer || {};
+            const total = Number(version.totalAmount || quote.totalAmount || 0);
+            const discount = Number(version.totalDiscount || 0);
+            const discountPct = total > 0 ? ((discount / total) * 100).toFixed(0) : '0';
+            const marginPct = (100 - Number(discountPct) - 25).toFixed(0);
+            const riskScore = version.riskScore || 20;
+            const isPending = (approval.status || 'PENDING') === 'PENDING';
+
+            return (
+              <div 
+                key={approval.id}
+                className="bg-white p-5 sm:p-6 rounded-[12px] border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-all duration-150 space-y-4"
+              >
+                {/* Top Row: Quote Number, Level Badge, Risk Badge */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <Link
+                      to={`/sales/quotations/${quote.id || approval.quotationId}`}
+                      className="text-sm font-semibold text-[#D97757] hover:text-[#C96648] font-mono tracking-tight hover:underline"
+                    >
+                      {quote.quotationNumber || `QT-${(approval.id || '').slice(0, 6)}`}
+                    </Link>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F5F2ED] text-[#6F6B66] border border-[#E6E1D9]">
+                      {approval.level?.replace('_', ' ') || 'SALES MANAGER'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <RiskBadge score={riskScore} level={version.riskLevel} />
+                    <StatusBadge status={approval.status || 'PENDING'} />
+                  </div>
                 </div>
+
+                {/* Second Row: Customer Account */}
                 <div>
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Total Amount</span>
-                  <p className="text-sm font-bold text-slate-900 mt-0.5">
-                    ₹{Number(selectedApproval.quotationVersion?.totalAmount || 0).toLocaleString('en-IN')}
-                  </p>
+                  <h3 className="text-base font-semibold text-[#171717] leading-snug">
+                    {customer.companyName || customer.name || 'Corporate Client'}
+                  </h3>
+                  {customer.tier && (
+                    <span className="text-xs text-[#96918A] capitalize">
+                      {customer.tier} Tier Account
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <span className="text-xs font-semibold text-slate-500 uppercase">Risk Level</span>
-                  <div className="mt-0.5">
-                    <RiskBadge score={selectedApproval.quotationVersion?.riskScore || 25} level={selectedApproval.quotationVersion?.riskLevel} />
+
+                {/* Third Row: Financial Information Group */}
+                <div className="grid grid-cols-3 gap-3 bg-[#FAF9F6] p-3.5 rounded-[10px] border border-[#EEEAE4]">
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#96918A] block">
+                      Quote Value
+                    </span>
+                    <span className="text-base sm:text-lg font-semibold text-[#171717] mt-0.5 block">
+                      ₹{total.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#96918A] block">
+                      Discount
+                    </span>
+                    <span className="text-base sm:text-lg font-semibold text-[#171717] mt-0.5 block">
+                      {discountPct}% <span className="text-xs text-[#96918A] font-normal font-mono">(-₹{discount.toLocaleString('en-IN')})</span>
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#96918A] block">
+                      Gross Margin
+                    </span>
+                    <span className={`text-base sm:text-lg font-semibold mt-0.5 block ${
+                      Number(marginPct) >= 25 ? 'text-[#3F8F63]' : Number(marginPct) >= 15 ? 'text-[#C98A32]' : 'text-[#C95757]'
+                    }`}>
+                      {marginPct}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Fourth Row: Governance Trigger Notice */}
+                {riskScore >= 20 && (
+                  <div className="flex items-center gap-2 text-xs text-[#C98A32] bg-[#FBF2E3]/60 px-3 py-2 rounded-[8px] border border-[#F3DFBD]">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {riskScore >= 45 
+                        ? 'Discount threshold exceeded — Line item discount exceeds standard tier authorization.' 
+                        : 'Commercial margin trigger — Governance verification recommended before release.'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Bottom Row: Requester, Timestamp, & Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-[#EEEAE4]">
+                  <div className="flex items-center gap-3 text-xs text-[#96918A]">
+                    <div className="flex items-center gap-1.5">
+                      <UserIcon className="w-3.5 h-3.5 text-[#96918A]" />
+                      <span>{quote.salesRep?.name || 'Sales Representative'}</span>
+                    </div>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-[#96918A]" />
+                      <span>
+                        {approval.createdAt ? new Date(approval.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      to={`/sales/quotations/${quote.id || approval.quotationId}`}
+                      className="px-3.5 py-1.5 text-xs font-medium text-[#6F6B66] hover:text-[#171717] bg-white border border-[#E6E1D9] hover:bg-[#F5F2ED] rounded-[9px] transition-colors"
+                    >
+                      View Quote
+                    </Link>
+
+                    {isPending ? (
+                      <button
+                        onClick={() => handleOpenReviewDrawer(approval)}
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[#D97757] hover:bg-[#C96648] active:scale-95 rounded-[9px] shadow-xs transition-all cursor-pointer"
+                      >
+                        <span>Review</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenReviewDrawer(approval)}
+                        className="px-3.5 py-1.5 text-xs font-medium text-[#171717] bg-[#F5F2ED] hover:bg-[#EDE8E0] rounded-[9px] transition-colors cursor-pointer"
+                      >
+                        Inspect Details
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              {/* Policy Breach / Reason */}
-              <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200 space-y-2">
-                <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
-                  <AlertTriangle className="w-4 h-4 text-amber-700" />
-                  <span>Why Governance Approval is Required:</span>
+      {/* 6. Detail & Authorization Review Right Drawer */}
+      {selectedApproval && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-[#171717]/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
+            onClick={() => { setSelectedApproval(null); setActionType(null); }}
+          />
+
+          {/* Drawer Panel */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-lg bg-white border-l border-[#E6E1D9] shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+              
+              {/* Drawer Header */}
+              <div className="px-6 py-5 border-b border-[#E6E1D9] flex items-center justify-between bg-[#FAF9F6] shrink-0">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold font-mono text-[#D97757]">
+                      {selectedApproval.quotationVersion?.quotation?.quotationNumber || 'Quotation Authorization'}
+                    </span>
+                    <RiskBadge score={selectedApproval.quotationVersion?.riskScore || 20} level={selectedApproval.quotationVersion?.riskLevel} />
+                  </div>
+                  <h2 className="text-lg font-semibold text-[#171717] mt-0.5">
+                    {selectedApproval.quotationVersion?.quotation?.customer?.companyName || 'Acme Corporation'}
+                  </h2>
                 </div>
-                <ul className="text-xs text-amber-800 space-y-1 pl-6 list-disc">
-                  <li>Applied line item discount exceeds standard tier authorization.</li>
-                  <li>Customer Tier limit: <strong>10%</strong> · Applied: <strong>18%</strong> (Exceeded by <strong>+8%</strong>).</li>
-                  <li>Blended gross margin is below baseline threshold (Required: 25%, Proposed: 19%).</li>
-                </ul>
+
+                <button
+                  onClick={() => { setSelectedApproval(null); setActionType(null); }}
+                  className="p-1.5 text-[#96918A] hover:text-[#171717] hover:bg-[#F2EFEA] rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Quotation Line Items Breakdown */}
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-2">Line Items Breakdown</h4>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
-                      <tr>
-                        <th className="py-2.5 px-3">Product</th>
-                        <th className="py-2.5 px-3">Qty</th>
-                        <th className="py-2.5 px-3">Unit Price</th>
-                        <th className="py-2.5 px-3">Discount</th>
-                        <th className="py-2.5 px-3 text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {(selectedApproval.quotationVersion?.items || []).map((it, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/50">
-                          <td className="py-2.5 px-3 font-medium text-slate-800">{it.product?.name || `Product #${idx + 1}`}</td>
-                          <td className="py-2.5 px-3 text-slate-600">{it.quantity}</td>
-                          <td className="py-2.5 px-3 text-slate-600">₹{Number(it.unitPrice).toLocaleString('en-IN')}</td>
-                          <td className="py-2.5 px-3 font-semibold text-rose-600">{it.discountPercent}%</td>
-                          <td className="py-2.5 px-3 text-right font-bold text-slate-900">₹{Number(it.totalPrice).toLocaleString('en-IN')}</td>
+              {/* Drawer Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-5 text-sm">
+                {/* Commercial Summary Banner */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-[#96918A] mb-2">
+                    Commercial Summary
+                  </h4>
+                  <div className="grid grid-cols-3 gap-3 bg-[#FAF9F6] p-4 rounded-[10px] border border-[#EEEAE4]">
+                    <div>
+                      <span className="text-[11px] text-[#96918A] uppercase font-semibold">Total Amount</span>
+                      <p className="text-base font-semibold text-[#171717] mt-0.5">
+                        ₹{Number(selectedApproval.quotationVersion?.totalAmount || 0).toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-[#96918A] uppercase font-semibold">Total Discount</span>
+                      <p className="text-base font-semibold text-[#C95757] mt-0.5">
+                        ₹{Number(selectedApproval.quotationVersion?.totalDiscount || 0).toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-[#96918A] uppercase font-semibold">Risk Score</span>
+                      <p className="text-base font-semibold text-[#171717] mt-0.5">
+                        {selectedApproval.quotationVersion?.riskScore || 0} / 100
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Governance Policy Notice */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-[#96918A] mb-2">
+                    Discount Governance
+                  </h4>
+                  <div className="p-4 rounded-[10px] bg-[#FBF2E3]/80 border border-[#F3DFBD] space-y-2">
+                    <div className="flex items-center gap-2 text-[#C98A32] font-semibold text-xs sm:text-sm">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>Governance Approval Trigger Analysis</span>
+                    </div>
+                    <ul className="text-xs text-[#8F5F1B] space-y-1.5 pl-5 list-disc leading-relaxed">
+                      <li>Line item commercial pricing exceeds standard role discount limit.</li>
+                      <li>Customer tier allows max <strong>10%</strong> discount; proposed rate is <strong>18%</strong> (+8% variance).</li>
+                      <li>Blended transaction margin requires authorization by {selectedApproval.level?.replace('_', ' ') || 'Sales Manager'}.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Quotation Line Items Breakdown */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-[#96918A] mb-2">
+                    Line Items Breakdown
+                  </h4>
+                  <div className="border border-[#E6E1D9] rounded-[10px] overflow-hidden">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-[#FAF9F6] border-b border-[#E6E1D9] text-[#6F6B66] font-semibold uppercase">
+                        <tr>
+                          <th className="py-2.5 px-3">Product</th>
+                          <th className="py-2.5 px-3">Qty</th>
+                          <th className="py-2.5 px-3">Price</th>
+                          <th className="py-2.5 px-3">Disc%</th>
+                          <th className="py-2.5 px-3 text-right">Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-[#EEEAE4] text-[#171717]">
+                        {(selectedApproval.quotationVersion?.items || []).length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-4 text-center text-[#96918A]">
+                              No item details available.
+                            </td>
+                          </tr>
+                        ) : (
+                          (selectedApproval.quotationVersion?.items || []).map((it, idx) => (
+                            <tr key={idx} className="hover:bg-[#FAF9F6]">
+                              <td className="py-2.5 px-3 font-medium">{it.product?.name || `Product #${idx + 1}`}</td>
+                              <td className="py-2.5 px-3 text-[#6F6B66]">{it.quantity}</td>
+                              <td className="py-2.5 px-3 text-[#6F6B66]">₹{Number(it.unitPrice).toLocaleString('en-IN')}</td>
+                              <td className="py-2.5 px-3 font-semibold text-[#C95757]">{it.discountPercent}%</td>
+                              <td className="py-2.5 px-3 text-right font-semibold">₹{Number(it.totalPrice).toLocaleString('en-IN')}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
 
-              {/* Decision Comment Field if action selected */}
-              {actionType && (
-                <div className="space-y-2 border-t border-slate-200 pt-4 animate-in fade-in duration-150">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    {actionType === 'APPROVED' ? 'Approval Notes (Optional)' : 'Required Reason / Feedback:'}
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder={
-                      actionType === 'APPROVED' 
-                        ? 'Add optional instructions or conditions...'
-                        : 'Explain why this discount or margin cannot be accepted...'
-                    }
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer Actions */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-              <button
-                onClick={() => { setSelectedApproval(null); setActionType(null); }}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                Close
-              </button>
-
-              <div className="flex items-center gap-2">
-                {!actionType ? (
-                  <>
-                    <button
-                      onClick={() => setActionType('RETURNED')}
-                      className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl shadow-xs transition-colors"
-                    >
-                      Return for Revision
-                    </button>
-                    <button
-                      onClick={() => setActionType('REJECTED')}
-                      className="px-4 py-2 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl transition-colors"
-                    >
-                      Reject Quotation
-                    </button>
-                    <button
-                      onClick={() => setActionType('APPROVED')}
-                      className="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors"
-                    >
-                      Approve Deal
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setActionType(null)}
-                      className="px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-700"
-                    >
-                      Change Decision
-                    </button>
-                    <button
-                      onClick={handleSubmitDecision}
-                      disabled={isSubmitting}
-                      className={`px-5 py-2 text-xs font-semibold text-white rounded-xl shadow-xs transition-colors ${
-                        actionType === 'APPROVED'
-                          ? 'bg-emerald-600 hover:bg-emerald-700'
-                          : actionType === 'REJECTED'
-                          ? 'bg-rose-600 hover:bg-rose-700'
-                          : 'bg-slate-800 hover:bg-slate-900'
-                      }`}
-                    >
-                      {isSubmitting ? 'Recording...' : `Confirm ${actionType}`}
-                    </button>
-                  </>
+                {/* Decision Comment / Justification Field */}
+                {actionType && (
+                  <div className="space-y-2 border-t border-[#EEEAE4] pt-4 animate-in fade-in duration-150">
+                    <label className="block text-xs font-semibold text-[#171717] uppercase tracking-wider">
+                      {actionType === 'APPROVED' ? 'Authorization Notes (Optional)' : 'Required Justification / Feedback:'}
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder={
+                        actionType === 'APPROVED' 
+                          ? 'Add optional instructions or conditions...'
+                          : 'Explain why this discount or margin exception cannot be accepted...'
+                      }
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      className="w-full p-3 bg-white border border-[#E6E1D9] rounded-[10px] text-xs sm:text-sm text-[#171717] placeholder:text-[#96918A] focus:outline-none focus:ring-1 focus:ring-[#D97757] focus:border-[#D97757] transition-all"
+                    />
+                  </div>
                 )}
               </div>
+
+              {/* Sticky Action Footer */}
+              <div className="p-4 sm:p-5 bg-[#FAF9F6] border-t border-[#E6E1D9] flex items-center justify-between gap-3 shrink-0">
+                <button
+                  onClick={() => { setSelectedApproval(null); setActionType(null); }}
+                  className="px-4 py-2 text-xs sm:text-sm font-medium text-[#6F6B66] hover:text-[#171717] hover:bg-[#F2EFEA] rounded-[9px] transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {!actionType ? (
+                    <>
+                      <button
+                        onClick={() => setActionType('RETURNED')}
+                        className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-[#6F6B66] bg-white border border-[#E6E1D9] hover:bg-[#F5F2ED] hover:text-[#171717] active:scale-95 rounded-[9px] shadow-xs transition-all cursor-pointer"
+                      >
+                        Return
+                      </button>
+                      <button
+                        onClick={() => setActionType('REJECTED')}
+                        className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-white bg-[#C95757] hover:bg-[#B34545] active:scale-95 rounded-[9px] shadow-xs transition-all cursor-pointer"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => setActionType('APPROVED')}
+                        className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-[#3F8F63] hover:bg-[#347953] active:scale-95 rounded-[9px] shadow-xs transition-all cursor-pointer"
+                      >
+                        Approve Deal
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setActionType(null)}
+                        className="px-3 py-1.5 text-xs font-medium text-[#96918A] hover:text-[#171717] cursor-pointer"
+                      >
+                        Back
+                      </button>
+                      <button
+                        onClick={handleSubmitDecision}
+                        disabled={isSubmitting}
+                        className={`px-5 py-2 text-xs sm:text-sm font-semibold text-white rounded-[9px] shadow-xs transition-all cursor-pointer active:scale-95 ${
+                          actionType === 'APPROVED'
+                            ? 'bg-[#3F8F63] hover:bg-[#347953]'
+                            : actionType === 'REJECTED'
+                            ? 'bg-[#C95757] hover:bg-[#B34545]'
+                            : 'bg-[#171717] hover:bg-[#2B2B2B]'
+                        }`}
+                      >
+                        {isSubmitting ? 'Recording...' : `Confirm ${actionType}`}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
