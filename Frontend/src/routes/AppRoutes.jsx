@@ -9,9 +9,9 @@ import AdminProducts from '../pages/admin/AdminProducts';
 import AdminDiscountRules from '../pages/admin/AdminDiscountRules';
 import AdminApprovalRules from '../pages/admin/AdminApprovalRules';
 
-import Login from '../pages/auth/Login';
-import Signup from '../pages/auth/Signup';
-import ForgotPassword from '../pages/auth/ForgotPassword';
+import Login from '../pages/Login';
+import Signup from '../pages/Signup';
+import ForgotPassword from '../pages/ForgotPassword';
 import Dashboard from '../pages/sales/Dashboard';
 import QuotationsList from '../pages/sales/QuotationsList';
 import QuotationBuilder from '../pages/sales/QuotationBuilder';
@@ -19,7 +19,7 @@ import QuotationBuilder from '../pages/sales/QuotationBuilder';
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/auth/login" replace />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
       {/* Auth routes under /auth/* */}
       <Route path="/auth" element={<AuthLayout />}>
