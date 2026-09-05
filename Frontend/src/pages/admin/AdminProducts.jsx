@@ -83,29 +83,122 @@ export default function AdminProducts() {
       name: prod.name,
       category: prod.category || 'Hardware',
       price: prod.pricing?.[0]?.price || 0,
-      unit: prod.type === 'SUBSCRIPTION' ? 'Recurring' : 'Each',
+      unit: prod.type === 'SUBSCRIPTION' ? 'Recurring' : (prod.unit || 'Each'),
       description: prod.description || '',
-      tax: 18,
+      tax: parseInt(prod.tax, 10) || 18,
       isSubscription: prod.type === 'SUBSCRIPTION' ? 'true' : 'false',
-      recurringCycle: 'Monthly',
+      recurringCycle: prod.recurringCycle || 'Monthly',
       quantityOnHand: prod.stock || 0,
-      variants: [{ attribute: 'RAM', values: '8GB, 16GB', extraPrice: '+$100' }],
-      pricelists: [{ tier: 'Bronze', currency: 'USD', rule: 'Price, no adjustment' }]
+      variants: prod.variantsList || [{ attribute: 'RAM', values: '8GB, 16GB', extraPrice: '+$100' }],
+      pricelists: prod.pricelistsList || [{ tier: 'Bronze', currency: 'USD', rule: 'Price, no adjustment' }]
     });
     setIsModalOpen(true);
   };
 
-  // Mock stats
-  const activeCount = products.length > 0 ? products.length : 128;
-  const archivedCount = 6;
-  const totalVariants = activeCount * 3 - 44; // mock math
+  const mockData = [
+    { 
+      id: '1', name: 'ThinkPad X1 Carbon Gen 11', category: 'Hardware', type: 'ONE_TIME', 
+      variants: '3 (CPU, RAM, Display)', priceStr: '$1,650', unit: 'Each', tax: '18%', status: 'Active',
+      description: 'Ultralight premium business laptop featuring 13th Gen Intel Core processors and 14" OLED panel.', stock: 350,
+      pricing: [{ price: 1650 }],
+      variantsList: [
+        { attribute: 'CPU', values: 'i5, i7', extraPrice: '+$200' },
+        { attribute: 'RAM', values: '16GB, 32GB', extraPrice: '+$120' },
+        { attribute: 'Display', values: 'WUXGA, OLED', extraPrice: '+$150' }
+      ],
+      pricelistsList: [
+        { tier: 'General', currency: 'USD', rule: 'List Price' },
+        { tier: 'Gold', currency: 'USD', rule: 'List Price minus 15 percent' },
+        { tier: 'General', currency: 'INR', rule: 'MRP Conversion' }
+      ]
+    },
+    { 
+      id: '2', name: 'Microsoft 365 E5 Enterprise', category: 'Software', type: 'SUBSCRIPTION', recurringCycle: 'Yearly',
+      variants: '1 (License Pool)', priceStr: '$38.00/usr', unit: 'Recurring', tax: '18%', status: 'Active',
+      description: 'Comprehensive productivity suite featuring advanced security, compliance, phone system, and Power BI Pro.', stock: 9999,
+      pricing: [{ price: 38 }],
+      variantsList: [
+        { attribute: 'License Pool', values: '1-99, 100-499, 500+', extraPrice: '-$2 for 500+' }
+      ],
+      pricelistsList: [
+        { tier: 'General', currency: 'USD', rule: 'List Price' },
+        { tier: 'Silver', currency: 'USD', rule: 'List Price minus 5 percent' }
+      ]
+    },
+    { 
+      id: '3', name: 'AWS Cloud Architecture Audit', category: 'Services', type: 'ONE_TIME', 
+      variants: '2 (Scope)', priceStr: '$5,000', unit: 'Project', tax: '18%', status: 'Active',
+      description: 'End-to-End infrastructure audit focusing on cost-optimization, security baselines, and reliability.', stock: 10,
+      pricing: [{ price: 5000 }],
+      variantsList: [
+        { attribute: 'Scope', values: 'Single AWS Account, Multi-Org AWS', extraPrice: '+$3,500' }
+      ],
+      pricelistsList: [
+        { tier: 'Standard', currency: 'USD', rule: 'List Price' }
+      ]
+    },
+    { 
+      id: '4', name: 'Palo Alto PA-400 Series NGFW', category: 'Hardware', type: 'ONE_TIME', 
+      variants: '4 (Throughput/Model)', priceStr: '$4,200', unit: 'Each', tax: '18%', status: 'Active',
+      description: 'Next-Generation Firewall appliance offering zero-trust network security for enterprise branch offices.', stock: 42,
+      pricing: [{ price: 4200 }],
+      variantsList: [
+        { attribute: 'Model', values: 'PA-410, PA-440, PA-460', extraPrice: '+$1,500 per tier' },
+        { attribute: 'HA Cluster', values: 'Standalone, Active-Passive', extraPrice: '+$3,000' }
+      ],
+      pricelistsList: [
+        { tier: 'Standard', currency: 'USD', rule: 'List Price' },
+        { tier: 'Gold', currency: 'USD', rule: 'Price minus 20 percent base' }
+      ]
+    },
+    { 
+      id: '5', name: 'Managed IT Support Helpdesk', category: 'Support', type: 'SUBSCRIPTION', recurringCycle: 'Monthly',
+      variants: '2 (SLA Tier)', priceStr: '$150/usr', unit: 'Recurring', tax: '18%', status: 'Active',
+      description: '24/7/365 priority IT support, comprehensive workstation monitoring, and MDM solutions.', stock: 5000,
+      pricing: [{ price: 150 }],
+      variantsList: [
+        { attribute: 'SLA Tier', values: 'Silver (8x5), Gold (24x7)', extraPrice: '+$50/usr' }
+      ],
+      pricelistsList: [
+        { tier: 'Standard', currency: 'USD', rule: 'List Price' },
+        { tier: 'Standard', currency: 'INR', rule: 'Adjusted MSRP' }
+      ]
+    },
+    { 
+      id: '6', name: 'Herman Miller Aeron Chair', category: 'Office', type: 'ONE_TIME', 
+      variants: '3 (Size, Color)', priceStr: '$1,299', unit: 'Each', tax: '18%', status: 'Active',
+      description: 'Ergonomic office seating providing superior posture support and suspension material.', stock: 112,
+      pricing: [{ price: 1299 }],
+      variantsList: [
+        { attribute: 'Size', values: 'A (Small), B (Medium), C (Large)', extraPrice: '+$0' },
+        { attribute: 'Color', values: 'Graphite, Carbon, Mineral', extraPrice: '+$215 for Mineral' }
+      ],
+      pricelistsList: [
+        { tier: 'Standard', currency: 'USD', rule: 'List Price' },
+        { tier: 'Silver', currency: 'USD', rule: 'Price minus 5 percent base' }
+      ]
+    },
+    { 
+      id: '7', name: 'Oracle to PostgreSQL Migration', category: 'Services', type: 'ONE_TIME', 
+      variants: '3 (DB Size)', priceStr: '$12,500', unit: 'Project', tax: '18%', status: 'Active',
+      description: 'Turnkey database migration service converting Oracle schemas, PL/SQL and data to modern PostgreSQL.', stock: 5,
+      pricing: [{ price: 12500 }],
+      variantsList: [
+        { attribute: 'Database Size', values: '<500GB, 500GB-2TB, >2TB', extraPrice: '+$4,500 per tier' }
+      ],
+      pricelistsList: [
+        { tier: 'General', currency: 'USD', rule: 'List Price' },
+        { tier: 'Gold', currency: 'USD', rule: 'Custom Enterprise Discount' }
+      ]
+    }
+  ];
 
-  const filteredProducts = (products.length > 0 ? products : [
-    { id: '1', name: 'Laptop Pro 14', category: 'Hardware', type: 'ONE_TIME', variants: '3 (size)', priceStr: '$1,200', unit: 'Each', tax: '15%', status: 'Active' },
-    { id: '2', name: 'Onsite Setup Service', category: 'Services', type: 'ONE_TIME', variants: '-', priceStr: '$450', unit: 'Each', tax: '10%', status: 'Active' },
-    { id: '3', name: 'Docking Station', category: 'Hardware', type: 'ONE_TIME', variants: '3 (color)', priceStr: '$180', unit: 'Each', tax: '15%', status: 'Active' },
-    { id: '4', name: 'Care Plan 3 years', category: 'Subscription', type: 'SUBSCRIPTION', variants: '-', priceStr: '$40/month', unit: 'Recurring', tax: '0%', status: 'Active' },
-  ]).filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Mock stats
+  const activeCount = products.length > 0 ? products.length : mockData.length;
+  const archivedCount = 3;
+  const totalVariants = activeCount * 3 - 4; // Mock math based on dummy variants count
+
+  const filteredProducts = (products.length > 0 ? products : mockData).filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 pb-24">
