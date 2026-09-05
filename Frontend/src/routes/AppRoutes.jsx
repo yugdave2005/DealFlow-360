@@ -39,7 +39,6 @@ import Reports from '../pages/sales/Reports';
 // Customer Portal Pages
 import CustomerQuotationsList from '../pages/customer/CustomerQuotationsList';
 import CustomerNegotiationsList from '../pages/customer/CustomerNegotiationsList';
-import CustomerOrdersList from '../pages/customer/CustomerOrdersList';
 import CustomerProfile from '../pages/customer/CustomerProfile';
 import CustomerQuotationView from '../pages/customer/CustomerQuotationView';
 
@@ -48,7 +47,6 @@ import AdminProducts from '../pages/admin/AdminProducts';
 import AdminDiscountRules from '../pages/admin/AdminDiscountRules';
 import AdminApprovalRules from '../pages/admin/AdminApprovalRules';
 import AdminWarehouses from '../pages/admin/AdminWarehouses';
-import AdminUsers from '../pages/admin/AdminUsers';
 
 // Common / Error Pages
 import Unauthorized from '../pages/common/Unauthorized';
@@ -150,7 +148,6 @@ export default function AppRoutes() {
             <Route path="quotations" element={<CustomerQuotationsList />} />
             <Route path="quotations/:id" element={<CustomerQuotationView />} />
             <Route path="negotiations" element={<CustomerNegotiationsList />} />
-            <Route path="orders" element={<CustomerOrdersList />} />
             <Route path="profile" element={<CustomerProfile />} />
           </Route>
         </Route>
@@ -163,7 +160,6 @@ export default function AppRoutes() {
           <Route path="quotations/:id" element={<CustomerQuotationView />} />
           <Route path="quotation/:id" element={<CustomerQuotationView />} />
           <Route path="negotiations" element={<CustomerNegotiationsList />} />
-          <Route path="orders" element={<CustomerOrdersList />} />
         </Route>
 
         {/* 5. ADMIN PLATFORM CONFIGURATION WORKSPACE */}
@@ -183,12 +179,9 @@ export default function AppRoutes() {
             <Route path="subscription-plans" element={<SubscriptionsList />} />
             
             {/* Management & Analytics */}
-            <Route path="users" element={<AdminUsers />} />
             <Route path="customers" element={<Customers />} />
             <Route path="reports" element={<Reports />} />
             <Route path="analytics" element={<Reports />} />
-            <Route path="audit-logs" element={<div className="p-8"><h2 className="text-2xl font-bold text-slate-900 mb-2">System Audit Logs</h2><p className="text-slate-500">Immutable ledger of quotation revisions, approvals, discount overrides, and user auth events.</p></div>} />
-            <Route path="settings" element={<div className="p-8"><h2 className="text-2xl font-bold text-slate-900 mb-2">System Governance Settings</h2><p className="text-slate-500">Global currency definitions (₹ INR), tax brackets, and approval SLA configurations.</p></div>} />
           </Route>
         </Route>
 

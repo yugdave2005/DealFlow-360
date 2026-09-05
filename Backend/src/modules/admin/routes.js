@@ -25,10 +25,6 @@ router.delete('/approval-rules/:id', adminController.deleteApprovalRule);
 router.get('/warehouses', adminController.getWarehouses);
 router.post('/warehouses', adminController.createWarehouse);
 
-router.get('/users', adminController.getUsers);
-router.put('/users/:id', adminController.updateUser);
-router.delete('/users/:id', adminController.deleteUser);
-
 router.get('/customers', adminController.getCustomers);
 
 export default router;

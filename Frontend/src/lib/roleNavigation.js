@@ -45,19 +45,12 @@ export const ROLE_NAVIGATION = {
         { title: 'Approvals', path: '/sales/approvals', icon: CheckSquare },
         { title: 'Fulfillment', path: '/sales/fulfillment', icon: Truck },
         { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
-        { title: 'Invoices', path: '/sales/invoices', icon: Receipt },
       ]
     },
     {
       title: 'Customers',
       items: [
         { title: 'Customers', path: '/sales/customers', icon: Users },
-      ]
-    },
-    {
-      title: 'Insights',
-      items: [
-        { title: 'Deal Health', path: '/sales/deal-health', icon: Activity },
       ]
     }
   ],
@@ -74,24 +67,9 @@ export const ROLE_NAVIGATION = {
       ]
     },
     {
-      title: 'Deal Operations',
-      items: [
-        { title: 'Fulfillment', path: '/sales/fulfillment', icon: Truck },
-        { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
-        { title: 'Invoices', path: '/sales/invoices', icon: Receipt },
-      ]
-    },
-    {
-      title: 'Customers',
-      items: [
-        { title: 'Customers', path: '/sales/customers', icon: Users },
-      ]
-    },
-    {
       title: 'Insights',
       items: [
         { title: 'Deal Health', path: '/sales/deal-health', icon: Activity },
-        { title: 'Reports', path: '/sales/reports', icon: BarChart3 },
       ]
     },
     {
@@ -119,19 +97,6 @@ export const ROLE_NAVIGATION = {
         { title: 'Invoices', path: '/sales/invoices', icon: Receipt },
         { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
       ]
-    },
-    {
-      title: 'Sales',
-      items: [
-        { title: 'Quotations', path: '/sales/quotations', icon: FileText },
-        { title: 'Orders', path: '/sales/fulfillment', icon: ShoppingBag },
-      ]
-    },
-    {
-      title: 'Insights',
-      items: [
-        { title: 'Reports', path: '/sales/reports', icon: BarChart3 },
-      ]
     }
   ],
 
@@ -147,12 +112,6 @@ export const ROLE_NAVIGATION = {
       title: 'Negotiations',
       items: [
         { title: 'Negotiations', path: '/portal/negotiations', icon: MessageSquare },
-      ]
-    },
-    {
-      title: 'Orders',
-      items: [
-        { title: 'Orders', path: '/portal/orders', icon: ShoppingBag },
       ]
     },
     {
@@ -182,23 +141,9 @@ export const ROLE_NAVIGATION = {
       ]
     },
     {
-      title: 'Management',
-      items: [
-        { title: 'Users', path: '/admin/users', icon: Users },
-        { title: 'Customers', path: '/admin/customers', icon: Building2 },
-      ]
-    },
-    {
       title: 'Analytics',
       items: [
         { title: 'Reports', path: '/admin/reports', icon: BarChart3 },
-      ]
-    },
-    {
-      title: 'System',
-      items: [
-        { title: 'Audit Logs', path: '/admin/audit-logs', icon: History },
-        { title: 'System Settings', path: '/admin/settings', icon: Settings },
       ]
     }
   ]
