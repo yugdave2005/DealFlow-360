@@ -13,6 +13,8 @@ import Login from '../pages/auth/Login';
 import Signup from '../pages/auth/Signup';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import Dashboard from '../pages/sales/Dashboard';
+import QuotationsList from '../pages/sales/QuotationsList';
+import QuotationBuilder from '../pages/sales/QuotationBuilder';
 
 export default function AppRoutes() {
   return (
@@ -28,8 +30,8 @@ export default function AppRoutes() {
         <Route path="/sales/*" element={<SalesLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="quotations" element={<div>Quotations List</div>} />
-          <Route path="quotations/new" element={<div>New Quotation</div>} />
+          <Route path="quotations" element={<QuotationsList />} />
+          <Route path="quotations/new" element={<QuotationBuilder />} />
           <Route path="quotations/:id" element={<div>Quotation Detail</div>} />
           <Route path="approvals" element={<div>Approvals</div>} />
           <Route path="fulfillment" element={<div>Fulfillment</div>} />
