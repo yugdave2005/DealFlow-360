@@ -233,8 +233,8 @@ export default function QuotationsList() {
         <div className="flex items-center gap-1 overflow-x-auto border-t border-slate-100 pt-3 custom-scrollbar">
           {STATUS_TABS.map((tab) => {
             const count = tab.id === 'ALL' 
-              ? quotations.length 
-              : quotations.filter(q => q.status === tab.id || (tab.id === 'NEGOTIATION' && q.status === 'UNDER_NEGOTIATION')).length;
+              ? displayQuotations.length 
+              : displayQuotations.filter(q => q.status === tab.id || (tab.id === 'NEGOTIATION' && q.status === 'UNDER_NEGOTIATION')).length;
 
             return (
               <button
