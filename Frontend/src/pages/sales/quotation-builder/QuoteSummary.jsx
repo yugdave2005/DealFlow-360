@@ -100,8 +100,8 @@ export default function QuoteSummary({
       </div>
 
       {/* Subtle Governance Status Row */}
-      <div className="pt-3 border-t border-slate-100">
-        <div className="flex items-center justify-between text-xs mb-1">
+      <div className="pt-3 border-t border-slate-100 space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Governance
           </span>
@@ -115,13 +115,14 @@ export default function QuoteSummary({
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className={`w-2 h-2 rounded-full shrink-0 ${isRiskHigh ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-          <span className="font-semibold text-slate-800">
-            {isRiskHigh ? 'High Risk' : 'Low Risk'} ({riskScore}/100)
-          </span>
-          <span className="text-slate-300">&bull;</span>
-          <span className="text-slate-500 text-[11px] truncate">
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${isRiskHigh ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+            <span className="font-semibold text-slate-800">
+              {isRiskHigh ? 'High Risk' : 'Low Risk'} ({riskScore}/100)
+            </span>
+          </div>
+          <span className="text-[11px] font-medium text-slate-500">
             {approvalRequirement === 'NONE' ? 'Approval not required' : 'Approval required'}
           </span>
         </div>

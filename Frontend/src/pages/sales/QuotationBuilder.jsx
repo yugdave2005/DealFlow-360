@@ -399,11 +399,11 @@ export default function QuotationBuilder() {
         onOpenDetails={() => setCustomerDetailsOpen(true)}
       />
 
-      {/* 4. Main 3-Column SaaS Workspace (25% Catalog / 50% Quotation Items / 25% Summary) */}
+      {/* 4. Main 3-Column SaaS Workspace (Balanced: 33% Catalog / 42% Quotation Items / 25% Summary) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 lg:grid-cols-12 gap-5 items-start">
         
-        {/* Left Column: Product Catalog (~25-28% width) */}
-        <div className="xl:col-span-3 lg:col-span-3 col-span-12">
+        {/* Left Column: Product Catalog (col-span-4) */}
+        <div className="xl:col-span-4 lg:col-span-4 col-span-12">
           <ProductCatalog
             products={filteredCatalogProducts}
             searchTerm={productSearch}
@@ -416,8 +416,8 @@ export default function QuotationBuilder() {
           />
         </div>
 
-        {/* Center Column: Quotation Items Table (50% width - Main Focus) */}
-        <div className="xl:col-span-6 lg:col-span-6 col-span-12 space-y-4">
+        {/* Center Column: Quotation Items Table (col-span-5 - Main Focus) */}
+        <div className="xl:col-span-5 lg:col-span-5 col-span-12 space-y-4">
           <QuotationItemsTable
             items={watchLineItems}
             onUpdateItem={handleUpdateItem}
@@ -435,7 +435,7 @@ export default function QuotationBuilder() {
           />
         </div>
 
-        {/* Right Column: Clean Sticky Summary & Governance (~22-25% width) */}
+        {/* Right Column: Clean Sticky Summary & Governance (col-span-3) */}
         <div className="xl:col-span-3 lg:col-span-3 col-span-12">
           <QuoteSummary
             calculations={calculations}

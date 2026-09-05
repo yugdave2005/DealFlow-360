@@ -60,16 +60,16 @@ export default function ProductCatalog({
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+      <div className="flex flex-wrap gap-1">
         {categories.map(cat => (
           <button
             key={cat.id}
             type="button"
             onClick={() => onCategoryChange(cat.id)}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
               selectedCategory === cat.id
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-slate-900 text-white shadow-2xs'
+                : 'text-slate-600 bg-slate-100/80 hover:bg-slate-200/80'
             }`}
           >
             {cat.label}
@@ -78,7 +78,7 @@ export default function ProductCatalog({
       </div>
 
       {/* Products List */}
-      <div className="space-y-1.5 max-h-[520px] overflow-y-auto pr-0.5 scrollbar-thin scrollbar-thumb-slate-200">
+      <div className="space-y-1.5 max-h-[480px] overflow-y-auto pr-0.5 scrollbar-thin scrollbar-thumb-slate-200">
         {isLoading ? (
           <div className="space-y-2 p-2">
             {[1, 2, 3].map(n => (
@@ -86,8 +86,8 @@ export default function ProductCatalog({
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="py-10 px-3 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
-            <Package className="w-5 h-5 text-slate-300 mx-auto mb-1.5" />
+          <div className="py-12 px-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+            <Package className="w-6 h-6 text-slate-300 mx-auto mb-1.5" />
             <p className="text-xs font-semibold text-slate-700">No products available</p>
             <p className="text-[11px] text-slate-400 mt-0.5">
               Products can be configured in Product Catalog.
