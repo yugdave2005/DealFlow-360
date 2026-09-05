@@ -2,16 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import DealFlowLogo from '../components/DealFlowLogo';
+import { useAuth } from '../context/AuthContext';
+import { getNavigationForRole } from '../lib/roleNavigation';
+import { ROLE_METADATA, ROLES } from '../lib/roles';
 import { 
-  LayoutDashboard, 
-  FileText, 
-  CheckSquare, 
-  Truck, 
-  RefreshCw, 
-  Receipt, 
-  Activity, 
-  BarChart3, 
-  Package, 
   Bell, 
   User as UserIcon, 
   Settings, 
@@ -29,8 +23,8 @@ import {
   Palette,
   Sparkles,
   Sliders,
-  Columns3,
-  Users
+  CheckCircle2,
+  Truck
 } from 'lucide-react';
 
 const AVATAR_IMAGES = [
@@ -56,6 +50,8 @@ const INITIAL_COLORS = [
 ];
 
 export default function DashboardLayout() {
+  const { user, role, logout, defaultRoute, updateUser } = useAuth();
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -64,31 +60,30 @@ export default function DashboardLayout() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   
-  const [user, setUser] = useState(null);
-  const [displayName, setDisplayName] = useState('');
-  const [avatarType, setAvatarType] = useState('initial'); // 'initial' | 'image'
-  const [selectedAvatarImage, setSelectedAvatarImage] = useState(AVATAR_IMAGES[0].url);
-  const [selectedInitialColor, setSelectedInitialColor] = useState('blue');
+  const [displayName, setDisplayName] = useState(user?.name || '');
+  const [avatarType, setAvatarType] = useState(user?.avatarType || 'initial');
+  const [selectedAvatarImage, setSelectedAvatarImage] = useState(user?.avatarImage || AVATAR_IMAGES[0].url);
+  const [selectedInitialColor, setSelectedInitialColor] = useState(user?.initialColor || 'blue');
 
   const [notifications, setNotifications] = useState([
     {
       id: 1,
-      title: 'Quotation #Q-1042 Approved',
-      desc: 'Manager approved 15% discount for Acme Corp.',
+      title: 'Quotation #QT-1024 Approved',
+      desc: 'Manager authorized 18% discount for Acme Corp.',
       time: '10m ago',
       read: false
     },
     {
       id: 2,
       title: 'High Risk Deal Detected',
-      desc: 'Deal #Q-1039 exceeded margin threshold (Risk: 78).',
+      desc: 'QT-1039 exceeded margin threshold (Risk: 78).',
       time: '1h ago',
       read: false
     },
     {
       id: 3,
       title: 'Payment Received',
-      desc: 'Invoice #INV-2041 marked as PAID (₹12,400.00).',
+      desc: 'Invoice #INV-2026-001 marked as PAID (₹1,24,000).',
       time: '3h ago',
       read: true
     }
@@ -100,20 +95,13 @@ export default function DashboardLayout() {
   const notifRef = useRef(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const parsed = JSON.parse(userStr);
-        setUser(parsed);
-        setDisplayName(parsed.name || '');
-        if (parsed.avatarType) setAvatarType(parsed.avatarType);
-        if (parsed.avatarImage) setSelectedAvatarImage(parsed.avatarImage);
-        if (parsed.initialColor) setSelectedInitialColor(parsed.initialColor);
-      } catch (e) {
-        console.error('Error parsing user', e);
-      }
+    if (user) {
+      setDisplayName(user.name || '');
+      if (user.avatarType) setAvatarType(user.avatarType);
+      if (user.avatarImage) setSelectedAvatarImage(user.avatarImage);
+      if (user.initialColor) setSelectedInitialColor(user.initialColor);
     }
-  }, []);
+  }, [user]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -135,8 +123,7 @@ export default function DashboardLayout() {
   }, [location.pathname]);
 
   const confirmLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
+    logout();
     setLogoutModalOpen(false);
     toast.success('Signed out successfully');
     navigate('/auth/login');
@@ -152,43 +139,19 @@ export default function DashboardLayout() {
       toast.error('Name cannot be empty');
       return;
     }
-    const updatedUser = {
-      ...user,
+    updateUser({
       name: displayName,
       avatarType,
       avatarImage: selectedAvatarImage,
       initialColor: selectedInitialColor
-    };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    });
     setSettingsModalOpen(false);
-    toast.success('Profile and avatar settings updated!');
+    toast.success('Profile and avatar preferences saved!');
   };
 
-  const userRole = user?.role || 'SALES_REP';
-  const userName = user?.name || 'User';
+  const roleInfo = ROLE_METADATA[role] || { label: 'User', badge: 'bg-slate-100 text-slate-700' };
+  const userName = user?.name || 'Authorized User';
   const userEmail = user?.email || 'user@dealflow360.com';
-
-  const getRoleConfig = (role) => {
-    switch (role) {
-      case 'ADMIN':
-        return { label: 'Administrator', badgeLight: 'bg-purple-50 text-purple-700 border-purple-200', icon: ShieldCheck };
-      case 'SALES_MANAGER':
-        return { label: 'Sales Manager', badgeLight: 'bg-indigo-50 text-indigo-700 border-indigo-200', icon: UserCheck };
-      case 'FINANCE':
-        return { label: 'Finance', badgeLight: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CreditCard };
-      case 'OPERATIONS':
-        return { label: 'Operations', badgeLight: 'bg-amber-50 text-amber-700 border-amber-200', icon: Truck };
-      case 'CUSTOMER':
-        return { label: 'Customer Client', badgeLight: 'bg-cyan-50 text-cyan-700 border-cyan-200', icon: Building };
-      case 'SALES_REP':
-      default:
-        return { label: 'Sales Representative', badgeLight: 'bg-blue-50 text-blue-700 border-blue-200', icon: Briefcase };
-    }
-  };
-
-  const roleConfig = getRoleConfig(userRole);
-  const RoleIcon = roleConfig.icon;
 
   const currentInitialPreset = INITIAL_COLORS.find(c => c.id === selectedInitialColor) || INITIAL_COLORS[0];
 
@@ -196,7 +159,7 @@ export default function DashboardLayout() {
   const renderAvatar = (size = 'w-9 h-9', textClass = 'text-sm') => {
     if (avatarType === 'image' && selectedAvatarImage) {
       return (
-        <div className={`${size} rounded-full overflow-hidden bg-slate-100 ring-2 ring-slate-200 shrink-0 shadow-sm`}>
+        <div className={`${size} rounded-full overflow-hidden bg-slate-100 ring-2 ring-slate-200 shrink-0 shadow-xs`}>
           <img src={selectedAvatarImage} alt={userName} className="w-full h-full object-cover" />
         </div>
       );
@@ -208,364 +171,250 @@ export default function DashboardLayout() {
     );
   };
 
-  // Navigation grouped by DealFlow360 business workflow
-  const navSections = [
-    {
-      title: 'Sales Pipeline',
-      items: [
-        { title: 'Dashboard', path: '/sales/dashboard', icon: LayoutDashboard },
-        { title: 'Quotations', path: '/sales/quotations', icon: FileText },
-        { title: 'Pipeline', path: '/sales/pipeline', icon: Columns3 },
-      ]
-    },
-    {
-      title: 'Deal Operations',
-      items: [
-        { title: 'Approvals', path: '/sales/approvals', icon: CheckSquare },
-        { title: 'Fulfillment', path: '/sales/fulfillment', icon: Truck },
-        { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
-        { title: 'Invoices', path: '/sales/invoices', icon: Receipt },
-      ]
-    },
-    {
-      title: 'Customers',
-      items: [
-        { title: 'Customers', path: '/sales/customers', icon: Users },
-      ]
-    },
-    {
-      title: 'Insights',
-      items: [
-        { title: 'Deal Health', path: '/sales/deal-health', icon: Activity },
-        { title: 'Reports', path: '/sales/reports', icon: BarChart3 },
-      ]
-    },
-    {
-      title: 'Catalog',
-      items: [
-        { title: 'Products', path: '/sales/products', icon: Package },
-      ]
-    }
-  ];
-
-  const adminRulesNavigation = [
-    { title: 'Discount Rules', path: '/admin/discount-rules', icon: Sliders },
-    { title: 'Approval Rules', path: '/admin/approval-rules', icon: CheckSquare },
-  ];
+  // Dynamic Navigation Sections based on authenticated role
+  const navSections = getNavigationForRole(role);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const getPageTitle = () => {
     const p = location.pathname;
-    if (p.includes('/sales/dashboard')) return 'Dashboard';
+    if (p.includes('/sales/dashboard') || p.includes('/manager/dashboard') || p.includes('/operations/dashboard') || p.includes('/admin/dashboard') || p === '/portal') {
+      return 'Dashboard';
+    }
     if (p.includes('/sales/quotations/new')) return 'New Quotation';
     if (p.includes('/sales/quotations/') && p.includes('/edit')) return 'Edit Quotation';
     if (p.includes('/sales/quotations/')) return 'Quotation Details';
-    if (p.includes('/sales/quotations')) return 'Quotations';
+    if (p.includes('/sales/quotations') || p.includes('/portal/quotations')) return 'Quotations';
     if (p.includes('/sales/pipeline')) return 'Deal Pipeline';
     if (p.includes('/sales/approvals')) return 'Approval Queue';
     if (p.includes('/sales/fulfillment/')) return 'Warehouse Split Allocation';
-    if (p.includes('/sales/fulfillment')) return 'Fulfillment';
+    if (p.includes('/sales/fulfillment') || p.includes('/portal/orders')) return 'Fulfillment & Orders';
     if (p.includes('/sales/subscriptions')) return 'Subscriptions';
     if (p.includes('/sales/invoices')) return 'Invoices & Billing';
-    if (p.includes('/sales/customers/')) return 'Customer Profile';
+    if (p.includes('/sales/customers/')) return 'Customer 360° Profile';
     if (p.includes('/sales/customers')) return 'Customers';
-    if (p.includes('/sales/deal-health')) return 'Deal Health';
+    if (p.includes('/sales/deal-health')) return 'Deal Health Radar';
     if (p.includes('/sales/reports') || p.includes('/admin/reports')) return 'Sales Reports & Analytics';
-    if (p.includes('/sales/products') || p.includes('/admin/products')) return 'Product & Pricing Catalog';
+    if (p.includes('/admin/products') || p.includes('/sales/products')) return 'Product & Pricing Catalog';
     if (p.includes('/admin/discount-rules')) return 'Discount Rules';
     if (p.includes('/admin/approval-rules')) return 'Approval Rules';
-    return 'Sales Workspace';
+    if (p.includes('/portal/negotiations')) return 'Negotiation Proposals';
+    if (p.includes('/portal/profile')) return 'Customer Profile';
+    return 'Workspace';
   };
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-slate-900 font-sans antialiased text-slate-800">
-      {/* Mobile Sidebar Overlay Backdrop */}
+    <div className="min-h-screen bg-[#f8fafc] flex">
+      {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs md:hidden"
           onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
         />
       )}
 
-      {/* Left Sidebar */}
+      {/* Sidebar Navigation */}
       <aside className={`
-        fixed top-0 bottom-0 left-0 z-50 bg-slate-900 text-slate-200 flex flex-col border-r border-slate-800
-        transition-all duration-300 ease-in-out lg:static lg:z-auto shrink-0 select-none
-        ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
-        ${isCollapsed ? 'lg:w-[72px]' : 'lg:w-64'}
+        fixed md:sticky top-0 z-50 h-screen bg-[#0f172a] text-slate-300 flex flex-col border-r border-slate-800/80 transition-all duration-300 ease-in-out shrink-0
+        ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
+        ${isCollapsed ? 'md:w-20' : 'md:w-64'}
       `}>
-        {/* Top Branding (Website Name & Logo) */}
-        <div className={`h-16 px-4 border-b border-slate-800 flex items-center justify-between shrink-0 ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
-          <Link to="/sales/dashboard" className="flex items-center gap-3 group min-w-0">
-            <DealFlowLogo variant="dark" iconOnly={isCollapsed} size={isCollapsed ? 'md' : 'md'} />
+        {/* Brand Header */}
+        <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'} border-b border-slate-800/80 bg-[#0f172a]/95 backdrop-blur-xs shrink-0`}>
+          <Link to={defaultRoute} className="flex items-center gap-2.5 overflow-hidden focus:outline-none">
+            {isCollapsed ? (
+              <DealFlowLogo variant="dark" iconOnly size="md" />
+            ) : (
+              <DealFlowLogo variant="dark" size="md" />
+            )}
           </Link>
-
-          {/* Desktop Collapse Toggle Button */}
-          {!isCollapsed && (
-            <button
-              type="button"
-              onClick={() => setIsCollapsed(true)}
-              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              title="Collapse sidebar"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Close button on mobile */}
           <button 
-            type="button"
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            onClick={() => setSidebarOpen(false)} 
+            className="md:hidden text-slate-400 hover:text-white p-1 rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Collapsed Expand Trigger */}
-        {isCollapsed && (
-          <div className="hidden lg:flex justify-center py-2 border-b border-slate-800">
-            <button
-              type="button"
-              onClick={() => setIsCollapsed(false)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              title="Expand sidebar"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Navigation Section */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
-          {navSections.map((section) => (
-            <div key={section.title}>
+        {/* Dynamic Navigation Sections */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-800">
+          {navSections.map((section, idx) => (
+            <div key={idx} className="space-y-1">
               {!isCollapsed && (
-                <div className="px-3 mb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90 font-mono">
                   {section.title}
-                </div>
+                </h3>
               )}
-              <nav className="space-y-0.5">
+              <div className="space-y-1 pt-1">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.path || (item.path === '/sales/dashboard' && location.pathname === '/sales');
+                  const isActive = location.pathname === item.path || 
+                    (item.path !== defaultRoute && item.path !== '/sales/dashboard' && location.pathname.startsWith(item.path));
+
                   return (
                     <Link
                       key={item.path}
                       to={item.path}
                       title={isCollapsed ? item.title : undefined}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                        isActive 
-                          ? 'bg-indigo-600 text-white font-semibold shadow-xs' 
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                      } ${isCollapsed ? 'justify-center px-0' : ''}`}
+                      className={`
+                        flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 group relative
+                        ${isActive 
+                          ? 'bg-indigo-600 text-white shadow-xs font-semibold' 
+                          : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/70'}
+                        ${isCollapsed ? 'justify-center px-0 py-2.5' : ''}
+                      `}
                     >
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                      {!isCollapsed && <span className="truncate text-xs sm:text-sm">{item.title}</span>}
+                      <Icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-105 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      
+                      {!isCollapsed && (
+                        <span className="truncate flex-1">{item.title}</span>
+                      )}
+
+                      {!isCollapsed && item.badge && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-300 border border-indigo-500/40">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
-              </nav>
+              </div>
             </div>
           ))}
+        </div>
 
-          {/* Admin Rule Matrix (if admin role) */}
-          {userRole === 'ADMIN' && (
-            <div>
-              {!isCollapsed && (
-                <div className="px-3 mb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                  <span>Configuration</span>
-                  <ShieldCheck className="w-3 h-3 text-purple-400" />
-                </div>
-              )}
-              <nav className="space-y-0.5">
-                {adminRulesNavigation.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      title={isCollapsed ? item.title : undefined}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                        isActive 
-                          ? 'bg-purple-600 text-white shadow-xs font-semibold' 
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-                      } ${isCollapsed ? 'justify-center px-0' : ''}`}
-                    >
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                      {!isCollapsed && <span className="truncate text-xs sm:text-sm">{item.title}</span>}
-                    </Link>
-                  );
-                })}
-              </nav>
+        {/* Sidebar Footer: Collapse Toggle */}
+        <div className="p-3 border-t border-slate-800/80 hidden md:flex items-center justify-between text-xs text-slate-400 bg-slate-900/60">
+          {!isCollapsed && (
+            <div className="flex items-center gap-2 truncate pr-2">
+              <span className={`w-2 h-2 rounded-full ${role === ROLES.ADMIN ? 'bg-purple-500' : 'bg-emerald-500'}`} />
+              <span className="truncate text-xs font-mono font-medium text-slate-300">{roleInfo.label}</span>
             </div>
           )}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors ml-auto"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0 bg-[#F8FAFC] overflow-hidden">
-        {/* Top Header Bar */}
-        <header className="h-16 shrink-0 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between z-20 shadow-xs">
-          {/* Left: Mobile hamburger menu & Page Title with contextual role badge */}
-          <div className="flex items-center gap-3 min-w-0">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Header */}
+        <header className="h-16 bg-white border-b border-slate-200/80 sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 shadow-xs/50">
+          <div className="flex items-center gap-3">
             <button
-              type="button"
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 lg:hidden transition-colors shrink-0"
-              aria-label="Open sidebar"
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg md:hidden"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2.5 min-w-0">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate">
-                {getPageTitle()}
-              </h1>
-              <span className="text-slate-300 text-sm hidden sm:inline">|</span>
-              <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-md border ${roleConfig.badgeLight}`}>
-                <RoleIcon className="w-3 h-3" />
-                {roleConfig.label}
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{getPageTitle()}</h2>
+              
+              {/* Contextual Role Badge */}
+              <span className={`hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${roleInfo.badge}`}>
+                {roleInfo.label}
               </span>
             </div>
           </div>
 
-          {/* Right: Notifications & Compact Avatar Button */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
-            {/* Notifications Button */}
+          {/* Right Header Controls */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button
-                type="button"
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none"
-                aria-label="View notifications"
+                className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl relative transition-colors focus:outline-none"
+                aria-label="Notifications"
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white" />
                 )}
               </button>
 
-              {/* Notifications Dropdown Panel */}
+              {/* Notification Dropdown */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-slate-900">Notifications</span>
-                      {unreadCount > 0 && (
-                        <span className="text-[11px] font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                          {unreadCount} new
-                        </span>
-                      )}
-                    </div>
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200/80 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-sm">Notifications</span>
                     {unreadCount > 0 && (
-                      <button
-                        type="button"
+                      <button 
                         onClick={markAllNotificationsAsRead}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold"
                       >
                         Mark all read
                       </button>
                     )}
                   </div>
-
-                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
                     {notifications.map((n) => (
-                      <div 
-                        key={n.id} 
-                        className={`p-3.5 hover:bg-slate-50 transition-colors ${!n.read ? 'bg-blue-50/40' : ''}`}
-                      >
+                      <div key={n.id} className={`p-3.5 hover:bg-slate-50 transition-colors ${!n.read ? 'bg-indigo-50/30' : ''}`}>
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-xs font-bold text-slate-900">{n.title}</p>
-                          <span className="text-[10px] text-slate-400 whitespace-nowrap">{n.time}</span>
+                          <p className="text-xs font-bold text-slate-800">{n.title}</p>
+                          <span className="text-[10px] text-slate-400 shrink-0">{n.time}</span>
                         </div>
-                        <p className="text-xs text-slate-600 mt-0.5">{n.desc}</p>
+                        <p className="text-xs text-slate-600 mt-1">{n.desc}</p>
                       </div>
                     ))}
-                  </div>
-
-                  <div className="px-4 pt-2 border-t border-slate-100 text-center">
-                    <button 
-                      type="button"
-                      onClick={() => setNotificationsOpen(false)}
-                      className="text-xs text-slate-500 hover:text-slate-800 font-medium"
-                    >
-                      Close
-                    </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Compact Profile Avatar Button */}
+            {/* Profile Avatar & Dropdown */}
             <div className="relative" ref={profileRef}>
               <button
-                type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="relative focus:outline-none group rounded-full"
-                aria-label="Open profile menu"
+                className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-indigo-500/20 transition-all focus:outline-none"
               >
-                {renderAvatar('w-9 h-9', 'text-sm')}
+                {renderAvatar()}
               </button>
 
-              {/* Profile Menu Dropdown */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  {/* Dropdown Header */}
-                  <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200/80 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  {/* User Info Header */}
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
                     {renderAvatar('w-10 h-10', 'text-base')}
-                    <div className="min-w-0">
+                    <div className="overflow-hidden">
                       <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
-                      <p className="text-xs text-slate-500 truncate">{userEmail}</p>
-                      <div className="mt-1">
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border ${roleConfig.badgeLight}`}>
-                          <RoleIcon className="w-3 h-3" />
-                          {roleConfig.label}
-                        </span>
-                      </div>
+                      <p className="text-xs text-slate-400 truncate">{userEmail}</p>
+                      <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold border ${roleInfo.badge}`}>
+                        {roleInfo.label}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Menu Links */}
+                  {/* Dropdown Menu Items */}
                   <div className="py-1">
                     <button
-                      type="button"
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        setProfileModalOpen(true);
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 font-medium transition-colors"
+                      onClick={() => { setProfileDropdownOpen(false); setProfileModalOpen(true); }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
                     >
                       <UserIcon className="w-4 h-4 text-slate-400" />
-                      View Profile
+                      <span>User Profile</span>
                     </button>
 
                     <button
-                      type="button"
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        setSettingsModalOpen(true);
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2.5 font-medium transition-colors"
+                      onClick={() => { setProfileDropdownOpen(false); setSettingsModalOpen(true); }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
                     >
                       <Settings className="w-4 h-4 text-slate-400" />
-                      Settings & Avatar
+                      <span>Settings & Avatar</span>
                     </button>
-                  </div>
 
-                  <div className="border-t border-slate-100 pt-1">
+                    <div className="border-t border-slate-100 my-1"></div>
+
                     <button
-                      type="button"
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        setLogoutModalOpen(true);
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2.5 font-semibold transition-colors"
+                      onClick={() => { setProfileDropdownOpen(false); setLogoutModalOpen(true); }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors"
                     >
-                      <LogOut className="w-4 h-4 text-red-500" />
-                      Log Out
+                      <LogOut className="w-4 h-4 text-rose-500" />
+                      <span>Sign Out</span>
                     </button>
                   </div>
                 </div>
@@ -574,99 +423,52 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        {/* Content Outlet */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 overscroll-none">
+        {/* Page View Body */}
+        <main className="flex-1 p-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>
 
-      {/* Logout Confirmation Popup Modal */}
-      {logoutModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
-              <LogOut className="w-6 h-6" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-lg font-bold text-slate-900">Sign Out Confirmation</h3>
-              <p className="text-xs text-slate-500 mt-2">
-                Are you sure you want to log out of DealFlow360? You will need to log back in to access your active pipeline and quotes.
-              </p>
-            </div>
-
-            <div className="mt-6 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setLogoutModalOpen(false)}
-                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmLogout}
-                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm shadow-red-500/20"
-              >
-                Yes, Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Profile Details Modal */}
+      {/* User Profile View Modal */}
       {profileModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">User Profile</h3>
-              <button
-                type="button"
-                onClick={() => setProfileModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900">Account Profile</h3>
+              <button onClick={() => setProfileModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="py-5 space-y-4">
-              <div className="flex items-center gap-4">
-                {renderAvatar('w-14 h-14', 'text-xl')}
-                <div>
-                  <h4 className="font-bold text-slate-900 text-base">{userName}</h4>
-                  <p className="text-xs text-slate-500">{userEmail}</p>
-                  <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded border mt-1.5 ${roleConfig.badgeLight}`}>
-                    <RoleIcon className="w-3 h-3" />
-                    {roleConfig.label}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">User ID:</span>
-                  <span className="font-mono text-slate-700 font-medium">{user?.id || 'usr_session'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Assigned Role:</span>
-                  <span className="font-semibold text-slate-800">{userRole}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Status:</span>
-                  <span className="font-semibold text-emerald-600 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> Active Session
-                  </span>
-                </div>
-              </div>
+            <div className="flex flex-col items-center text-center space-y-2 py-2">
+              {renderAvatar('w-20 h-20', 'text-2xl')}
+              <h4 className="text-base font-bold text-slate-900">{userName}</h4>
+              <p className="text-xs text-slate-400">{userEmail}</p>
+              <span className={`px-3 py-0.5 rounded-full text-xs font-bold border ${roleInfo.badge}`}>
+                {roleInfo.label}
+              </span>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
+            <div className="bg-slate-50 p-4 rounded-xl space-y-2 text-xs text-slate-600 border border-slate-100">
+              <div className="flex justify-between">
+                <span className="font-semibold text-slate-400 uppercase">Role Responsibility:</span>
+                <span className="text-slate-800 font-medium">{roleInfo.label}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold text-slate-400 uppercase">Default Workspace:</span>
+                <span className="font-mono text-indigo-700 font-bold">{defaultRoute}</span>
+              </div>
+              <p className="text-[11px] text-slate-400 pt-1 italic">
+                {roleInfo.description}
+              </p>
+            </div>
+
+            <div className="flex justify-end pt-2">
               <button
-                type="button"
                 onClick={() => setProfileModalOpen(false)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-xs"
               >
-                Done
+                Close
               </button>
             </div>
           </div>
@@ -675,131 +477,134 @@ export default function DashboardLayout() {
 
       {/* Settings & Avatar Customization Modal */}
       {settingsModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Account Settings & Avatar</h3>
-                <p className="text-xs text-slate-500">Customize how your profile appears across DealFlow360</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSettingsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900">Settings & Appearance</h3>
+              <button onClick={() => setSettingsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="py-4 space-y-5 text-xs">
-              {/* Display Name Input */}
+            <div className="space-y-4 text-xs">
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Display Name</label>
+                <label className="block font-semibold text-slate-700 mb-1">Display Name</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-900 text-xs"
-                  placeholder="Your full name"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
-              {/* Avatar Style Choice: Images vs Initial */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="font-semibold text-slate-700 flex items-center gap-1.5">
-                    <Palette className="w-4 h-4 text-indigo-600" />
-                    Avatar Display Style
+                <label className="block font-semibold text-slate-700 mb-2">Avatar Type</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="avatarType"
+                      checked={avatarType === 'initial'}
+                      onChange={() => setAvatarType('initial')}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-slate-800 font-medium">Initials with Matte Color</span>
                   </label>
-                  <div className="flex bg-slate-100 p-0.5 rounded-lg">
-                    <button
-                      type="button"
-                      onClick={() => setAvatarType('initial')}
-                      className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${avatarType === 'initial' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'}`}
-                    >
-                      Letter Initial
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAvatarType('image')}
-                      className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${avatarType === 'image' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'}`}
-                    >
-                      Illustrated Persona
-                    </button>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="avatarType"
+                      checked={avatarType === 'image'}
+                      onChange={() => setAvatarType('image')}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-slate-800 font-medium">Persona Avatar</span>
+                  </label>
+                </div>
+              </div>
+
+              {avatarType === 'initial' && (
+                <div className="space-y-2 pt-2">
+                  <label className="block font-semibold text-slate-700">Choose Matte Background Color</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {INITIAL_COLORS.map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedInitialColor(c.id)}
+                        className={`p-2 rounded-xl border flex items-center gap-2 text-left transition-all ${
+                          selectedInitialColor === c.id ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30' : 'border-slate-200'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-full ${c.bg} shrink-0`} />
+                        <span className="text-[11px] font-medium text-slate-700 truncate">{c.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
+              )}
 
-                {avatarType === 'initial' ? (
-                  <div>
-                    <p className="text-[11px] text-slate-500 mb-2.5">Choose background color for your initial letter:</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {INITIAL_COLORS.map((preset) => (
-                        <button
-                          type="button"
-                          key={preset.id}
-                          onClick={() => setSelectedInitialColor(preset.id)}
-                          className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all ${
-                            selectedInitialColor === preset.id 
-                              ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600/20' 
-                              : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className={`w-5 h-5 rounded-full ${preset.bg} shrink-0`}></div>
-                          <span className="text-[10px] font-medium text-slate-700 truncate">{preset.name}</span>
-                        </button>
-                      ))}
-                    </div>
+              {avatarType === 'image' && (
+                <div className="space-y-2 pt-2">
+                  <label className="block font-semibold text-slate-700">Choose Persona Avatar</label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {AVATAR_IMAGES.map(av => (
+                      <button
+                        key={av.id}
+                        onClick={() => setSelectedAvatarImage(av.url)}
+                        className={`p-2 rounded-xl border flex flex-col items-center text-center gap-1 transition-all ${
+                          selectedAvatarImage === av.url ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30' : 'border-slate-200'
+                        }`}
+                      >
+                        <img src={av.url} alt={av.name} className="w-10 h-10 rounded-full" />
+                        <span className="text-[10px] font-medium text-slate-600 truncate w-full">{av.name}</span>
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  <div>
-                    <p className="text-[11px] text-slate-500 mb-2.5">Select a character persona avatar:</p>
-                    <div className="grid grid-cols-4 gap-2.5">
-                      {AVATAR_IMAGES.map((img) => (
-                        <button
-                          type="button"
-                          key={img.id}
-                          onClick={() => setSelectedAvatarImage(img.url)}
-                          className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all group ${
-                            selectedAvatarImage === img.url 
-                              ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600/20' 
-                              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="w-11 h-11 rounded-full overflow-hidden bg-slate-100 mb-1 border border-slate-200">
-                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
-                          </div>
-                          <span className="text-[10px] font-medium text-slate-700 text-center leading-tight truncate w-full">{img.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Notification Preferences */}
-              <div className="pt-3 border-t border-slate-100">
-                <label className="font-semibold text-slate-700 block mb-1">Email Alerts</label>
-                <label className="flex items-center gap-2 cursor-pointer mt-1">
-                  <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                  <span className="text-slate-600 font-medium">Receive real-time quotation approval and discount alerts</span>
-                </label>
-              </div>
+                </div>
+              )}
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
-                type="button"
                 onClick={() => setSettingsModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
               >
                 Cancel
               </button>
               <button
-                type="button"
                 onClick={handleSaveSettings}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
+                className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs"
               >
-                Save Changes
+                Save Preferences
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Dialog */}
+      {logoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <LogOut className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900">Sign Out of DealFlow360?</h3>
+              <p className="text-xs text-slate-500">You will be redirected to the secure login screen.</p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setLogoutModalOpen(false)}
+                className="flex-1 px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="flex-1 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors"
+              >
+                Confirm Sign Out
               </button>
             </div>
           </div>
@@ -808,4 +613,3 @@ export default function DashboardLayout() {
     </div>
   );
 }
-

@@ -1,0 +1,157 @@
+import { ROLES } from './roles';
+
+/**
+ * DealFlow360 Granular Permission Definitions
+ */
+export const PERMISSIONS = {
+  // Quotations
+  QUOTATION_CREATE: 'quotation:create',
+  QUOTATION_EDIT: 'quotation:edit',
+  QUOTATION_VIEW: 'quotation:view',
+  QUOTATION_VIEW_OWN: 'quotation:view_own',
+  QUOTATION_VIEW_TEAM: 'quotation:view_team',
+  QUOTATION_SUBMIT: 'quotation:submit',
+  QUOTATION_SEND: 'quotation:send',
+  QUOTATION_CONFIRM: 'quotation:confirm',
+  
+  // Approvals & Governance
+  APPROVAL_VIEW: 'approval:view',
+  APPROVAL_VIEW_FINANCE: 'approval:view_finance',
+  APPROVAL_APPROVE: 'approval:approve',
+  APPROVAL_REJECT: 'approval:reject',
+  APPROVAL_RETURN: 'approval:return',
+  
+  // Pipeline & Deals
+  PIPELINE_VIEW_OWN: 'pipeline:view_own',
+  PIPELINE_VIEW_TEAM: 'pipeline:view_team',
+  DEAL_HEALTH_VIEW: 'dealHealth:view',
+  REPORTS_VIEW: 'reports:view',
+  
+  // Operations & Fulfillment
+  FULFILLMENT_VIEW: 'fulfillment:view',
+  FULFILLMENT_MANAGE: 'fulfillment:manage',
+  BACKORDER_MANAGE: 'backorder:manage',
+  INVENTORY_VIEW: 'inventory:view',
+  
+  // Billing & Subscriptions
+  SUBSCRIPTION_VIEW: 'subscription:view',
+  SUBSCRIPTION_MANAGE: 'subscription:manage',
+  INVOICE_VIEW: 'invoice:view',
+  PAYMENT_RECORD: 'payment:record',
+  CREDIT_NOTE_MANAGE: 'credit_note:manage',
+  
+  // Customers
+  CUSTOMER_VIEW: 'customer:view',
+  CUSTOMER_MANAGE: 'customer:manage',
+  
+  // Admin & Configuration
+  DISCOUNT_RULES_CONFIGURE: 'discount_rules:configure',
+  APPROVAL_RULES_CONFIGURE: 'approval_rules:configure',
+  PRODUCTS_MANAGE: 'products:manage',
+  PRICE_LISTS_MANAGE: 'price_lists:manage',
+  WAREHOUSES_MANAGE: 'warehouses:manage',
+  SUBSCRIPTIONS_CONFIGURE: 'subscriptions:configure',
+  USERS_MANAGE: 'users:manage',
+  ANALYTICS_VIEW: 'analytics:view',
+  AUDIT_LOGS_VIEW: 'audit:view',
+  SYSTEM_SETTINGS_MANAGE: 'system_settings:manage',
+  
+  // Customer Portal
+  NEGOTIATION_CREATE: 'negotiation:create',
+  ORDER_VIEW_OWN: 'order:view_own',
+};
+
+/**
+ * Role to Permissions Mapping Matrix
+ */
+export const ROLE_PERMISSIONS = {
+  [ROLES.SALES_REP]: [
+    PERMISSIONS.QUOTATION_CREATE,
+    PERMISSIONS.QUOTATION_EDIT,
+    PERMISSIONS.QUOTATION_VIEW,
+    PERMISSIONS.QUOTATION_VIEW_OWN,
+    PERMISSIONS.QUOTATION_SUBMIT,
+    PERMISSIONS.QUOTATION_SEND,
+    PERMISSIONS.PIPELINE_VIEW_OWN,
+    PERMISSIONS.APPROVAL_VIEW,
+    PERMISSIONS.FULFILLMENT_VIEW,
+    PERMISSIONS.SUBSCRIPTION_VIEW,
+    PERMISSIONS.INVOICE_VIEW,
+    PERMISSIONS.CUSTOMER_VIEW,
+    PERMISSIONS.DEAL_HEALTH_VIEW,
+  ],
+
+  [ROLES.SALES_MANAGER]: [
+    PERMISSIONS.QUOTATION_VIEW,
+    PERMISSIONS.QUOTATION_VIEW_TEAM,
+    PERMISSIONS.PIPELINE_VIEW_TEAM,
+    PERMISSIONS.APPROVAL_VIEW,
+    PERMISSIONS.APPROVAL_APPROVE,
+    PERMISSIONS.APPROVAL_REJECT,
+    PERMISSIONS.APPROVAL_RETURN,
+    PERMISSIONS.DEAL_HEALTH_VIEW,
+    PERMISSIONS.REPORTS_VIEW,
+    PERMISSIONS.CUSTOMER_VIEW,
+    PERMISSIONS.FULFILLMENT_VIEW,
+    PERMISSIONS.SUBSCRIPTION_VIEW,
+    PERMISSIONS.INVOICE_VIEW,
+    PERMISSIONS.DISCOUNT_RULES_CONFIGURE,
+    PERMISSIONS.APPROVAL_RULES_CONFIGURE,
+  ],
+
+  [ROLES.FINANCE_OPERATIONS]: [
+    PERMISSIONS.APPROVAL_VIEW_FINANCE,
+    PERMISSIONS.APPROVAL_APPROVE,
+    PERMISSIONS.APPROVAL_REJECT,
+    PERMISSIONS.APPROVAL_RETURN,
+    PERMISSIONS.FULFILLMENT_VIEW,
+    PERMISSIONS.FULFILLMENT_MANAGE,
+    PERMISSIONS.BACKORDER_MANAGE,
+    PERMISSIONS.INVENTORY_VIEW,
+    PERMISSIONS.INVOICE_VIEW,
+    PERMISSIONS.PAYMENT_RECORD,
+    PERMISSIONS.SUBSCRIPTION_VIEW,
+    PERMISSIONS.SUBSCRIPTION_MANAGE,
+    PERMISSIONS.CREDIT_NOTE_MANAGE,
+    PERMISSIONS.QUOTATION_VIEW,
+    PERMISSIONS.REPORTS_VIEW,
+    PERMISSIONS.CUSTOMER_VIEW,
+  ],
+
+  [ROLES.CUSTOMER]: [
+    PERMISSIONS.QUOTATION_VIEW_OWN,
+    PERMISSIONS.NEGOTIATION_CREATE,
+    PERMISSIONS.QUOTATION_CONFIRM,
+    PERMISSIONS.ORDER_VIEW_OWN,
+  ],
+
+  [ROLES.ADMIN]: [
+    // Admin has platform-wide configuration and management capabilities
+    PERMISSIONS.USERS_MANAGE,
+    PERMISSIONS.PRODUCTS_MANAGE,
+    PERMISSIONS.PRICE_LISTS_MANAGE,
+    PERMISSIONS.DISCOUNT_RULES_CONFIGURE,
+    PERMISSIONS.APPROVAL_RULES_CONFIGURE,
+    PERMISSIONS.WAREHOUSES_MANAGE,
+    PERMISSIONS.SUBSCRIPTIONS_CONFIGURE,
+    PERMISSIONS.CUSTOMER_VIEW,
+    PERMISSIONS.CUSTOMER_MANAGE,
+    PERMISSIONS.ANALYTICS_VIEW,
+    PERMISSIONS.AUDIT_LOGS_VIEW,
+    PERMISSIONS.SYSTEM_SETTINGS_MANAGE,
+    PERMISSIONS.QUOTATION_VIEW,
+    PERMISSIONS.PIPELINE_VIEW_TEAM,
+    PERMISSIONS.APPROVAL_VIEW,
+    PERMISSIONS.FULFILLMENT_VIEW,
+    PERMISSIONS.REPORTS_VIEW,
+  ],
+};
+
+/**
+ * Check if a given role has a specific permission
+ */
+export const checkPermission = (role, permission) => {
+  if (!role || !permission) return false;
+  const userPermissions = ROLE_PERMISSIONS[role] || [];
+  return userPermissions.includes(permission);
+};

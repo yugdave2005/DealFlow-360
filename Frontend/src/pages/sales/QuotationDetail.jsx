@@ -22,6 +22,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../../context/AuthContext';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import DealProgress from '../../components/common/DealProgress';
@@ -41,6 +42,7 @@ export default function QuotationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { hasPermission } = useAuth();
   const [selectedVersionIndex, setSelectedVersionIndex] = useState(0);
 
   const { data: quote, isLoading, isError } = useQuery({
@@ -114,6 +116,43 @@ export default function QuotationDetail() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Role-Aware Manager/Finance Approval Actions */}
+          {hasPermission('approval:approve') && (quote.status === 'PENDING_APPROVAL' || quote.status === 'APPROVAL_PENDING') && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  toast.success(`Quotation ${quote.quotationNumber} approved successfully`);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Approve Quotation
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  toast.error(`Quotation ${quote.quotationNumber} rejected`);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-colors"
+              >
+                Reject
+              </button>
+            </div>
+          )}
+
+          {/* Role-Aware Fulfillment Jump */}
+          {hasPermission('fulfillment:manage') && ['CONFIRMED', 'FULFILLMENT', 'PROCESSING'].includes(quote.status) && (
+            <button
+              type="button"
+              onClick={() => navigate(`/sales/fulfillment/ORD-${quote.id.slice(-4)}`)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+            >
+              <Truck className="w-3.5 h-3.5" />
+              Manage Warehouse Split
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => {
@@ -126,16 +165,18 @@ export default function QuotationDetail() {
             Open Customer Portal
           </button>
 
-          <button
-            type="button"
-            onClick={() => toast.success(`Quotation ${quote.quotationNumber} emailed to customer`)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-xl transition-colors shadow-xs"
-          >
-            <Send className="w-3.5 h-3.5" />
-            Send to Customer
-          </button>
+          {hasPermission('quotation:send') && (
+            <button
+              type="button"
+              onClick={() => toast.success(`Quotation ${quote.quotationNumber} emailed to customer`)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-xl transition-colors shadow-xs"
+            >
+              <Send className="w-3.5 h-3.5" />
+              Send to Customer
+            </button>
+          )}
 
-          {quote.status === 'DRAFT' && (
+          {hasPermission('quotation:edit') && quote.status === 'DRAFT' && (
             <Link
               to={`/sales/quotations/${quote.id}/edit`}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"

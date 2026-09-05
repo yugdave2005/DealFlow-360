@@ -4,12 +4,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import DealFlowLogo from '../../components/DealFlowLogo';
+import { useAuth } from '../../context/AuthContext';
+import { normalizeRole, ROLE_DEFAULT_ROUTES } from '../../lib/roles';
 
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
 
@@ -27,23 +30,13 @@ export default function Login() {
         throw new Error(result.message || 'Login failed');
       }
 
-      localStorage.setItem('accessToken', result.data.accessToken);
-      localStorage.setItem('user', JSON.stringify(result.data.user));
+      login(result.data.user, result.data.accessToken);
 
-      toast.success('Welcome back!');
+      toast.success('Welcome back to DealFlow360!');
       
-      const role = result.data.user.role;
-      if (role === 'ADMIN' || role === 'SALES_MANAGER' || role === 'SALES_REP') {
-        navigate('/sales/dashboard');
-      } else if (role === 'FINANCE') {
-        navigate('/sales/invoices');
-      } else if (role === 'OPERATIONS') {
-        navigate('/sales/fulfillment');
-      } else if (role === 'CUSTOMER') {
-        navigate('/customer/quotations/current');
-      } else {
-        navigate('/sales/dashboard');
-      }
+      const normalizedRole = normalizeRole(result.data.user?.role);
+      const targetRoute = ROLE_DEFAULT_ROUTES[normalizedRole] || '/sales/dashboard';
+      navigate(targetRoute);
     } catch (err) {
       toast.error(err.message);
     } finally {
