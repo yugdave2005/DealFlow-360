@@ -35,7 +35,7 @@ services:
       dockerfile: Dockerfile
     container_name: dealflow360-backend
     ports:
-      - "5000:5000"
+      - "5001:5000"
     env_file:
       - ./Backend/.env.example # or .env if exists
     depends_on:
