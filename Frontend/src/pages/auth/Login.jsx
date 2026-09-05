@@ -8,10 +8,12 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
+
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/v1/login', {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -20,17 +22,28 @@ export default function Login() {
       if (!res.ok) throw new Error(result.message || 'Login failed');
 
       localStorage.setItem('accessToken', result.data.accessToken);
+      if (result.data.user) {
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+      }
       toast.success('Welcome back!');
-      navigate('/sales/dashboard');
+
+      const role = result.data?.user?.role;
+      if (role === 'ADMIN') {
+        navigate('/admin/products');
+      } else if (role === 'CUSTOMER') {
+        navigate('/customer');
+      } else {
+        navigate('/sales/dashboard');
+      }
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   const loginWithGoogle = () => {
-    window.location.href = 'http://localhost:5000/api/v1/auth/google';
+    window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
   return (
