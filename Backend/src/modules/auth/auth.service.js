@@ -7,13 +7,14 @@ import { UnauthorizedError, BadRequestError, NotFoundError } from '../../utils/e
 const prisma = new PrismaClient();
 
 export const signup = async ({ name, email, password, role }) => {
-  const existingUser = await prisma.user.findUnique({ where: { email } });
+  const normalizedEmail = email?.trim().toLowerCase();
+  const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existingUser) throw new BadRequestError('Email is already in use');
 
   const passwordHash = await hashPassword(password);
   
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, role: role || 'CUSTOMER' }
+    data: { name: name?.trim(), email: normalizedEmail, passwordHash, role: role || 'CUSTOMER' }
   });
 
   return {
@@ -24,11 +25,12 @@ export const signup = async ({ name, email, password, role }) => {
 };
 
 export const login = async ({ email, password }) => {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.passwordHash) throw new UnauthorizedError('Invalid credentials');
+  const normalizedEmail = email?.trim().toLowerCase();
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  if (!user || !user.passwordHash) throw new UnauthorizedError('Invalid email or password');
 
   const isValid = await verifyPassword(password, user.passwordHash);
-  if (!isValid) throw new UnauthorizedError('Invalid credentials');
+  if (!isValid) throw new UnauthorizedError('Invalid email or password');
 
   return {
     accessToken: generateAccessToken(user),

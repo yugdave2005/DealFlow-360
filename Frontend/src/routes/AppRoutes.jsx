@@ -47,6 +47,8 @@ import CustomerQuotationView from '../pages/customer/CustomerQuotationView';
 import AdminProducts from '../pages/admin/AdminProducts';
 import AdminDiscountRules from '../pages/admin/AdminDiscountRules';
 import AdminApprovalRules from '../pages/admin/AdminApprovalRules';
+import AdminWarehouses from '../pages/admin/AdminWarehouses';
+import AdminUsers from '../pages/admin/AdminUsers';
 
 // Common / Error Pages
 import Unauthorized from '../pages/common/Unauthorized';
@@ -177,11 +179,11 @@ export default function AppRoutes() {
             <Route path="products" element={<AdminProducts />} />
             <Route path="discount-rules" element={<AdminDiscountRules />} />
             <Route path="approval-rules" element={<AdminApprovalRules />} />
-            <Route path="warehouses" element={<WarehouseSplit />} />
+            <Route path="warehouses" element={<AdminWarehouses />} />
             <Route path="subscription-plans" element={<SubscriptionsList />} />
             
             {/* Management & Analytics */}
-            <Route path="users" element={<div className="p-8"><h2 className="text-2xl font-bold text-slate-900 mb-2">User Directory</h2><p className="text-slate-500">Manage internal sales representatives, sales managers, finance users, and client portal credentials.</p></div>} />
+            <Route path="users" element={<AdminUsers />} />
             <Route path="customers" element={<Customers />} />
             <Route path="reports" element={<Reports />} />
             <Route path="analytics" element={<Reports />} />

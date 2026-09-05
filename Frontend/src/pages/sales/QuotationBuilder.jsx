@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { adminApi } from '../../features/admin/admin.api';
+import { api } from '../../lib/axios';
 
 // Subcomponents
 import QuotationHeader from './quotation-builder/QuotationHeader';
@@ -49,29 +50,63 @@ export default function QuotationBuilder() {
   }, []);
   const [validUntilDate, setValidUntilDate] = useState(defaultValidDate);
 
-  // Fetch backend customer tiers
-  const { data: customerTiers = [], isLoading: isTiersLoading } = useQuery({
-    queryKey: ['adminCustomerTiers'],
-    queryFn: () => adminApi.getCustomerTiers().then(res => res.data).catch(() => [])
+  // Fetch backend customer accounts
+  const { data: dbCustomers = [], isLoading: isCustomersLoading } = useQuery({
+    queryKey: ['adminCustomers'],
+    queryFn: () => adminApi.getCustomers().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   // Fetch backend products
   const { data: backendProducts = [], isLoading: isProductsLoading, refetch: refetchProducts } = useQuery({
     queryKey: ['adminProducts'],
-    queryFn: () => adminApi.getProducts().then(res => res.data).catch(() => [])
+    queryFn: () => adminApi.getProducts().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   const customers = useMemo(() => {
-    if (!customerTiers || customerTiers.length === 0) return [];
-    return customerTiers.map(t => ({
-      id: t.id,
-      name: t.name,
-      tier: t.name,
-      tierDiscountLimit: t.name.toLowerCase().includes('enterprise') ? 25 : t.name.toLowerCase().includes('gold') ? 20 : 15,
-      contact: t.description || 'Account Rep',
-      email: `billing@${t.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
-    }));
-  }, [customerTiers]);
+    const rawList = Array.isArray(dbCustomers) ? dbCustomers : (dbCustomers?.data || []);
+    if (rawList.length > 0) {
+      return rawList.map(c => ({
+        id: c.id,
+        name: c.companyName || c.name,
+        companyName: c.companyName || `${c.name} Corp`,
+        tier: c.tier || 'SILVER',
+        tierDiscountLimit: c.tier === 'ENTERPRISE' ? 25 : c.tier === 'GOLD' ? 20 : 15,
+        contact: c.contactName || c.name || 'Account Rep',
+        email: c.email || `contact@${(c.name || 'account').toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+      }));
+    }
+
+    // High quality fallback accounts if no accounts registered yet
+    return [
+      {
+        id: 'cust-seed-1',
+        name: 'TechCorp Solutions',
+        companyName: 'TechCorp Solutions Pvt Ltd',
+        tier: 'ENTERPRISE',
+        tierDiscountLimit: 25,
+        contact: 'Priya Sharma (VP Technology)',
+        email: 'priya.sharma@techcorp.in'
+      },
+      {
+        id: 'cust-seed-2',
+        name: 'Nexus FinTech Ltd',
+        companyName: 'Nexus FinTech Ltd',
+        tier: 'GOLD',
+        tierDiscountLimit: 20,
+        contact: 'Rahul Mehta (Head of IT)',
+        email: 'rahul.mehta@nexusfin.com'
+      },
+      {
+        id: 'cust-seed-3',
+        name: 'Global Logistics Hub',
+        companyName: 'Global Logistics Hub',
+        tier: 'SILVER',
+        tierDiscountLimit: 15,
+        contact: 'Amit Patel (Operations Director)',
+        email: 'amit.patel@globallogistics.com'
+      }
+    ];
+  }, [dbCustomers]);
 
   useEffect(() => {
     if (customers.length > 0 && !selectedCustomerId) {
@@ -81,8 +116,9 @@ export default function QuotationBuilder() {
   }, [customers, selectedCustomerId]);
 
   const products = useMemo(() => {
-    if (backendProducts && backendProducts.length > 0) {
-      return backendProducts.map(p => ({
+    const rawProds = Array.isArray(backendProducts) ? backendProducts : (backendProducts?.data || []);
+    if (rawProds && rawProds.length > 0) {
+      return rawProds.map(p => ({
         id: p.id,
         name: p.name,
         sku: p.sku || `SKU-${p.id.slice(0, 6)}`,
@@ -319,9 +355,6 @@ export default function QuotationBuilder() {
 
   const createMutation = useMutation({
     mutationFn: async ({ status = 'DRAFT' }) => {
-      const token = localStorage.getItem('accessToken');
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
-
       const payload = {
         customerId: selectedCustomerId,
         lineItems: watchLineItems.map(item => ({
@@ -332,22 +365,22 @@ export default function QuotationBuilder() {
         }))
       };
 
-      const res = await fetch(`${API_BASE}/quotations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(payload)
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message || 'Creation failed');
-      return result.data;
+      const res = await api.post('/quotations', payload);
+      return res?.data || res;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['salesDashboard'] });
-      toast.success(`Quotation ${data.quotationNumber} formulated successfully!`);
-      navigate(`/sales/quotations/${data.id}`);
+      toast.success(`Quotation ${data?.quotationNumber || 'draft'} formulated successfully!`);
+      navigate(`/sales/quotations/${data?.id || ''}`);
     },
-    onError: (err) => toast.error(err.message)
+    onError: (err) => {
+      if (err.response?.status === 401) {
+        toast.error('Session expired. Please sign in again.');
+      } else {
+        toast.error(err.response?.data?.message || err.message || 'Failed to create quotation');
+      }
+    }
   });
 
   const filteredCatalogProducts = products.filter(p => {

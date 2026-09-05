@@ -61,16 +61,23 @@ export default function ForgotPassword() {
         </div>
 
         {step === 1 ? (
-          <form onSubmit={handleSubmit(handleRequestOtp)} className="space-y-6">
+          <form onSubmit={handleSubmit(handleRequestOtp)} className="space-y-6" noValidate autoComplete="off">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
               <input
                 type="email"
-                {...register('email', { required: 'Email is required' })}
-                className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                autoComplete="off"
+                {...register('email', { 
+                  required: 'Email address is required',
+                  pattern: {
+                    value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    message: 'Please enter a valid email format (e.g. name@company.com)'
+                  }
+                })}
+                className={`w-full px-4 py-3 rounded-lg bg-slate-50 border ${errors.email ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-blue-600'} focus:outline-none focus:ring-2`}
                 placeholder="you@company.com"
               />
-              {errors.email && <span className="text-red-500 text-xs mt-1">{errors.email.message}</span>}
+              {errors.email && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.email.message}</span>}
             </div>
             <button
               type="submit"

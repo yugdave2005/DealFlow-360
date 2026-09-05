@@ -8,7 +8,12 @@ import { useAuth } from '../../context/AuthContext';
 import { normalizeRole, ROLE_DEFAULT_ROUTES } from '../../lib/roles';
 
 export default function Login() {
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    defaultValues: {
+      email: '',
+      password: ''
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -57,7 +62,11 @@ export default function Login() {
             <p className="text-slate-500 text-sm mt-1">Sign in to your enterprise account</p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate autoComplete="off">
+            {/* Dummy hidden inputs to defeat aggressive browser autofill */}
+            <input type="text" name="fake_email_prevent_autofill" style={{ display: 'none' }} tabIndex="-1" autoComplete="off" />
+            <input type="password" name="fake_password_prevent_autofill" style={{ display: 'none' }} tabIndex="-1" autoComplete="new-password" />
+
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
               <div className="relative">
@@ -66,12 +75,19 @@ export default function Login() {
                 </div>
                 <input
                   type="email"
-                  {...register('email', { required: 'Email is required' })}
-                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  autoComplete="off"
+                  {...register('email', { 
+                    required: 'Email address is required',
+                    pattern: {
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                      message: 'Please enter a valid email format (e.g. name@company.com)'
+                    }
+                  })}
+                  className={`w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border ${errors.email ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-600'} focus:outline-none focus:ring-2 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base`}
                   placeholder="you@company.com"
                 />
               </div>
-              {errors.email && <span className="text-red-500 text-xs mt-1 block">{errors.email.message}</span>}
+              {errors.email && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.email.message}</span>}
             </div>
 
             <div>
@@ -85,8 +101,9 @@ export default function Login() {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   {...register('password', { required: 'Password is required' })}
-                  className="w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className={`w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border ${errors.password ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-600'} focus:outline-none focus:ring-2 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base`}
                   placeholder="••••••••"
                 />
                 <button
@@ -98,13 +115,13 @@ export default function Login() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password.message}</span>}
+              {errors.password && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.password.message}</span>}
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center shadow-xs"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center shadow-xs cursor-pointer disabled:opacity-50"
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>

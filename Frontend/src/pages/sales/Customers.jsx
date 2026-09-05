@@ -16,28 +16,27 @@ import {
   Sparkles,
   ExternalLink
 } from 'lucide-react';
+import { adminApi } from '../../features/admin/admin.api';
 import RiskBadge from '../../components/common/RiskBadge';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-
-const API = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/customers`;
-const getToken = () => localStorage.getItem('accessToken');
 
 export default function Customers() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState('ALL');
 
-  const { data: customerTiers = [], isLoading: isTiersLoading } = useQuery({
-    queryKey: ['adminCustomerTiers'],
-    queryFn: () => adminApi.getCustomerTiers().then(res => res.data).catch(() => [])
+  const { data: customerAccounts = [], isLoading: isCustomersLoading } = useQuery({
+    queryKey: ['adminCustomersList'],
+    queryFn: () => adminApi.getCustomers().then(res => res.data).catch(() => [])
   });
 
   const { data: quotations = [], isLoading: isQuotesLoading } = useQuery({
     queryKey: ['salesQuotations'],
     queryFn: async () => {
+      const token = localStorage.getItem('accessToken');
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) return [];
       const json = await res.json();
@@ -45,33 +44,34 @@ export default function Customers() {
     }
   });
 
-  const isLoading = isTiersLoading || isQuotesLoading;
+  const isLoading = isCustomersLoading || isQuotesLoading;
 
-  // Derive customer records from tiers and active quotations
   const customerList = useMemo(() => {
-    if (!customerTiers || customerTiers.length === 0) return [];
+    if (!customerAccounts || customerAccounts.length === 0) return [];
     
-    return customerTiers.map(tier => {
-      const relatedQuotes = quotations.filter(q => q.customerId === tier.id || q.quotationNumber?.includes(tier.name));
-      const pipelineValue = relatedQuotes.reduce((sum, q) => sum + Number(q.activeVersion?.totalAmount || 0), 0);
+    return customerAccounts.map(c => {
+      const relatedQuotes = quotations.filter(q => q.customerId === c.id || q.quotationNumber?.includes(c.name));
+      const pipelineValue = c.pipelineValue || relatedQuotes.reduce((sum, q) => sum + Number(q.activeVersion?.totalAmount || 0), 0);
       const avgRisk = relatedQuotes.length > 0 
         ? Math.round(relatedQuotes.reduce((sum, q) => sum + (q.activeVersion?.riskScore || 0), 0) / relatedQuotes.length)
-        : 0;
+        : (c.riskScore || 0);
 
       return {
-        id: tier.id,
-        companyName: tier.name.includes('Tier') || tier.name.includes('Enterprise') ? tier.name : `${tier.name} Corporation`,
-        tier: tier.name.toUpperCase().includes('ENTERPRISE') ? 'ENTERPRISE' : tier.name.toUpperCase().includes('MID') ? 'MID_MARKET' : 'SMB',
-        contactName: tier.description || 'Account Representative',
-        email: `contact@${tier.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-        activeQuotesCount: relatedQuotes.length,
+        id: c.id,
+        companyName: c.companyName || `${c.name} Enterprise`,
+        name: c.name,
+        tier: c.tier || (pipelineValue > 500000 ? 'ENTERPRISE' : pipelineValue > 100000 ? 'GOLD' : 'SILVER'),
+        contactName: c.contactName || c.name || 'Account Contact',
+        email: c.email || 'customer@company.com',
+        activeQuotesCount: relatedQuotes.length || c.activeQuotesCount || 0,
         pipelineValue: pipelineValue,
-        lastActivity: relatedQuotes.length > 0 ? 'Recently updated' : 'Active Account',
+        lastActivity: relatedQuotes.length > 0 ? 'Active Deals' : 'Registered Account',
         riskScore: avgRisk,
-        riskLevel: avgRisk > 60 ? 'HIGH' : avgRisk > 30 ? 'MEDIUM' : 'LOW'
+        riskLevel: avgRisk > 60 ? 'HIGH' : avgRisk > 30 ? 'MEDIUM' : 'LOW',
+        isActive: c.isActive !== false
       };
     });
-  }, [customerTiers, quotations]);
+  }, [customerAccounts, quotations]);
 
   const filteredCustomers = customerList.filter(c => {
     const name = c.companyName || '';

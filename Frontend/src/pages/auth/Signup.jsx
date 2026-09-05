@@ -113,7 +113,7 @@ export default function Signup() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate autoComplete="off">
             {/* Full Name */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
@@ -125,12 +125,13 @@ export default function Signup() {
                 </div>
                 <input 
                   type="text" 
-                  {...register('name', { required: 'Name is required' })} 
-                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  autoComplete="off"
+                  {...register('name', { required: 'Full name is required' })} 
+                  className={`w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border ${errors.name ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-600'} focus:outline-none focus:ring-2 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base`}
                   placeholder="Jane Doe" 
                 />
               </div>
-              {errors.name && <span className="text-red-500 text-xs mt-1 block">{errors.name.message}</span>}
+              {errors.name && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.name.message}</span>}
             </div>
 
             {/* Email */}
@@ -144,18 +145,19 @@ export default function Signup() {
                 </div>
                 <input 
                   type="email" 
+                  autoComplete="off"
                   {...register('email', { 
-                    required: 'Email is required',
+                    required: 'Work email is required',
                     pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address'
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                      message: 'Please enter a valid work email format (e.g. name@company.com)'
                     }
                   })} 
-                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className={`w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border ${errors.email ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-600'} focus:outline-none focus:ring-2 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base`}
                   placeholder="jane@company.com" 
                 />
               </div>
-              {errors.email && <span className="text-red-500 text-xs mt-1 block">{errors.email.message}</span>}
+              {errors.email && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.email.message}</span>}
             </div>
 
             {/* Password */}
@@ -169,11 +171,12 @@ export default function Signup() {
                 </div>
                 <input 
                   type={showPassword ? 'text' : 'password'} 
+                  autoComplete="new-password"
                   {...register('password', { 
                     required: 'Password is required', 
                     minLength: { value: 8, message: 'Password must be at least 8 characters' } 
                   })} 
-                  className="w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className={`w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border ${errors.password ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-600'} focus:outline-none focus:ring-2 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base`}
                   placeholder="••••••••" 
                 />
                 <button
@@ -185,7 +188,7 @@ export default function Signup() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password.message}</span>}
+              {errors.password && <span className="text-rose-500 text-xs mt-1 block font-medium">{errors.password.message}</span>}
             </div>
 
             {/* Role Selection */}

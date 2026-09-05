@@ -9,6 +9,35 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const initAuth = () => {
+    // Unconditionally sanitize and purge any sensitive tokens or credentials from URL
+    try {
+      const url = new URL(window.location.href);
+      const urlToken = url.searchParams.get('token') || url.searchParams.get('accessToken');
+      let cleaned = false;
+
+      if (urlToken) {
+        localStorage.setItem('accessToken', urlToken);
+        url.searchParams.delete('token');
+        url.searchParams.delete('accessToken');
+        cleaned = true;
+      }
+
+      ['email', 'password', 'token', 'accessToken', 'secret', 'auth'].forEach(param => {
+        if (url.searchParams.has(param)) {
+          url.searchParams.delete(param);
+          cleaned = true;
+        }
+      });
+
+      if (cleaned) {
+        const newSearch = url.searchParams.toString();
+        const newUrl = url.pathname + (newSearch ? `?${newSearch}` : '') + url.hash;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch (e) {
+      // Ignore URL parsing errors on special protocols
+    }
+
     const userStr = localStorage.getItem('user');
     const token = localStorage.getItem('accessToken');
     if (userStr && token) {

@@ -20,6 +20,8 @@ import invoiceRoutes from '../modules/invoices/invoice.routes.js';
 import dealHealthRoutes from '../modules/dealhealth/dealhealth.routes.js';
 import customerRoutes from '../modules/customer/customer.routes.js';
 
+import * as adminController from '../modules/admin/controller.js';
+
 // Module Routes
 router.use('/v1/auth', authRoutes);
 router.use('/v1/dashboard', dashboardRoutes);
@@ -32,5 +34,9 @@ router.use('/v1/subscriptions', subscriptionRoutes);
 router.use('/v1/invoices', invoiceRoutes);
 router.use('/v1/deal-health', dealHealthRoutes);
 router.use('/v1/customer-portal', customerRoutes);
+
+// Direct aliases
+router.get('/v1/customers', adminController.getCustomers);
+router.get('/v1/users', adminController.getUsers);
 
 export default router;
