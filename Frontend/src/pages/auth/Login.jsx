@@ -13,7 +13,7 @@ export default function Login() {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/login`, {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -43,7 +43,7 @@ export default function Login() {
   };
 
   const loginWithGoogle = () => {
-    window.location.href = `${API_BASE_URL}/google`;
+    window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
   return (

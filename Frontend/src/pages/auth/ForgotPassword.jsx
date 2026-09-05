@@ -13,7 +13,7 @@ export default function ForgotPassword() {
   const handleRequestOtp = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/v1/forgot-password', {
+      const res = await fetch('http://localhost:5000/api/v1/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: data.email })
@@ -31,7 +31,7 @@ export default function ForgotPassword() {
   const handleResetPassword = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/v1/reset-password', {
+      const res = await fetch('http://localhost:5000/api/v1/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: data.otp, newPassword: data.newPassword })

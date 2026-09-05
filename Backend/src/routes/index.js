@@ -21,7 +21,7 @@ import dealHealthRoutes from '../modules/dealhealth/dealhealth.routes.js';
 import customerRoutes from '../modules/customer/customer.routes.js';
 
 // Module Routes
-router.use('/v1', authRoutes);
+router.use('/v1/auth', authRoutes);
 router.use('/v1/dashboard', dashboardRoutes);
 router.use('/v1/admin', adminRoutes);
 router.use('/v1/quotations', quotationRoutes);
