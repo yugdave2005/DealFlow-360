@@ -101,7 +101,7 @@ export function AuthProvider({ children }) {
   };
 
   const defaultRoute = useMemo(() => {
-    return ROLE_DEFAULT_ROUTES[role] || '/sales/dashboard';
+    return ROLE_DEFAULT_ROUTES[role] || '/sales/quotations';
   }, [role]);
 
   const value = {

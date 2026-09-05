@@ -5,29 +5,29 @@ export default function ProductCatalogItem({ product, onAdd }) {
   const isSub = product.isSubscription || product.category === 'SUBSCRIPTIONS';
 
   return (
-    <div className="py-2.5 px-3 rounded-lg border border-slate-100 hover:border-slate-300 bg-white hover:bg-slate-50/50 transition-all flex items-center justify-between gap-2.5 group">
+    <div className="p-3 rounded-[10px] border border-[#E6E1D9] hover:border-[#D97757]/60 bg-white hover:bg-[#FAF9F6] transition-all flex items-center justify-between gap-3 group">
       <div className="min-w-0 flex-1">
-        <h4 className="text-xs font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+        <h4 className="text-[13px] sm:text-[14px] font-semibold text-[#171717] group-hover:text-[#D97757] transition-colors truncate">
           {product.name}
         </h4>
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono mt-0.5">
+        <div className="flex items-center gap-1.5 text-[11px] text-[#96918A] font-mono mt-0.5">
           <span>{product.sku}</span>
           <span>&bull;</span>
           <span className="capitalize">{product.category?.toLowerCase() || 'item'}</span>
         </div>
-        <div className="text-xs font-bold text-slate-800 mt-1">
-          ₹{product.basePrice.toLocaleString('en-IN')}
-          {isSub && <span className="text-[10px] font-normal text-slate-400">/mo</span>}
+        <div className="text-[13px] sm:text-[14px] font-bold text-[#171717] mt-1">
+          ₹{Number(product.basePrice || 0).toLocaleString('en-IN')}
+          {isSub && <span className="text-[11px] font-normal text-[#96918A] ml-1">/mo</span>}
         </div>
       </div>
 
       <button
         type="button"
         onClick={() => onAdd(product)}
-        className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-indigo-600 hover:text-white rounded-md transition-all shrink-0 flex items-center gap-1 shadow-2xs group-hover:bg-indigo-600 group-hover:text-white"
+        className="px-3 py-1.5 text-[12px] font-semibold text-[#D97757] bg-[#F8E9E3] hover:bg-[#D97757] hover:text-white rounded-[8px] transition-all shrink-0 flex items-center gap-1 shadow-2xs cursor-pointer"
         title={`Add ${product.name} to quote`}
       >
-        <Plus className="w-3 h-3" />
+        <Plus className="w-3.5 h-3.5" />
         <span>Add</span>
       </button>
     </div>

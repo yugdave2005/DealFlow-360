@@ -1,5 +1,4 @@
 import { 
-  LayoutDashboard, 
   FileText, 
   Columns3, 
   CheckSquare, 
@@ -27,6 +26,7 @@ import { ROLES } from './roles';
 
 /**
  * Role-Based Navigation Matrix for DealFlow360
+ * Dashboards are removed as requested.
  */
 export const ROLE_NAVIGATION = {
   // 1. SALES REPRESENTATIVE
@@ -59,21 +59,15 @@ export const ROLE_NAVIGATION = {
     {
       title: 'Sales Management',
       items: [
-        { title: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
+        { title: 'Approvals Queue', path: '/sales/approvals', icon: CheckSquare, badge: 'Queue' },
         { title: 'Quotations', path: '/sales/quotations', icon: FileText },
         { title: 'Pipeline', path: '/sales/pipeline', icon: Columns3 },
-        { title: 'Approvals', path: '/sales/approvals', icon: CheckSquare, badge: 'Queue' },
       ]
     },
     {
-      title: 'Insights',
+      title: 'Governance & Insights',
       items: [
         { title: 'Deal Health', path: '/sales/deal-health', icon: Activity },
-      ]
-    },
-    {
-      title: 'Configuration',
-      items: [
         { title: 'Discount Rules', path: '/admin/discount-rules', icon: Sliders },
         { title: 'Approval Rules', path: '/admin/approval-rules', icon: ShieldCheck },
       ]
@@ -85,13 +79,12 @@ export const ROLE_NAVIGATION = {
     {
       title: 'Operations',
       items: [
-        { title: 'Dashboard', path: '/operations/dashboard', icon: LayoutDashboard },
         { title: 'Approvals', path: '/sales/approvals', icon: CheckSquare, badge: 'Tier 2' },
-        { title: 'Fulfillment', path: '/sales/fulfillment', icon: Truck },
+        { title: 'Fulfillment Hub', path: '/sales/fulfillment', icon: Truck },
       ]
     },
     {
-      title: 'Billing',
+      title: 'Billing & AR',
       items: [
         { title: 'Invoices', path: '/sales/invoices', icon: Receipt },
         { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
@@ -102,7 +95,7 @@ export const ROLE_NAVIGATION = {
   // 4. CUSTOMER / PORTAL
   [ROLES.CUSTOMER]: [
     {
-      title: 'My Quotations',
+      title: 'Commercial Proposals',
       items: [
         { title: 'Quotations', path: '/portal/quotations', icon: FileText },
       ]
@@ -110,13 +103,13 @@ export const ROLE_NAVIGATION = {
     {
       title: 'Negotiations',
       items: [
-        { title: 'Negotiations', path: '/portal/negotiations', icon: MessageSquare },
+        { title: 'Counter-Offers', path: '/portal/negotiations', icon: MessageSquare },
       ]
     },
     {
       title: 'Account',
       items: [
-        { title: 'Profile', path: '/portal/profile', icon: UserIcon },
+        { title: 'Profile & Terms', path: '/portal/profile', icon: UserIcon },
       ]
     }
   ],
@@ -124,9 +117,9 @@ export const ROLE_NAVIGATION = {
   // 5. ADMIN
   [ROLES.ADMIN]: [
     {
-      title: 'Overview',
+      title: 'Management',
       items: [
-        { title: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { title: 'Customers', path: '/admin/customers', icon: Users },
       ]
     },
     {

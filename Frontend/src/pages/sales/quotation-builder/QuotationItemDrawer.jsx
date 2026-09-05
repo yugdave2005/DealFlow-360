@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, AlertCircle, Percent } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Percent, Package } from 'lucide-react';
 
 export default function QuotationItemDrawer({
   isOpen,
@@ -60,42 +60,47 @@ export default function QuotationItemDrawer({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-150">
       <div 
-        className="absolute inset-0 bg-slate-900/30 backdrop-blur-2xs transition-opacity"
+        className="absolute inset-0 bg-[#171717]/30 backdrop-blur-[2px] transition-opacity"
         onClick={onClose}
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl border-l border-slate-200 flex flex-col">
+        <div className="w-screen max-w-md bg-white shadow-2xl border-l border-[#E6E1D9] flex flex-col">
           
           {/* Header */}
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Edit Quotation Item</h3>
-              <p className="text-[11px] text-slate-500 font-mono mt-0.5">{item.sku} &bull; {item.productName}</p>
+          <div className="p-5 border-b border-[#E6E1D9] flex items-center justify-between bg-[#FAF9F6]">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-[8px] bg-[#F8E9E3] border border-[#E9B8A7] flex items-center justify-center text-[#D97757]">
+                <Package className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-[16px] font-semibold text-[#171717]">Edit Quotation Item</h3>
+                <p className="text-[12px] text-[#96918A] font-mono mt-0.5">{item.sku} &bull; {item.productName}</p>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+              className="p-1.5 text-[#96918A] hover:text-[#171717] rounded-lg hover:bg-[#EDE8E0] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+          <div className="flex-1 overflow-y-auto p-6 space-y-5 text-[14px]">
             
             {/* Parameters */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  <label className="block text-[12px] font-semibold text-[#6F6B66] mb-1.5">
                     Quantity
                   </label>
-                  <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50">
+                  <div className="flex items-center rounded-[10px] border border-[#E6E1D9] bg-white shadow-2xs h-11">
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, quantity: Math.max(1, qty - 1) })}
-                      className="px-2.5 py-1.5 text-slate-500 hover:bg-slate-200 font-bold"
+                      className="px-3.5 h-full text-[#96918A] hover:text-[#171717] hover:bg-[#F5F2ED] font-bold rounded-l-[9px]"
                     >
                       -
                     </button>
@@ -104,12 +109,12 @@ export default function QuotationItemDrawer({
                       min="1"
                       value={formData.quantity}
                       onChange={(e) => setFormData({ ...formData, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                      className="w-full text-center bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
+                      className="w-full text-center bg-transparent text-[14px] font-semibold text-[#171717] focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, quantity: qty + 1 })}
-                      className="px-2.5 py-1.5 text-slate-500 hover:bg-slate-200 font-bold"
+                      className="px-3.5 h-full text-[#96918A] hover:text-[#171717] hover:bg-[#F5F2ED] font-bold rounded-r-[9px]"
                     >
                       +
                     </button>
@@ -117,7 +122,7 @@ export default function QuotationItemDrawer({
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  <label className="block text-[12px] font-semibold text-[#6F6B66] mb-1.5">
                     Unit Price (₹)
                   </label>
                   <input
@@ -125,14 +130,14 @@ export default function QuotationItemDrawer({
                     step="100"
                     value={formData.unitPrice}
                     onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                    className="w-full h-11 px-3.5 bg-white border border-[#E6E1D9] rounded-[10px] text-[14px] font-semibold text-[#171717] focus:outline-none focus:border-[#D97757] focus:ring-2 focus:ring-[#D97757]/15 shadow-2xs"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  <label className="block text-[12px] font-semibold text-[#6F6B66] mb-1.5">
                     Discount (%)
                   </label>
                   <input
@@ -142,29 +147,29 @@ export default function QuotationItemDrawer({
                     max="90"
                     value={formData.discountPercentage}
                     onChange={(e) => setFormData({ ...formData, discountPercentage: parseFloat(e.target.value) || 0 })}
-                    className={`w-full p-1.5 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 ${
+                    className={`w-full h-11 px-3.5 rounded-[10px] text-[14px] font-semibold focus:outline-none shadow-2xs ${
                       isOverLimit 
-                        ? 'border border-rose-300 bg-rose-50 text-rose-800' 
-                        : 'border border-slate-200 bg-slate-50 text-slate-900 focus:ring-indigo-600'
+                        ? 'border border-[#F5C7C7] bg-[#FBEAEA] text-[#C95757] focus:border-[#C95757]' 
+                        : 'border border-[#E6E1D9] bg-white text-[#171717] focus:border-[#D97757] focus:ring-2 focus:ring-[#D97757]/15'
                     }`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  <label className="block text-[12px] font-semibold text-[#6F6B66] mb-1.5">
                     Tax Rate
                   </label>
                   <input
                     type="text"
                     disabled
                     value="18% GST"
-                    className="w-full p-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-500 cursor-not-allowed"
+                    className="w-full h-11 px-3.5 bg-[#FAF9F6] border border-[#E6E1D9] rounded-[10px] text-[14px] font-semibold text-[#96918A] cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                <label className="block text-[12px] font-semibold text-[#6F6B66] mb-1.5">
                   Notes
                 </label>
                 <textarea
@@ -172,68 +177,68 @@ export default function QuotationItemDrawer({
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional commercial notes..."
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                  className="w-full p-3 bg-white border border-[#E6E1D9] rounded-[10px] text-[14px] text-[#171717] placeholder:text-[#96918A] focus:outline-none focus:border-[#D97757] focus:ring-2 focus:ring-[#D97757]/15 shadow-2xs"
                 />
               </div>
             </div>
 
             {/* Pricing Governance Section */}
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+            <div className="p-4 bg-[#FAF9F6] rounded-[12px] border border-[#EEEAE4] space-y-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#96918A] block">
                 Pricing Governance
               </span>
 
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-white p-2 rounded-lg border border-slate-100">
-                  <span className="text-slate-400 text-[10px] block">Allowed Discount</span>
-                  <span className="font-bold text-slate-800">{allowed}%</span>
+              <div className="grid grid-cols-2 gap-3 text-[13px]">
+                <div className="bg-white p-3 rounded-[9px] border border-[#E6E1D9]">
+                  <span className="text-[#96918A] text-[11px] block">Allowed Discount</span>
+                  <span className="font-bold text-[#171717] text-[15px]">{allowed}%</span>
                 </div>
-                <div className="bg-white p-2 rounded-lg border border-slate-100">
-                  <span className="text-slate-400 text-[10px] block">Applied Discount</span>
-                  <span className={`font-bold ${isOverLimit ? 'text-rose-600' : 'text-slate-800'}`}>
+                <div className="bg-white p-3 rounded-[9px] border border-[#E6E1D9]">
+                  <span className="text-[#96918A] text-[11px] block">Applied Discount</span>
+                  <span className={`font-bold text-[15px] ${isOverLimit ? 'text-[#C95757]' : 'text-[#171717]'}`}>
                     {discountPct}%
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-500">Status:</span>
-                <span className={`font-bold flex items-center gap-1 ${isOverLimit ? 'text-rose-600' : 'text-emerald-600'}`}>
+              <div className="flex items-center justify-between text-[13px] pt-1">
+                <span className="text-[#6F6B66]">Status:</span>
+                <span className={`font-semibold flex items-center gap-1.5 ${isOverLimit ? 'text-[#C95757]' : 'text-[#3F8F63]'}`}>
                   {isOverLimit ? (
                     <>
-                      <AlertCircle className="w-3.5 h-3.5" />
+                      <AlertCircle className="w-4 h-4" />
                       <span>Exceeds Limit (+{variance}%)</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle className="w-3.5 h-3.5" />
+                      <CheckCircle className="w-4 h-4" />
                       <span>Within Limit ✓</span>
                     </>
                   )}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-1.5">
-                <span className="text-slate-500">Margin Impact:</span>
-                <span className="font-bold text-slate-900">{marginPct}%</span>
+              <div className="flex items-center justify-between text-[13px] border-t border-[#EEEAE4] pt-2">
+                <span className="text-[#6F6B66]">Margin Impact:</span>
+                <span className="font-bold text-[#171717]">{marginPct}%</span>
               </div>
             </div>
 
           </div>
 
           {/* Footer */}
-          <div className="p-3.5 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/60">
+          <div className="p-4 border-t border-[#E6E1D9] flex items-center justify-end gap-3 bg-[#FAF9F6]">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="h-10 px-4 text-[13px] font-semibold text-[#6F6B66] hover:text-[#171717] bg-white border border-[#E6E1D9] hover:bg-[#F5F2ED] rounded-[9px] transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-4 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-2xs transition-colors"
+              className="h-10 px-5 text-[13px] font-semibold text-white bg-[#D97757] hover:bg-[#C96648] rounded-[9px] shadow-2xs transition-colors cursor-pointer"
             >
               Save Changes
             </button>

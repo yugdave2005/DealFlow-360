@@ -12,60 +12,62 @@ export default function RecommendationsDrawer({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-150">
       <div 
-        className="absolute inset-0 bg-slate-900/30 backdrop-blur-2xs transition-opacity"
+        className="absolute inset-0 bg-[#171717]/30 backdrop-blur-[2px] transition-opacity"
         onClick={onClose}
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-sm bg-white shadow-2xl border-l border-slate-200 flex flex-col">
+        <div className="w-screen max-w-md bg-white shadow-2xl border-l border-[#E6E1D9] flex flex-col">
           
           {/* Header */}
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-600" />
+          <div className="p-5 border-b border-[#E6E1D9] flex items-center justify-between bg-[#FAF9F6]">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-[8px] bg-[#F8E9E3] border border-[#E9B8A7] flex items-center justify-center text-[#D97757]">
+                <Sparkles className="w-4 h-4" />
+              </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Recommended Add-ons</h3>
-                <p className="text-[11px] text-slate-400">AI-ranked cross-sell opportunities</p>
+                <h3 className="text-[16px] font-semibold text-[#171717]">Recommended Add-ons</h3>
+                <p className="text-[12px] text-[#96918A]">AI-ranked cross-sell opportunities</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+              className="p-1.5 text-[#96918A] hover:text-[#171717] rounded-lg hover:bg-[#EDE8E0] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 text-[14px]">
             {suggestions.map((s) => (
               <div
                 key={s.product.id}
-                className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-2 hover:border-indigo-200 transition-colors"
+                className="p-4 bg-white rounded-[12px] border border-[#E6E1D9] shadow-2xs space-y-3 hover:border-[#D97757]/60 transition-colors"
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h4 className="font-semibold text-slate-900">{s.product.name}</h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{s.reason}</p>
+                    <h4 className="font-semibold text-[#171717] text-[15px]">{s.product.name}</h4>
+                    <p className="text-[13px] text-[#6F6B66] mt-1 leading-relaxed">{s.reason}</p>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0">
+                  <span className="text-[11px] font-semibold text-[#3F8F63] bg-[#EAF5EE] border border-[#BDE3CE] px-2.5 py-0.5 rounded-full shrink-0">
                     {s.marginImpact}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <span className="font-bold text-slate-900">
-                    ₹{s.product.basePrice.toLocaleString('en-IN')}
-                    {s.product.isSubscription && <span className="text-[10px] font-normal text-slate-400">/mo</span>}
+                <div className="flex items-center justify-between pt-3 border-t border-[#EEEAE4]">
+                  <span className="font-bold text-[#171717] text-[15px]">
+                    ₹{Number(s.product.basePrice || 0).toLocaleString('en-IN')}
+                    {s.product.isSubscription && <span className="text-[11px] font-normal text-[#96918A] ml-1">/mo</span>}
                   </span>
                   <button
                     type="button"
                     onClick={() => {
                       onAddSuggestion(s.product);
                     }}
-                    className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-2xs transition-colors flex items-center gap-1"
+                    className="h-9 px-4 bg-[#D97757] hover:bg-[#C96648] text-white font-semibold rounded-[8px] shadow-2xs transition-colors flex items-center gap-1.5 text-[13px] cursor-pointer"
                   >
-                    <Plus className="w-3 h-3" />
+                    <Plus className="w-3.5 h-3.5" />
                     <span>Add to Quote</span>
                   </button>
                 </div>
@@ -74,11 +76,11 @@ export default function RecommendationsDrawer({
           </div>
 
           {/* Footer */}
-          <div className="p-3.5 border-t border-slate-100 flex justify-end bg-slate-50/60">
+          <div className="p-4 border-t border-[#E6E1D9] flex justify-end bg-[#FAF9F6]">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs transition-colors"
+              className="h-10 px-5 text-[13px] font-semibold text-[#6F6B66] hover:text-[#171717] bg-white hover:bg-[#F5F2ED] border border-[#E6E1D9] rounded-[9px] transition-colors cursor-pointer"
             >
               Close
             </button>

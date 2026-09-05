@@ -51,49 +51,47 @@ export default function CustomerNegotiationsList() {
   }, [quotations, activeTab]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-xs">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Counter-Proposals & Negotiations</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Track your submitted discount and term adjustments</p>
-            </div>
+      <div className="bg-[#FFFFFF] p-6 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] border border-[#EBE8E2] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-[#F5EFEB] border border-[#E8DFD8] flex items-center justify-center text-[#B85D19] shadow-xs">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#1E1B18] tracking-tight">Counter-Proposals & Negotiations</h1>
+            <p className="text-xs sm:text-sm text-[#78716C] mt-0.5">Track your submitted discount and term adjustments</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+        <div className="flex items-center bg-[#F5EFEB] p-1 rounded-xl border border-[#E8DFD8]">
           <button
             onClick={() => setActiveTab('ALL')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === 'ALL'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#FFFFFF] text-[#1E1B18] shadow-xs'
+                : 'text-[#78716C] hover:text-[#1E1B18]'
             }`}
           >
             All Proposals ({quotations.length})
           </button>
           <button
             onClick={() => setActiveTab('ACTIVE')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === 'ACTIVE'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#FFFFFF] text-[#1E1B18] shadow-xs'
+                : 'text-[#78716C] hover:text-[#1E1B18]'
             }`}
           >
             In Review
           </button>
           <button
             onClick={() => setActiveTab('CONFIRMED')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === 'CONFIRMED'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#FFFFFF] text-[#1E1B18] shadow-xs'
+                : 'text-[#78716C] hover:text-[#1E1B18]'
             }`}
           >
             Finalized Deals
@@ -108,10 +106,10 @@ export default function CustomerNegotiationsList() {
             <LoadingSkeleton count={2} />
           </div>
         ) : filteredNegotiations.length === 0 ? (
-          <div className="py-16 text-center bg-white rounded-2xl border border-slate-200/80 p-8 shadow-xs">
-            <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <h3 className="text-sm font-semibold text-slate-800">No Active Negotiations</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+          <div className="py-16 text-center bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] p-8 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+            <Inbox className="w-10 h-10 text-[#A8A29E] mx-auto mb-2" />
+            <h3 className="text-sm font-semibold text-[#1E1B18]">No Active Negotiations</h3>
+            <p className="text-xs text-[#78716C] mt-1 max-w-sm mx-auto">
               You have no proposals currently under negotiation or counter-offer review.
             </p>
           </div>
@@ -130,18 +128,18 @@ export default function CustomerNegotiationsList() {
             const messagesCount = allMessages.length;
 
             return (
-              <div key={q.id} className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 space-y-4 hover:border-slate-300 transition-colors">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+              <div key={q.id} className="bg-[#FFFFFF] p-6 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] border border-[#EBE8E2] space-y-4 hover:border-[#B85D19]/30 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EBE8E2]">
                   <div className="flex items-center gap-2.5">
-                    <span className="font-mono font-bold text-indigo-700 text-sm">
+                    <span className="font-mono font-bold text-[#B85D19] text-sm">
                       {q.quotationNumber || `QT-${q.id.slice(0, 6)}`}
                     </span>
-                    <span className="text-xs text-slate-400">·</span>
-                    <span className="text-xs text-slate-500 font-medium">
+                    <span className="text-xs text-[#A8A29E]">·</span>
+                    <span className="text-xs text-[#78716C] font-medium">
                       Created {q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'Recent'}
                     </span>
                     {q.versions && q.versions.length > 1 && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F5EFEB] text-[#44403C] border border-[#E8DFD8]">
                         Rev v{q.versions.length}
                       </span>
                     )}
@@ -149,21 +147,21 @@ export default function CustomerNegotiationsList() {
                   <StatusBadge status={q.status} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200/80">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#FAF8F5] p-4 rounded-xl border border-[#EBE8E2]">
                   <div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Commercial Proposal Value</span>
-                    <span className="text-lg font-extrabold text-slate-900 font-mono">₹{total.toLocaleString('en-IN')}</span>
+                    <span className="text-[11px] font-bold text-[#78716C] uppercase tracking-wider block">Commercial Proposal Value</span>
+                    <span className="text-lg font-extrabold text-[#1E1B18] font-mono">₹{total.toLocaleString('en-IN')}</span>
                   </div>
                   <div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Applied Discount</span>
+                    <span className="text-[11px] font-bold text-[#78716C] uppercase tracking-wider block">Total Applied Discount</span>
                     <span className="text-sm font-bold text-emerald-700 font-mono">
                       -₹{discount.toLocaleString('en-IN')}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Negotiation Status</span>
-                    <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 mt-0.5">
-                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-[11px] font-bold text-[#78716C] uppercase tracking-wider block">Negotiation Status</span>
+                    <span className="text-xs font-semibold text-[#44403C] flex items-center gap-1.5 mt-0.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
                       {q.status === 'CONFIRMED' ? 'Terms finalized & accepted' :
                        q.status === 'PENDING_APPROVAL' ? 'Counter-offer in governance review' :
                        q.status === 'NEGOTIATION' ? 'Active negotiation thread' : 'Commercial proposal active'}
@@ -200,19 +198,19 @@ export default function CustomerNegotiationsList() {
                     )}
                   </div>
                 ) : (
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+                  <div className="p-3.5 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] text-xs text-[#78716C] flex items-center justify-between">
                     <span>No counter-proposals submitted yet. You can propose revised discounts or commercial terms.</span>
                   </div>
                 )}
 
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-[#78716C]">
                     {q.status === 'CONFIRMED' ? 'Agreement reached. View proposal specifications anytime.' : 'Click to inspect detailed terms, submit counter-discounts, or sign.'}
                   </span>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
-                      onClick={() => navigate(`/portal/quotations/${q.id}`)}
-                      className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      onClick={() => navigate(`/customer/quotations/${q.id}`)}
+                      className="w-full sm:w-auto px-4 py-2 bg-[#B85D19] hover:bg-[#9E4E13] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <span>{q.status === 'CONFIRMED' ? 'View Proposal Details' : 'Review & Negotiate Terms'}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -227,4 +225,3 @@ export default function CustomerNegotiationsList() {
     </div>
   );
 }
-
