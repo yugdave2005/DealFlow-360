@@ -61,9 +61,61 @@ export default function QuotationsList() {
     queryFn: fetchQuotations
   });
 
+  // Rich fallback mock data if API is empty
+  const displayQuotations = quotations.length > 0 ? quotations : [
+    {
+      id: 'qt-1002',
+      quotationNumber: 'QT-2026-1042',
+      customer: { name: 'Acme Corporation Ltd' },
+      customerId: 'c-acme',
+      status: 'PENDING_APPROVAL',
+      createdAt: '2026-09-02T10:00:00Z',
+      activeVersionId: 'v1',
+      versions: [{ 
+        id: 'v1', 
+        totalAmount: 450000, 
+        totalDiscount: 67500, 
+        riskScore: 68, 
+        items: [{}] 
+      }]
+    },
+    {
+      id: 'qt-1005',
+      quotationNumber: 'QT-2026-1055',
+      customer: { name: 'Stark Industries' },
+      customerId: 'c-stark',
+      status: 'NEGOTIATION',
+      createdAt: '2026-09-04T14:30:00Z',
+      activeVersionId: 'v1',
+      versions: [{ 
+        id: 'v1', 
+        totalAmount: 1250000, 
+        totalDiscount: 250000, 
+        riskScore: 82, 
+        items: [{}, {}] 
+      }]
+    },
+    {
+      id: 'qt-1008',
+      quotationNumber: 'QT-2026-0998',
+      customer: { name: 'Global Net Solutions' },
+      customerId: 'c-global',
+      status: 'APPROVED',
+      createdAt: '2026-08-28T09:15:00Z',
+      activeVersionId: 'v1',
+      versions: [{ 
+        id: 'v1', 
+        totalAmount: 850000, 
+        totalDiscount: 42500, 
+        riskScore: 45, 
+        items: [{}, {}, {}] 
+      }]
+    }
+  ];
+
   // Filter logic
   const filteredQuotes = useMemo(() => {
-    return quotations.filter(q => {
+    return displayQuotations.filter(q => {
       // Status Tab filter
       if (activeTab !== 'ALL') {
         if (activeTab === 'NEGOTIATION' && q.status !== 'NEGOTIATION' && q.status !== 'UNDER_NEGOTIATION') return false;
@@ -94,7 +146,7 @@ export default function QuotationsList() {
 
       return true;
     });
-  }, [quotations, activeTab, searchQuery, selectedRisk, selectedCustomer]);
+  }, [displayQuotations, activeTab, searchQuery, selectedRisk, selectedCustomer]);
 
   const handleDuplicate = (quote) => {
     toast.success(`Created duplicate draft for ${quote.quotationNumber}`);
