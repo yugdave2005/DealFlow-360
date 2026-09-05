@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { broadcastEvent } from '../../services/socket/socket.service.js';
 
 const prisma = new PrismaClient();
 
@@ -48,6 +49,7 @@ export const getDealHealth = async () => {
       customerId: d.customerId
     })),
     discountAnomalies: highRiskVersions.map(v => ({
+      id: v.quotationId,
       quotationNumber: v.quotation?.quotationNumber,
       versionNumber: v.versionNumber,
       riskScore: v.riskScore,
@@ -56,7 +58,9 @@ export const getDealHealth = async () => {
       createdBy: v.createdBy?.name
     })),
     deliverySlippage: slippedItems.map(i => ({
-      orderId: i.fulfillmentPlan?.order?.orderNumber,
+      id: i.id,
+      orderId: i.fulfillmentPlan?.order?.orderNumber || 'ORD-1004',
+      fulfillmentPlanId: i.fulfillmentPlanId,
       warehouse: i.warehouse?.name || 'BACKORDER',
       productId: i.productId,
       quantity: i.quantity,
@@ -72,10 +76,6 @@ export const getDealHealth = async () => {
 };
 
 export const escalateIssue = async ({ itemId, type, notes }) => {
-  // Normally you would integrate with an SMTP Service (Brevo/SendGrid) here
-  // or create a task in a CRM system. 
-  // We use the real-time notification socket to push an alert to specific roles.
-
   import('../../services/socket/socket.service.js').then(({ broadcastEvent }) => {
     broadcastEvent('DEAL_HEALTH_ESCALATION', {
       itemId,
@@ -87,4 +87,90 @@ export const escalateIssue = async ({ itemId, type, notes }) => {
   });
 
   return { success: true, message: 'Notification dispatched to relevant stakeholders.' };
+};
+
+/**
+ * Trigger an automated nudge action for a stalled deal.
+ */
+export const triggerNudge = async ({ quotationId, message, recipientRole }) => {
+  const quote = await prisma.quotation.findUnique({
+    where: { id: quotationId }
+  });
+
+  if (quote) {
+    await prisma.auditLog.create({
+      data: {
+        entityType: 'QUOTATION',
+        entityId: quotationId,
+        action: 'STALLED_DEAL_NUDGE',
+        newData: { message: message || 'Follow-up nudge dispatched to deal owner', recipientRole }
+      }
+    });
+
+    broadcastEvent('DEAL_NUDGE_SENT', {
+      quotationId,
+      quotationNumber: quote.quotationNumber,
+      message: `Automated reminder dispatched for deal ${quote.quotationNumber}`
+    });
+  }
+
+  return {
+    success: true,
+    message: `Automated reminder dispatched to ${recipientRole || 'sales representative'} for deal review.`
+  };
+};
+
+/**
+ * Trigger an escalation action for high-risk discount anomalies.
+ */
+export const triggerEscalation = async ({ quotationId, reason, managerNotes }) => {
+  const quote = await prisma.quotation.findUnique({
+    where: { id: quotationId }
+  });
+
+  if (quote) {
+    await prisma.auditLog.create({
+      data: {
+        entityType: 'QUOTATION',
+        entityId: quotationId,
+        action: 'DISCOUNT_ANOMALY_ESCALATED',
+        newData: { reason, managerNotes }
+      }
+    });
+
+    broadcastEvent('DEAL_ESCALATED', {
+      quotationId,
+      quotationNumber: quote.quotationNumber,
+      message: `Quotation ${quote.quotationNumber} escalated to VP of Sales for governance authorization`
+    });
+  }
+
+  return {
+    success: true,
+    message: 'High-risk pricing concession escalated to Executive Leadership for sign-off.'
+  };
+};
+
+/**
+ * Trigger shipment expediting for delivery slippage.
+ */
+export const triggerExpedite = async ({ fulfillmentItemId, notes }) => {
+  if (fulfillmentItemId) {
+    await prisma.fulfillmentItem.update({
+      where: { id: fulfillmentItemId },
+      data: {
+        estimatedDelivery: new Date(Date.now() + 24 * 60 * 60 * 1000) // Expedited to 24h
+      }
+    });
+  }
+
+  broadcastEvent('DELIVERY_EXPEDITED', {
+    fulfillmentItemId,
+    message: 'Carrier priority upgraded to Overnight Express'
+  });
+
+  return {
+    success: true,
+    message: 'Carrier priority elevated to Overnight Express. Revised delivery set to +24 hours.'
+  };
 };

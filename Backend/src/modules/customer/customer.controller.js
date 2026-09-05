@@ -32,3 +32,26 @@ export const accept = async (req, res, next) => {
     sendSuccess(res, 200, 'Quotation accepted', result);
   } catch (err) { next(err); }
 };
+
+export const decline = async (req, res, next) => {
+  try {
+    const customerId = req.body.customerId || req.user?.id;
+    const result = await customerService.declineQuotation(req.params.id, customerId, req.body?.reason);
+    sendSuccess(res, 200, 'Quotation declined', result);
+  } catch (err) { next(err); }
+};
+export const listInvoices = async (req, res, next) => {
+  try {
+    const customerId = req.query.customerId || req.user?.id;
+    const invoices = await customerService.listCustomerInvoices(customerId);
+    sendSuccess(res, 200, 'Customer Invoices', invoices);
+  } catch (err) { next(err); }
+};
+
+export const payInvoice = async (req, res, next) => {
+  try {
+    const customerId = req.body.customerId || req.user?.id;
+    const result = await customerService.payCustomerInvoice(req.params.id, customerId, req.body);
+    sendSuccess(res, 200, 'Payment recorded', result);
+  } catch (err) { next(err); }
+};

@@ -319,7 +319,8 @@ export default function Approvals() {
             const customer = quote.customer || {};
             const total = Number(version.totalAmount || quote.totalAmount || 0);
             const discount = Number(version.totalDiscount || 0);
-            const discountPct = total > 0 ? ((discount / total) * 100).toFixed(0) : '0';
+            const grossListPrice = total + discount;
+            const discountPct = grossListPrice > 0 ? ((discount / grossListPrice) * 100).toFixed(0) : '0';
             const marginPct = (100 - Number(discountPct) - 25).toFixed(0);
             const riskScore = version.riskScore || 20;
             const isPending = (approval.status || 'PENDING') === 'PENDING';
@@ -529,7 +530,18 @@ export default function Approvals() {
                     </div>
                     <ul className="text-xs text-[#8F5F1B] space-y-1.5 pl-5 list-disc leading-relaxed">
                       <li>Line item commercial pricing exceeds standard role discount limit.</li>
-                      <li>Customer tier allows max <strong>10%</strong> discount; proposed rate is <strong>18%</strong> (+8% variance).</li>
+                      <li>{
+                        (() => {
+                          const selVersion = selectedApproval.quotationVersion || {};
+                          const selTotal = Number(selVersion.totalAmount || 0);
+                          const selDiscount = Number(selVersion.totalDiscount || 0);
+                          const selGross = selTotal + selDiscount;
+                          const actualPct = selGross > 0 ? ((selDiscount / selGross) * 100).toFixed(0) : '0';
+                          const tierMax = selVersion.quotation?.customer?.tier === 'ENTERPRISE' ? 20 : selVersion.quotation?.customer?.tier === 'GOLD' ? 15 : 10;
+                          const variance = (Number(actualPct) - tierMax).toFixed(0);
+                          return <>Customer tier allows max <strong>{tierMax}%</strong> discount; proposed rate is <strong>{actualPct}%</strong> ({variance > 0 ? `+${variance}` : variance}% variance).</>;
+                        })()
+                      }</li>
                       <li>Blended transaction margin requires authorization by {selectedApproval.level?.replace('_', ' ') || 'Sales Manager'}.</li>
                     </ul>
                   </div>
@@ -559,15 +571,25 @@ export default function Approvals() {
                             </td>
                           </tr>
                         ) : (
-                          (selectedApproval.quotationVersion?.items || []).map((it, idx) => (
-                            <tr key={idx} className="hover:bg-[#FAF9F6]">
-                              <td className="py-2.5 px-3 font-medium">{it.product?.name || `Product #${idx + 1}`}</td>
-                              <td className="py-2.5 px-3 text-[#6F6B66]">{it.quantity}</td>
-                              <td className="py-2.5 px-3 text-[#6F6B66]">₹{Number(it.unitPrice).toLocaleString('en-IN')}</td>
-                              <td className="py-2.5 px-3 font-semibold text-[#C95757]">{it.discountPercent}%</td>
-                              <td className="py-2.5 px-3 text-right font-semibold">₹{Number(it.totalPrice).toLocaleString('en-IN')}</td>
-                            </tr>
-                          ))
+                          (selectedApproval.quotationVersion?.items || []).map((it, idx) => {
+                            const productName = it.product?.name || it.productName || it.name || `Product #${idx + 1}`;
+                            const qty = Number(it.quantity || 1);
+                            const unitPrice = Number(it.unitPrice || 0);
+                            const discPct = Number(it.discountPercentage ?? it.discountPercent ?? 0);
+                            const lineTotal = it.totalPrice !== undefined && !isNaN(Number(it.totalPrice))
+                              ? Number(it.totalPrice)
+                              : (qty * unitPrice) * (1 - discPct / 100);
+
+                            return (
+                              <tr key={idx} className="hover:bg-[#FAF9F6]">
+                                <td className="py-2.5 px-3 font-medium">{productName}</td>
+                                <td className="py-2.5 px-3 text-[#6F6B66]">{qty}</td>
+                                <td className="py-2.5 px-3 text-[#6F6B66]">₹{unitPrice.toLocaleString('en-IN')}</td>
+                                <td className="py-2.5 px-3 font-semibold text-[#C95757]">{discPct}%</td>
+                                <td className="py-2.5 px-3 text-right font-semibold">₹{Math.round(lineTotal).toLocaleString('en-IN')}</td>
+                              </tr>
+                            );
+                          })
                         )}
                       </tbody>
                     </table>

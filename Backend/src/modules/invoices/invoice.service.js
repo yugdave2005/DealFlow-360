@@ -70,20 +70,44 @@ export const generateInvoice = async (orderId) => {
   });
 };
 
-export const recordPayment = async (invoiceId, { amount, paymentMethod, reference }) => {
-  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId }, include: { payments: true } });
+export const recordPayment = async (invoiceId, body = {}) => {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invoiceId);
+  const whereOr = [];
+  if (isUuid) whereOr.push({ id: invoiceId });
+  whereOr.push({ invoiceNumber: invoiceId });
+
+  const invoice = await prisma.invoice.findFirst({
+    where: { OR: whereOr },
+    include: { payments: true }
+  });
   if (!invoice) throw new NotFoundError('Invoice not found');
 
-  const totalPaid = invoice.payments.reduce((sum, p) => sum + Number(p.amount), 0) + Number(amount);
+  const alreadyPaid = invoice.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const remainingDue = Math.max(0, Number(invoice.totalAmount) - alreadyPaid);
+
+  const paymentAmount = body.amount !== undefined && !isNaN(Number(body.amount)) && Number(body.amount) > 0
+    ? Number(body.amount)
+    : remainingDue;
+
+  const paymentMethod = body.paymentMethod || 'BANK_TRANSFER';
+  const reference = body.reference || body.paymentReference || `TXN-${Math.floor(100000 + Math.random() * 900000)}`;
+
+  const totalPaid = alreadyPaid + paymentAmount;
   const newStatus = totalPaid >= Number(invoice.totalAmount) ? 'PAID' : 'PARTIAL';
 
   await prisma.payment.create({
-    data: { invoiceId, amount, paymentMethod, reference }
+    data: {
+      invoiceId: invoice.id,
+      amount: paymentAmount,
+      paymentMethod,
+      reference
+    }
   });
 
   return prisma.invoice.update({
-    where: { id: invoiceId },
+    where: { id: invoice.id },
     data: { status: newStatus },
     include: { payments: true }
   });
 };
+

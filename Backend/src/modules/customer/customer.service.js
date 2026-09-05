@@ -81,18 +81,35 @@ export const getCustomerQuotation = async (quotationId, customerId) => {
 
   if (!quotation) throw new NotFoundError('Quotation not found');
 
-  const activeVer = quotation.activeVersion || quotation.versions[0];
-  if (activeVer && activeVer.items) {
-    const productIds = activeVer.items.map(it => it.productId).filter(Boolean);
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds } }
+  const allVersions = [quotation.activeVersion, ...(quotation.versions || [])].filter(Boolean);
+  const productIds = [...new Set(allVersions.flatMap(v => v.items?.map(it => it.productId) || []).filter(Boolean))];
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } }
+  });
+  const productMap = new Map(products.map(p => [p.id, p]));
+
+  const enrichItems = (ver) => {
+    if (!ver || !ver.items) return ver;
+    ver.items = ver.items.map((it, idx) => {
+      const prod = productMap.get(it.productId);
+      const qty = Number(it.quantity || 1);
+      const unitPrice = Number(it.unitPrice || 0);
+      const disc = Number(it.discountPercentage || 0);
+      const lineTotal = (qty * unitPrice) * (1 - disc / 100);
+      return {
+        ...it,
+        quantity: qty,
+        unitPrice: unitPrice,
+        discountPercentage: disc,
+        lineTotal: Math.round(lineTotal * 100) / 100,
+        product: prod || { id: it.productId, name: `Commercial Item #${idx + 1}`, category: 'General' }
+      };
     });
-    const productMap = new Map(products.map(p => [p.id, p]));
-    activeVer.items = activeVer.items.map(it => ({
-      ...it,
-      product: productMap.get(it.productId) || { name: 'Commercial Line Item', category: 'General' }
-    }));
-  }
+    return ver;
+  };
+
+  if (quotation.activeVersion) enrichItems(quotation.activeVersion);
+  if (quotation.versions) quotation.versions.forEach(enrichItems);
 
   let custUser = null;
   if (quotation.customerId) {
@@ -264,3 +281,108 @@ export const acceptQuotation = async (quotationId, customerId) => {
   return result;
 };
 
+export const declineQuotation = async (quotationId, customerId, reason = 'Commercial terms declined by customer') => {
+  const quotation = await prisma.quotation.findFirst({
+    where: { id: quotationId },
+    include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } }
+  });
+  if (!quotation) throw new NotFoundError('Quotation not found');
+
+  const updated = await prisma.quotation.update({
+    where: { id: quotationId },
+    data: { status: 'CANCELLED' }
+  });
+
+  const activeVersion = quotation.versions[0];
+  if (activeVersion) {
+    await prisma.negotiationMessage.create({
+      data: {
+        quotationVersionId: activeVersion.id,
+        authorId: customerId || quotation.customerId,
+        senderRole: 'CUSTOMER',
+        content: `Customer declined quotation: ${reason}`,
+        isCommercialChange: false
+      }
+    });
+  }
+
+  broadcastEvent('QUOTATION_UPDATED', {
+    quotationId,
+    status: 'CANCELLED',
+    message: `Quotation ${quotation.quotationNumber} declined by customer.`
+  });
+
+  return updated;
+};
+
+export const listCustomerInvoices = async (customerId) => {
+  const where = customerId ? { customerId } : {};
+
+  const invoices = await prisma.invoice.findMany({
+    where,
+    include: {
+      payments: true,
+      order: {
+        include: {
+          items: true,
+          quotation: {
+            select: { quotationNumber: true }
+          }
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  return invoices.map(inv => {
+    const paid = inv.payments.reduce((s, p) => s + Number(p.amount), 0);
+    const remaining = Math.max(0, Number(inv.totalAmount) - paid);
+    const itemsSummary = inv.order?.items?.map(i => `${i.quantity}x ${i.snapshotName}`).join(', ') || 'Commercial Order';
+    const quotationNumber = inv.order?.quotation?.quotationNumber || null;
+    return {
+      ...inv,
+      amount: Number(inv.totalAmount || 0),
+      amountPaid: paid,
+      amountRemaining: remaining,
+      orderNumber: inv.order?.orderNumber || `ORD-${inv.orderId?.slice(-4) || '???'}`,
+      quotationNumber,
+      itemsSummary
+    };
+  });
+};
+
+export const payCustomerInvoice = async (invoiceId, customerId, body = {}) => {
+  // Verify the invoice belongs to this customer
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, customerId },
+    include: { payments: true }
+  });
+  if (!invoice) throw new NotFoundError('Invoice not found or not accessible');
+  if (invoice.status === 'PAID') throw new BadRequestError('Invoice is already fully paid');
+
+  const alreadyPaid = invoice.payments.reduce((s, p) => s + Number(p.amount), 0);
+  const remaining = Math.max(0, Number(invoice.totalAmount) - alreadyPaid);
+
+  const paymentAmount = body.amount && Number(body.amount) > 0
+    ? Math.min(Number(body.amount), remaining)
+    : remaining;
+
+  const paymentMethod = body.paymentMethod || 'BANK_TRANSFER';
+  const reference = body.reference || `CUST-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
+
+  await prisma.payment.create({
+    data: { invoiceId: invoice.id, amount: paymentAmount, paymentMethod, reference }
+  });
+
+  const totalPaid = alreadyPaid + paymentAmount;
+  const newStatus = totalPaid >= Number(invoice.totalAmount) ? 'PAID' : 'PARTIAL';
+
+  const updated = await prisma.invoice.update({
+    where: { id: invoice.id },
+    data: { status: newStatus },
+    include: { payments: true }
+  });
+
+  broadcastEvent('INVOICE_UPDATED', { invoiceId: invoice.id, status: newStatus, customerId });
+  return updated;
+};

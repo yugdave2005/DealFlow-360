@@ -1,8 +1,39 @@
-import * as dealHealthService from './dealhealth.service.js';
-import { sendSuccess } from '../../utils/response.js';
+import * as service from './dealhealth.service.js';
 
 export const getDealHealth = async (req, res, next) => {
-  try { sendSuccess(res, 200, 'Deal health data', await dealHealthService.getDealHealth()); } catch (e) { next(e); }
+  try {
+    const data = await service.getDealHealth();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const triggerNudge = async (req, res, next) => {
+  try {
+    const result = await service.triggerNudge(req.body);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const triggerEscalation = async (req, res, next) => {
+  try {
+    const result = await service.triggerEscalation(req.body);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const triggerExpedite = async (req, res, next) => {
+  try {
+    const result = await service.triggerExpedite(req.body);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const escalateIssue = async (req, res, next) => {

@@ -172,7 +172,7 @@ export default function Pipeline() {
 
     quotations.forEach(q => {
       const v = q.activeVersion || (q.versions && q.versions[0]) || {};
-      const val = Number(v.totalAmount || q.totalAmount || 0) - Number(v.totalDiscount || 0);
+      const val = Number(v.totalAmount || q.totalAmount || 0);
 
       totalValue += val;
       if (q.status === 'PENDING_APPROVAL' || q.status === 'APPROVAL_PENDING') {

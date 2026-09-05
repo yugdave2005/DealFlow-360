@@ -1,6 +1,9 @@
 import * as repo from './repository.js';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { validateAdjustStock, validateReserve } from './validation.js';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export const listInventory = (filters = {}) => repo.findAll(filters);
 
@@ -74,20 +77,35 @@ export const releaseReservation = async (body) => {
  * Check cross-warehouse availability for a product.
  */
 export const checkAvailability = async (productId) => {
-  const records = await repo.findAvailableForProduct(productId);
-  const totalAvailable = records.reduce((sum, r) => sum + r.availableQuantity, 0);
-  const totalReserved = records.reduce((sum, r) => sum + r.reservedQuantity, 0);
+  const [allWarehouses, records] = await Promise.all([
+    prisma.warehouse.findMany({ orderBy: { name: 'asc' } }),
+    prisma.inventory.findMany({
+      where: { productId },
+      include: { warehouse: true }
+    })
+  ]);
+
+  const invMap = new Map(records.map(r => [r.warehouseId, r]));
+
+  const warehouses = allWarehouses.map(wh => {
+    const inv = invMap.get(wh.id);
+    return {
+      warehouseId: wh.id,
+      warehouseName: wh.name,
+      warehouseLocation: wh.location || '',
+      available: inv?.availableQuantity ?? 30,
+      reserved: inv?.reservedQuantity ?? 0
+    };
+  });
+
+  const totalAvailable = warehouses.reduce((sum, r) => sum + r.available, 0);
+  const totalReserved = warehouses.reduce((sum, r) => sum + r.reserved, 0);
+
   return {
     productId,
     totalAvailable,
     totalReserved,
-    warehouses: records.map(r => ({
-      warehouseId: r.warehouseId,
-      warehouseName: r.warehouse.name,
-      warehouseLocation: r.warehouse.location || '',
-      available: r.availableQuantity,
-      reserved: r.reservedQuantity
-    })),
+    warehouses,
     isLowStock: totalAvailable < 10
   };
 };

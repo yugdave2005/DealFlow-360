@@ -4,7 +4,10 @@ import { requireAuth } from '../../middleware/auth.middleware.js';
 
 const router = express.Router();
 router.use(requireAuth);
+
 router.get('/', ctrl.getDealHealth);
-router.post('/escalate', ctrl.escalateIssue);
+router.post('/nudge', ctrl.triggerNudge);
+router.post('/escalate', ctrl.triggerEscalation || ctrl.escalateIssue);
+router.post('/expedite', ctrl.triggerExpedite);
 
 export default router;

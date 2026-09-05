@@ -11,24 +11,55 @@ export const createQuotation = async ({ salesRepId, customerId, lineItems }) => 
     throw new BadRequestError('A quotation must have at least one line item');
   }
 
+  // Sanitize line items to prevent NaN and invalid inputs
+  const sanitizedItems = lineItems.map(item => ({
+    productId: item.productId,
+    quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+    unitPrice: Math.max(0, parseFloat(item.unitPrice) || 0),
+    discountPercentage: Math.min(100, Math.max(0, parseFloat(item.discountPercentage) || 0))
+  }));
+
   // Calculate commercial totals
   let totalAmount = 0;
   let totalDiscountValue = 0;
 
-  for (const item of lineItems) {
+  for (const item of sanitizedItems) {
     const product = await prisma.product.findUnique({ where: { id: item.productId } });
     if (!product) throw new BadRequestError(`Product ${item.productId} not found`);
 
-    const itemTotal = (item.quantity * item.unitPrice);
-    const itemDiscountValue = itemTotal * ((item.discountPercentage || 0) / 100);
+    const itemTotal = item.quantity * item.unitPrice;
+    const itemDiscountValue = itemTotal * (item.discountPercentage / 100);
     
     totalAmount += itemTotal - itemDiscountValue;
     totalDiscountValue += itemDiscountValue;
   }
+  totalAmount = Number(totalAmount.toFixed(2));
+  totalDiscountValue = Number(totalDiscountValue.toFixed(2));
 
-  // Generate strict sequential quotation number
-  const count = await prisma.quotation.count();
-  const quotationNumber = `QT-${new Date().getFullYear()}-${String(count + 1001).padStart(4, '0')}`;
+  // Validate creator user in DB to prevent foreign key violation on QuotationVersion.createdById
+  let creatorId = null;
+  if (salesRepId) {
+    const userExists = await prisma.user.findUnique({ where: { id: salesRepId } });
+    if (userExists) {
+      creatorId = salesRepId;
+    }
+  }
+
+  // Generate collision-safe sequential quotation number
+  const currentYear = new Date().getFullYear();
+  const existingQuotes = await prisma.quotation.findMany({
+    where: { quotationNumber: { startsWith: `QT-${currentYear}-` } },
+    select: { quotationNumber: true }
+  });
+  let maxNum = 1000;
+  for (const q of existingQuotes) {
+    const parts = q.quotationNumber.split('-');
+    const num = parseInt(parts[2], 10);
+    if (!isNaN(num) && num > maxNum) {
+      maxNum = num;
+    }
+  }
+  const quotationNumber = `QT-${currentYear}-${maxNum + 1}`;
 
   // Execute in a transaction to enforce version sequence rule
   const quotation = await prisma.$transaction(async (tx) => {
@@ -47,20 +78,17 @@ export const createQuotation = async ({ salesRepId, customerId, lineItems }) => 
         versionNumber: 1,
         totalAmount,
         totalDiscount: totalDiscountValue,
-        createdById: salesRepId,
+        createdById: creatorId,
         items: {
-          create: lineItems.map(item => ({
+          create: sanitizedItems.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            discountPercentage: item.discountPercentage || 0
+            discountPercentage: item.discountPercentage
           }))
         }
       }
     });
-
-    // Calculate initial risk score on creation
-    const riskScore = await calculateRiskScore(version.id);
 
     // Link the active version back to the Quotation
     const finalizedQuote = await tx.quotation.update({
@@ -84,6 +112,13 @@ export const createQuotation = async ({ salesRepId, customerId, lineItems }) => 
 
     return finalizedQuote;
   });
+
+  // Calculate initial risk score on creation after transaction commits
+  if (quotation.activeVersionId) {
+    await calculateRiskScore(quotation.activeVersionId).catch(err => {
+      console.error('Failed to calculate initial risk score:', err);
+    });
+  }
 
   broadcastEvent('QUOTATION_CREATED', {
     quotationId: quotation.id,
@@ -109,14 +144,33 @@ export const updateQuotation = async (quotationId, { customerId, lineItems }, us
 
   if (!quotation) throw new NotFoundError('Quotation not found');
 
+  // Sanitize line items
+  const sanitizedItems = lineItems.map(item => ({
+    productId: item.productId,
+    quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+    unitPrice: Math.max(0, parseFloat(item.unitPrice) || 0),
+    discountPercentage: Math.min(100, Math.max(0, parseFloat(item.discountPercentage) || 0))
+  }));
+
   let totalAmount = 0;
   let totalDiscountValue = 0;
 
-  for (const item of lineItems) {
-    const itemTotal = (Number(item.quantity) * Number(item.unitPrice));
-    const itemDiscountValue = itemTotal * ((Number(item.discountPercentage) || 0) / 100);
+  for (const item of sanitizedItems) {
+    const itemTotal = item.quantity * item.unitPrice;
+    const itemDiscountValue = itemTotal * (item.discountPercentage / 100);
     totalAmount += itemTotal - itemDiscountValue;
     totalDiscountValue += itemDiscountValue;
+  }
+  totalAmount = Number(totalAmount.toFixed(2));
+  totalDiscountValue = Number(totalDiscountValue.toFixed(2));
+
+  // Validate creator user in DB
+  let creatorId = null;
+  if (userId) {
+    const userExists = await prisma.user.findUnique({ where: { id: userId } });
+    if (userExists) {
+      creatorId = userId;
+    }
   }
 
   if (quotation.status === 'DRAFT') {
@@ -126,12 +180,12 @@ export const updateQuotation = async (quotationId, { customerId, lineItems }, us
     });
 
     await prisma.quotationItem.createMany({
-      data: lineItems.map(item => ({
+      data: sanitizedItems.map(item => ({
         quotationVersionId: activeVer.id,
         productId: item.productId,
-        quantity: Number(item.quantity),
-        unitPrice: Number(item.unitPrice),
-        discountPercentage: Number(item.discountPercentage) || 0
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discountPercentage: item.discountPercentage
       }))
     });
 
@@ -164,13 +218,13 @@ export const updateQuotation = async (quotationId, { customerId, lineItems }, us
         versionNumber: newVersionNumber,
         totalAmount,
         totalDiscount: totalDiscountValue,
-        createdById: userId,
+        createdById: creatorId,
         items: {
-          create: lineItems.map(item => ({
+          create: sanitizedItems.map(item => ({
             productId: item.productId,
-            quantity: Number(item.quantity),
-            unitPrice: Number(item.unitPrice),
-            discountPercentage: Number(item.discountPercentage) || 0
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discountPercentage: item.discountPercentage
           }))
         }
       }
@@ -534,17 +588,27 @@ export const respondToNegotiation = async (quotationId, { action, proposedDiscou
 
   // If ACCEPT or COUNTER, create a new revision (V2, V3...)
   const newVersionNumber = (activeVersion.versionNumber || 1) + 1;
-  const discountPct = Number(proposedDiscountPercentage) || activeVersion.items[0]?.discountPercentage || 15;
+  // Only apply a uniform proposed discount if explicitly provided (not zero/null).
+  // Otherwise preserve each item's original per-line discount.
+  const hasExplicitDiscount = proposedDiscountPercentage != null && Number(proposedDiscountPercentage) > 0;
+  const uniformDiscountPct = hasExplicitDiscount ? Number(proposedDiscountPercentage) : null;
 
   let totalAmount = 0;
   let totalDiscountValue = 0;
 
-  for (const item of activeVersion.items) {
+  const newItems = activeVersion.items.map(item => {
+    const effectiveDiscount = uniformDiscountPct !== null ? uniformDiscountPct : Number(item.discountPercentage || 0);
     const lineTotal = Number(item.quantity) * Number(item.unitPrice);
-    const disc = lineTotal * (discountPct / 100);
+    const disc = lineTotal * (effectiveDiscount / 100);
     totalAmount += lineTotal - disc;
     totalDiscountValue += disc;
-  }
+    return {
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discountPercentage: effectiveDiscount
+    };
+  });
 
   const newVersion = await prisma.quotationVersion.create({
     data: {
@@ -554,12 +618,7 @@ export const respondToNegotiation = async (quotationId, { action, proposedDiscou
       totalDiscount: totalDiscountValue,
       createdById: userId,
       items: {
-        create: activeVersion.items.map(it => ({
-          productId: it.productId,
-          quantity: it.quantity,
-          unitPrice: it.unitPrice,
-          discountPercentage: discountPct
-        }))
+        create: newItems
       }
     }
   });
@@ -686,8 +745,29 @@ export const confirmQuotation = async (quotationId, userId) => {
   const products = await prisma.product.findMany({ where: { id: { in: productIds } } });
   const productMap = new Map(products.map(p => [p.id, p]));
 
-  const orderCount = await prisma.order.count();
-  const orderNumber = `ORD-${String(orderCount + 1004).padStart(4, '0')}`;
+  // Validate actor ID exists in DB to prevent foreign key violation on AuditLog.actorId
+  let validActorId = null;
+  const candidateActorId = userId || quotation.salesRepId;
+  if (candidateActorId) {
+    const actorExists = await prisma.user.findUnique({ where: { id: candidateActorId } });
+    if (actorExists) {
+      validActorId = candidateActorId;
+    }
+  }
+
+  // Generate collision-safe sequential order number
+  const allOrders = await prisma.order.findMany({
+    where: { orderNumber: { startsWith: 'ORD-' } },
+    select: { orderNumber: true }
+  });
+  let maxOrderNum = 1000;
+  for (const o of allOrders) {
+    const num = parseInt(o.orderNumber.replace('ORD-', ''), 10);
+    if (!isNaN(num) && num > maxOrderNum) {
+      maxOrderNum = num;
+    }
+  }
+  const orderNumber = `ORD-${maxOrderNum + 1}`;
 
   // Execute in transaction
   const result = await prisma.$transaction(async (tx) => {
@@ -822,8 +902,20 @@ export const confirmQuotation = async (quotationId, userId) => {
       }
       const taxAmount = oneTimeTotal * 0.18; // 18% GST
 
-      const invoiceCount = await tx.invoice.count();
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1001).padStart(4, '0')}`;
+      const currentYear = new Date().getFullYear();
+      const allInvoices = await tx.invoice.findMany({
+        where: { invoiceNumber: { startsWith: `INV-${currentYear}-` } },
+        select: { invoiceNumber: true }
+      });
+      let maxInvNum = 1000;
+      for (const inv of allInvoices) {
+        const parts = inv.invoiceNumber.split('-');
+        const num = parseInt(parts[2], 10);
+        if (!isNaN(num) && num > maxInvNum) {
+          maxInvNum = num;
+        }
+      }
+      const invoiceNumber = `INV-${currentYear}-${String(maxInvNum + 1).padStart(4, '0')}`;
 
       invoice = await tx.invoice.create({
         data: {
@@ -859,7 +951,7 @@ export const confirmQuotation = async (quotationId, userId) => {
     // 7. Create audit log
     await tx.auditLog.create({
       data: {
-        actorId: userId || quotation.salesRepId,
+        actorId: validActorId,
         entityType: 'QUOTATION',
         entityId: quotationId,
         action: 'CONFIRMED',
