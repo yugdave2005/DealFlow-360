@@ -63,7 +63,7 @@ export default function Signup() {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/signup`, {
+      const res = await fetch(`${API_BASE_URL}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,7 +94,7 @@ export default function Signup() {
   };
 
   const loginWithGoogle = () => {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    window.location.href = `${API_BASE_URL}/google`;
   };
 
   return (
