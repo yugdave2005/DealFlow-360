@@ -81,9 +81,41 @@ export const getQuotations = async (userId, role) => {
     where,
     include: {
       versions: {
-        where: { versionNumber: 1 } // In a real app we'd fetch the active version relation explicitly, simplifying here for speed
-      }
+        include: { items: true }
+      },
+      customer: true,
+      approvalRequests: true
     },
     orderBy: { createdAt: 'desc' }
+  });
+};
+
+export const getQuotationById = async (id, userId, role) => {
+  const where = { id };
+  if (role === 'SALES_REP') {
+    where.salesRepId = userId;
+  }
+  
+  return prisma.quotation.findFirst({
+    where,
+    include: {
+      versions: {
+        include: { items: true },
+        orderBy: { versionNumber: 'desc' }
+      },
+      customer: true,
+      approvalRequests: {
+        orderBy: { createdAt: 'desc' }
+      },
+      order: {
+        include: {
+          fulfillmentPlan: {
+            include: { items: true }
+          },
+          subscriptions: true,
+          invoices: true
+        }
+      }
+    }
   });
 };

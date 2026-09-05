@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import DealFlowLogo from '../../components/DealFlowLogo';
 
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -18,27 +19,33 @@ export default function Login() {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
+
       const result = await res.json();
-      if (!res.ok) throw new Error(result.message || 'Login failed');
+      if (!res.ok) {
+        throw new Error(result.message || 'Login failed');
+      }
 
       localStorage.setItem('accessToken', result.data.accessToken);
-      if (result.data.user) {
-        localStorage.setItem('user', JSON.stringify(result.data.user));
-      }
-      toast.success('Welcome back!');
+      localStorage.setItem('user', JSON.stringify(result.data.user));
 
-      const role = result.data?.user?.role;
-      if (role === 'ADMIN') {
-        navigate('/admin/products');
+      toast.success('Welcome back!');
+      
+      const role = result.data.user.role;
+      if (role === 'ADMIN' || role === 'SALES_MANAGER' || role === 'SALES_REP') {
+        navigate('/sales/dashboard');
+      } else if (role === 'FINANCE') {
+        navigate('/sales/invoices');
+      } else if (role === 'OPERATIONS') {
+        navigate('/sales/fulfillment');
       } else if (role === 'CUSTOMER') {
-        navigate('/customer');
+        navigate('/customer/quotations/current');
       } else {
         navigate('/sales/dashboard');
       }
     } catch (err) {
-      toast.error(err.message || 'Login failed');
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -50,11 +57,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-200/80">
         <div className="p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">DealFlow<span className="text-blue-600">360</span></h1>
-            <p className="text-slate-500 mt-2">Sign in to your account</p>
+          <div className="flex flex-col items-center mb-8">
+            <DealFlowLogo variant="light" size="lg" className="mb-2" />
+            <p className="text-slate-500 text-sm mt-1">Sign in to your enterprise account</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -67,7 +74,7 @@ export default function Login() {
                 <input
                   type="email"
                   {...register('email', { required: 'Email is required' })}
-                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
                   placeholder="you@company.com"
                 />
               </div>
@@ -77,7 +84,7 @@ export default function Login() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-semibold text-slate-700">Password</label>
-                <Link to="/auth/forgot-password" className="text-xs text-blue-600 hover:text-blue-500 font-medium">Forgot password?</Link>
+                <Link to="/auth/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-500 font-medium">Forgot password?</Link>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -86,7 +93,7 @@ export default function Login() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('password', { required: 'Password is required' })}
-                  className="w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className="w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
                   placeholder="••••••••"
                 />
                 <button
@@ -104,7 +111,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center shadow-xs"
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -118,7 +125,7 @@ export default function Login() {
 
           <button
             onClick={loginWithGoogle}
-            className="w-full mt-6 bg-white border border-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-lg hover:bg-slate-50 transition-colors flex justify-center items-center gap-2 shadow-sm"
+            className="w-full mt-6 bg-white border border-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-lg hover:bg-slate-50 transition-colors flex justify-center items-center gap-2 shadow-xs"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -130,7 +137,7 @@ export default function Login() {
           </button>
 
           <p className="mt-8 text-center text-sm text-slate-500">
-            Don't have an account? <Link to="/auth/signup" className="text-blue-600 hover:text-blue-500 font-medium">Create one</Link>
+            Don't have an account? <Link to="/auth/signup" className="text-indigo-600 hover:text-indigo-500 font-medium">Create one</Link>
           </p>
         </div>
       </div>

@@ -23,3 +23,15 @@ export const listQuotations = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getQuotation = async (req, res, next) => {
+  try {
+    const quotation = await quotationService.getQuotationById(req.params.id, req.user.id, req.user.role);
+    if (!quotation) {
+      return res.status(404).json({ success: false, message: 'Quotation not found' });
+    }
+    sendSuccess(res, 200, 'Quotation retrieved', quotation);
+  } catch (err) {
+    next(err);
+  }
+};

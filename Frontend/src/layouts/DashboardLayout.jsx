@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import DealFlowLogo from '../components/DealFlowLogo';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -27,16 +28,31 @@ import {
   ChevronRight,
   Palette,
   Sparkles,
-  Sliders
+  Sliders,
+  Columns3,
+  Users
 } from 'lucide-react';
 
-const AVATAR_PRESETS = [
-  { id: 'blue', name: 'Ocean Blue', bg: 'from-blue-600 to-indigo-600', text: 'text-white' },
-  { id: 'purple', name: 'Royal Purple', bg: 'from-purple-600 to-pink-600', text: 'text-white' },
-  { id: 'emerald', name: 'Emerald Green', bg: 'from-emerald-500 to-teal-700', text: 'text-white' },
-  { id: 'amber', name: 'Amber Sun', bg: 'from-amber-500 to-orange-600', text: 'text-white' },
-  { id: 'rose', name: 'Rose Sunset', bg: 'from-rose-500 to-red-600', text: 'text-white' },
-  { id: 'dark', name: 'Slate Onyx', bg: 'from-slate-700 to-slate-900', text: 'text-white' },
+const AVATAR_IMAGES = [
+  { id: 'avatar-1', name: 'Executive Leader', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden&backgroundColor=e2e8f0' },
+  { id: 'avatar-2', name: 'Deal Strategist', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka&backgroundColor=f1f5f9' },
+  { id: 'avatar-3', name: 'Sales Director', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Max&backgroundColor=e2e8f0' },
+  { id: 'avatar-4', name: 'Finance Lead', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zoe&backgroundColor=f1f5f9' },
+  { id: 'avatar-5', name: 'Operations Mgr', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mason&backgroundColor=e2e8f0' },
+  { id: 'avatar-6', name: 'Deal Architect', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Felix&backgroundColor=f1f5f9' },
+  { id: 'avatar-7', name: 'Security Analyst', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Shadow&backgroundColor=e2e8f0' },
+  { id: 'avatar-8', name: 'VP of Growth', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sara&backgroundColor=f1f5f9' },
+];
+
+const INITIAL_COLORS = [
+  { id: 'indigo', name: 'Matte Indigo', bg: 'bg-indigo-700', text: 'text-white' },
+  { id: 'slate', name: 'Graphite Slate', bg: 'bg-slate-700', text: 'text-white' },
+  { id: 'blue', name: 'Matte Navy', bg: 'bg-blue-800', text: 'text-white' },
+  { id: 'teal', name: 'Deep Teal', bg: 'bg-teal-800', text: 'text-white' },
+  { id: 'emerald', name: 'Forest Green', bg: 'bg-emerald-800', text: 'text-white' },
+  { id: 'amber', name: 'Warm Amber', bg: 'bg-amber-800', text: 'text-white' },
+  { id: 'rose', name: 'Matte Crimson', bg: 'bg-rose-800', text: 'text-white' },
+  { id: 'zinc', name: 'Carbon Zinc', bg: 'bg-zinc-800', text: 'text-white' },
 ];
 
 export default function DashboardLayout() {
@@ -50,7 +66,9 @@ export default function DashboardLayout() {
   
   const [user, setUser] = useState(null);
   const [displayName, setDisplayName] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState('blue');
+  const [avatarType, setAvatarType] = useState('initial'); // 'initial' | 'image'
+  const [selectedAvatarImage, setSelectedAvatarImage] = useState(AVATAR_IMAGES[0].url);
+  const [selectedInitialColor, setSelectedInitialColor] = useState('blue');
 
   const [notifications, setNotifications] = useState([
     {
@@ -70,7 +88,7 @@ export default function DashboardLayout() {
     {
       id: 3,
       title: 'Payment Received',
-      desc: 'Invoice #INV-2041 marked as PAID ($12,400.00).',
+      desc: 'Invoice #INV-2041 marked as PAID (₹12,400.00).',
       time: '3h ago',
       read: true
     }
@@ -88,9 +106,9 @@ export default function DashboardLayout() {
         const parsed = JSON.parse(userStr);
         setUser(parsed);
         setDisplayName(parsed.name || '');
-        if (parsed.avatarPreset) {
-          setSelectedAvatar(parsed.avatarPreset);
-        }
+        if (parsed.avatarType) setAvatarType(parsed.avatarType);
+        if (parsed.avatarImage) setSelectedAvatarImage(parsed.avatarImage);
+        if (parsed.initialColor) setSelectedInitialColor(parsed.initialColor);
       } catch (e) {
         console.error('Error parsing user', e);
       }
@@ -137,12 +155,14 @@ export default function DashboardLayout() {
     const updatedUser = {
       ...user,
       name: displayName,
-      avatarPreset: selectedAvatar
+      avatarType,
+      avatarImage: selectedAvatarImage,
+      initialColor: selectedInitialColor
     };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
     setSettingsModalOpen(false);
-    toast.success('Profile and settings updated!');
+    toast.success('Profile and avatar settings updated!');
   };
 
   const userRole = user?.role || 'SALES_REP';
@@ -170,17 +190,62 @@ export default function DashboardLayout() {
   const roleConfig = getRoleConfig(userRole);
   const RoleIcon = roleConfig.icon;
 
-  // The comprehensive list of pages for sales/SaaS pipeline
-  const salesNavigation = [
-    { title: 'Dashboard', path: '/sales/dashboard', icon: LayoutDashboard },
-    { title: 'Quotations', path: '/sales/quotations', icon: FileText },
-    { title: 'Approvals', path: '/sales/approvals', icon: CheckSquare },
-    { title: 'Fulfillment', path: '/sales/fulfillment', icon: Truck },
-    { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
-    { title: 'Invoices', path: '/sales/invoices', icon: Receipt },
-    { title: 'Deal Health', path: '/sales/deal-health', icon: Activity },
-    { title: 'Reports', path: '/sales/reports', icon: BarChart3 },
-    { title: 'Product', path: '/sales/products', icon: Package },
+  const currentInitialPreset = INITIAL_COLORS.find(c => c.id === selectedInitialColor) || INITIAL_COLORS[0];
+
+  // Helper component to render current avatar cleanly
+  const renderAvatar = (size = 'w-9 h-9', textClass = 'text-sm') => {
+    if (avatarType === 'image' && selectedAvatarImage) {
+      return (
+        <div className={`${size} rounded-full overflow-hidden bg-slate-100 ring-2 ring-slate-200 shrink-0 shadow-sm`}>
+          <img src={selectedAvatarImage} alt={userName} className="w-full h-full object-cover" />
+        </div>
+      );
+    }
+    return (
+      <div className={`${size} rounded-full ${currentInitialPreset.bg} ${currentInitialPreset.text} flex items-center justify-center font-bold ${textClass} shadow-xs ring-1 ring-slate-300 shrink-0`}>
+        {userName.charAt(0).toUpperCase()}
+      </div>
+    );
+  };
+
+  // Navigation grouped by DealFlow360 business workflow
+  const navSections = [
+    {
+      title: 'Sales Pipeline',
+      items: [
+        { title: 'Dashboard', path: '/sales/dashboard', icon: LayoutDashboard },
+        { title: 'Quotations', path: '/sales/quotations', icon: FileText },
+        { title: 'Pipeline', path: '/sales/pipeline', icon: Columns3 },
+      ]
+    },
+    {
+      title: 'Deal Operations',
+      items: [
+        { title: 'Approvals', path: '/sales/approvals', icon: CheckSquare },
+        { title: 'Fulfillment', path: '/sales/fulfillment', icon: Truck },
+        { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
+        { title: 'Invoices', path: '/sales/invoices', icon: Receipt },
+      ]
+    },
+    {
+      title: 'Customers',
+      items: [
+        { title: 'Customers', path: '/sales/customers', icon: Users },
+      ]
+    },
+    {
+      title: 'Insights',
+      items: [
+        { title: 'Deal Health', path: '/sales/deal-health', icon: Activity },
+        { title: 'Reports', path: '/sales/reports', icon: BarChart3 },
+      ]
+    },
+    {
+      title: 'Catalog',
+      items: [
+        { title: 'Products', path: '/sales/products', icon: Package },
+      ]
+    }
   ];
 
   const adminRulesNavigation = [
@@ -189,31 +254,36 @@ export default function DashboardLayout() {
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  const currentAvatarPreset = AVATAR_PRESETS.find(p => p.id === selectedAvatar) || AVATAR_PRESETS[0];
 
   const getPageTitle = () => {
     const p = location.pathname;
     if (p.includes('/sales/dashboard')) return 'Dashboard';
     if (p.includes('/sales/quotations/new')) return 'New Quotation';
+    if (p.includes('/sales/quotations/') && p.includes('/edit')) return 'Edit Quotation';
+    if (p.includes('/sales/quotations/')) return 'Quotation Details';
     if (p.includes('/sales/quotations')) return 'Quotations';
-    if (p.includes('/sales/approvals')) return 'Approvals';
+    if (p.includes('/sales/pipeline')) return 'Deal Pipeline';
+    if (p.includes('/sales/approvals')) return 'Approval Queue';
+    if (p.includes('/sales/fulfillment/')) return 'Warehouse Split Allocation';
     if (p.includes('/sales/fulfillment')) return 'Fulfillment';
     if (p.includes('/sales/subscriptions')) return 'Subscriptions';
-    if (p.includes('/sales/invoices')) return 'Invoices';
+    if (p.includes('/sales/invoices')) return 'Invoices & Billing';
+    if (p.includes('/sales/customers/')) return 'Customer Profile';
+    if (p.includes('/sales/customers')) return 'Customers';
     if (p.includes('/sales/deal-health')) return 'Deal Health';
-    if (p.includes('/sales/reports') || p.includes('/admin/reports')) return 'Reports';
-    if (p.includes('/sales/products') || p.includes('/admin/products')) return 'Product & Pricing';
+    if (p.includes('/sales/reports') || p.includes('/admin/reports')) return 'Sales Reports & Analytics';
+    if (p.includes('/sales/products') || p.includes('/admin/products')) return 'Product & Pricing Catalog';
     if (p.includes('/admin/discount-rules')) return 'Discount Rules';
     if (p.includes('/admin/approval-rules')) return 'Approval Rules';
-    return 'DealFlow360';
+    return 'Sales Workspace';
   };
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-[#0A0D14] font-sans antialiased text-slate-800">
+    <div className="h-screen w-screen flex overflow-hidden bg-slate-900 font-sans antialiased text-slate-800">
       {/* Mobile Sidebar Overlay Backdrop */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden transition-opacity"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -221,34 +291,15 @@ export default function DashboardLayout() {
 
       {/* Left Sidebar */}
       <aside className={`
-        fixed top-0 bottom-0 left-0 z-50 bg-[#0B0F17] text-slate-200 flex flex-col border-r border-slate-800/60
+        fixed top-0 bottom-0 left-0 z-50 bg-slate-900 text-slate-200 flex flex-col border-r border-slate-800
         transition-all duration-300 ease-in-out lg:static lg:z-auto shrink-0 select-none
         ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
         ${isCollapsed ? 'lg:w-[72px]' : 'lg:w-64'}
       `}>
         {/* Top Branding (Website Name & Logo) */}
-        <div className={`h-16 px-4 border-b border-slate-800/80 flex items-center justify-between shrink-0 ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+        <div className={`h-16 px-4 border-b border-slate-800 flex items-center justify-between shrink-0 ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
           <Link to="/sales/dashboard" className="flex items-center gap-3 group min-w-0">
-            {/* New Modern SaaS Product Logo */}
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-teal-400 p-[1.5px] flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform shrink-0">
-              <div className="w-full h-full bg-[#0B0F17] rounded-[10px] flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-blue-500/10 backdrop-blur-xs"></div>
-                <svg className="w-5 h-5 text-blue-400 group-hover:text-teal-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-            </div>
-
-            {!isCollapsed && (
-              <div className="overflow-hidden transition-opacity duration-200">
-                <span className="text-lg font-black tracking-tight text-white flex items-center leading-none">
-                  DealFlow<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-400 ml-0.5">360</span>
-                </span>
-                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest block mt-1">
-                  Enterprise CPQ
-                </span>
-              </div>
-            )}
+            <DealFlowLogo variant="dark" iconOnly={isCollapsed} size={isCollapsed ? 'md' : 'md'} />
           </Link>
 
           {/* Desktop Collapse Toggle Button */}
@@ -256,7 +307,7 @@ export default function DashboardLayout() {
             <button
               type="button"
               onClick={() => setIsCollapsed(true)}
-              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               title="Collapse sidebar"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -275,11 +326,11 @@ export default function DashboardLayout() {
 
         {/* Collapsed Expand Trigger */}
         {isCollapsed && (
-          <div className="hidden lg:flex justify-center py-2 border-b border-slate-800/60">
+          <div className="hidden lg:flex justify-center py-2 border-b border-slate-800">
             <button
               type="button"
               onClick={() => setIsCollapsed(false)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               title="Expand sidebar"
             >
               <ChevronRight className="w-4 h-4" />
@@ -288,47 +339,48 @@ export default function DashboardLayout() {
         )}
 
         {/* Navigation Section */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 custom-scrollbar">
-          {/* Main Navigation (Sales Pages) */}
-          <div>
-            {!isCollapsed && (
-              <div className="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Sales Pipeline
-              </div>
-            )}
-            <nav className="space-y-1">
-              {salesNavigation.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path || (item.path === '/sales/dashboard' && location.pathname === '/sales');
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    title={isCollapsed ? item.title : undefined}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                      isActive 
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 font-semibold' 
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-                    } ${isCollapsed ? 'justify-center px-0' : ''}`}
-                  >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                    {!isCollapsed && <span className="truncate">{item.title}</span>}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
+          {navSections.map((section) => (
+            <div key={section.title}>
+              {!isCollapsed && (
+                <div className="px-3 mb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {section.title}
+                </div>
+              )}
+              <nav className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path || (item.path === '/sales/dashboard' && location.pathname === '/sales');
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      title={isCollapsed ? item.title : undefined}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        isActive 
+                          ? 'bg-indigo-600 text-white font-semibold shadow-xs' 
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                      } ${isCollapsed ? 'justify-center px-0' : ''}`}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                      {!isCollapsed && <span className="truncate text-xs sm:text-sm">{item.title}</span>}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
 
           {/* Admin Rule Matrix (if admin role) */}
           {userRole === 'ADMIN' && (
             <div>
               {!isCollapsed && (
-                <div className="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <div className="px-3 mb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>Configuration</span>
                   <ShieldCheck className="w-3 h-3 text-purple-400" />
                 </div>
               )}
-              <nav className="space-y-1">
+              <nav className="space-y-0.5">
                 {adminRulesNavigation.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -337,14 +389,14 @@ export default function DashboardLayout() {
                       key={item.path}
                       to={item.path}
                       title={isCollapsed ? item.title : undefined}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                         isActive 
-                          ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20 font-semibold' 
+                          ? 'bg-purple-600 text-white shadow-xs font-semibold' 
                           : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
                       } ${isCollapsed ? 'justify-center px-0' : ''}`}
                     >
                       <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                      {!isCollapsed && <span className="truncate">{item.title}</span>}
+                      {!isCollapsed && <span className="truncate text-xs sm:text-sm">{item.title}</span>}
                     </Link>
                   );
                 })}
@@ -357,8 +409,8 @@ export default function DashboardLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full min-w-0 bg-[#F8FAFC] overflow-hidden">
         {/* Top Header Bar */}
-        <header className="h-16 shrink-0 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between z-20 shadow-xs">
-          {/* Left: Mobile hamburger menu & Page Title */}
+        <header className="h-16 shrink-0 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between z-20 shadow-xs">
+          {/* Left: Mobile hamburger menu & Page Title with contextual role badge */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -368,11 +420,13 @@ export default function DashboardLayout() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate">
                 {getPageTitle()}
               </h1>
-              <span className={`hidden sm:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md border ${roleConfig.badgeLight}`}>
+              <span className="text-slate-300 text-sm hidden sm:inline">|</span>
+              <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-md border ${roleConfig.badgeLight}`}>
+                <RoleIcon className="w-3 h-3" />
                 {roleConfig.label}
               </span>
             </div>
@@ -453,24 +507,24 @@ export default function DashboardLayout() {
                 className="relative focus:outline-none group rounded-full"
                 aria-label="Open profile menu"
               >
-                <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${currentAvatarPreset.bg} ${currentAvatarPreset.text} flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-slate-200 group-hover:ring-blue-500 transition-all`}>
-                  {userName.charAt(0).toUpperCase()}
-                </div>
+                {renderAvatar('w-9 h-9', 'text-sm')}
               </button>
 
               {/* Profile Menu Dropdown */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   {/* Dropdown Header */}
-                  <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                    <p className="text-xs text-slate-400 font-medium">Signed in as</p>
-                    <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
-                    <p className="text-xs text-slate-500 truncate">{userEmail}</p>
-                    <div className="mt-1.5">
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border ${roleConfig.badgeLight}`}>
-                        <RoleIcon className="w-3 h-3" />
-                        {roleConfig.label}
-                      </span>
+                  <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+                    {renderAvatar('w-10 h-10', 'text-base')}
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
+                      <p className="text-xs text-slate-500 truncate">{userEmail}</p>
+                      <div className="mt-1">
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border ${roleConfig.badgeLight}`}>
+                          <RoleIcon className="w-3 h-3" />
+                          {roleConfig.label}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -520,7 +574,7 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        {/* Content Outlet (Full height scrollable container without layout jumps or bottom gaps) */}
+        {/* Content Outlet */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 overscroll-none">
           <Outlet />
         </main>
@@ -577,9 +631,7 @@ export default function DashboardLayout() {
 
             <div className="py-5 space-y-4">
               <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${currentAvatarPreset.bg} ${currentAvatarPreset.text} flex items-center justify-center font-bold text-xl shadow-md`}>
-                  {userName.charAt(0).toUpperCase()}
-                </div>
+                {renderAvatar('w-14 h-14', 'text-xl')}
                 <div>
                   <h4 className="font-bold text-slate-900 text-base">{userName}</h4>
                   <p className="text-xs text-slate-500">{userEmail}</p>
@@ -624,9 +676,12 @@ export default function DashboardLayout() {
       {/* Settings & Avatar Customization Modal */}
       {settingsModalOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">Settings & Avatar</h3>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Account Settings & Avatar</h3>
+                <p className="text-xs text-slate-500">Customize how your profile appears across DealFlow360</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setSettingsModalOpen(false)}
@@ -636,50 +691,97 @@ export default function DashboardLayout() {
               </button>
             </div>
 
-            <div className="py-4 space-y-4 text-xs">
-              {/* Edit Display Name */}
+            <div className="py-4 space-y-5 text-xs">
+              {/* Display Name Input */}
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">Display Name</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-900 text-xs"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-900 text-xs"
                   placeholder="Your full name"
                 />
               </div>
 
-              {/* Avatar Color / Preset Selection */}
+              {/* Avatar Style Choice: Images vs Initial */}
               <div>
-                <label className="font-semibold text-slate-700 block mb-1.5 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-blue-600" />
-                  Avatar Color Theme
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {AVATAR_PRESETS.map((preset) => (
+                <div className="flex items-center justify-between mb-2">
+                  <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Palette className="w-4 h-4 text-indigo-600" />
+                    Avatar Display Style
+                  </label>
+                  <div className="flex bg-slate-100 p-0.5 rounded-lg">
                     <button
                       type="button"
-                      key={preset.id}
-                      onClick={() => setSelectedAvatar(preset.id)}
-                      className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all ${
-                        selectedAvatar === preset.id 
-                          ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-600/20' 
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
+                      onClick={() => setAvatarType('initial')}
+                      className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${avatarType === 'initial' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'}`}
                     >
-                      <div className={`w-5 h-5 rounded-full bg-gradient-to-tr ${preset.bg} shrink-0`}></div>
-                      <span className="text-[11px] font-medium text-slate-700 truncate">{preset.name}</span>
+                      Letter Initial
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setAvatarType('image')}
+                      className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${avatarType === 'image' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600'}`}
+                    >
+                      Illustrated Persona
+                    </button>
+                  </div>
                 </div>
+
+                {avatarType === 'initial' ? (
+                  <div>
+                    <p className="text-[11px] text-slate-500 mb-2.5">Choose background color for your initial letter:</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {INITIAL_COLORS.map((preset) => (
+                        <button
+                          type="button"
+                          key={preset.id}
+                          onClick={() => setSelectedInitialColor(preset.id)}
+                          className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all ${
+                            selectedInitialColor === preset.id 
+                              ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600/20' 
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className={`w-5 h-5 rounded-full ${preset.bg} shrink-0`}></div>
+                          <span className="text-[10px] font-medium text-slate-700 truncate">{preset.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[11px] text-slate-500 mb-2.5">Select a character persona avatar:</p>
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {AVATAR_IMAGES.map((img) => (
+                        <button
+                          type="button"
+                          key={img.id}
+                          onClick={() => setSelectedAvatarImage(img.url)}
+                          className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all group ${
+                            selectedAvatarImage === img.url 
+                              ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600/20' 
+                              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="w-11 h-11 rounded-full overflow-hidden bg-slate-100 mb-1 border border-slate-200">
+                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                          </div>
+                          <span className="text-[10px] font-medium text-slate-700 text-center leading-tight truncate w-full">{img.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Notification Preferences */}
               <div className="pt-3 border-t border-slate-100">
                 <label className="font-semibold text-slate-700 block mb-1">Email Alerts</label>
                 <label className="flex items-center gap-2 cursor-pointer mt-1">
-                  <input type="checkbox" defaultChecked className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                  <span className="text-slate-600 font-medium">Receive real-time quotation approval alerts</span>
+                  <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                  <span className="text-slate-600 font-medium">Receive real-time quotation approval and discount alerts</span>
                 </label>
               </div>
             </div>
@@ -688,14 +790,14 @@ export default function DashboardLayout() {
               <button
                 type="button"
                 onClick={() => setSettingsModalOpen(false)}
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveSettings}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm"
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
               >
                 Save Changes
               </button>
@@ -706,3 +808,4 @@ export default function DashboardLayout() {
     </div>
   );
 }
+

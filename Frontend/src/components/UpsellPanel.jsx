@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-const API = 'http://localhost:5000/api/v1/upsell';
+const API = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/upsell`;
 const getToken = () => localStorage.getItem('accessToken');
 
 const fetchSuggestions = async (lineItems) => {
@@ -50,8 +50,8 @@ export default function UpsellPanel({ lineItems, onAddProduct }) {
                 <p className="text-xs text-slate-500 mt-0.5">{s.reason}</p>
               </div>
               <div className="text-right ml-4 flex-shrink-0">
-                <p className="text-sm font-bold text-slate-900">${s.price.toLocaleString()}</p>
-                <p className="text-xs text-green-600">+${s.marginDelta.toFixed(0)} margin</p>
+                <p className="text-sm font-bold text-slate-900">₹{s.price.toLocaleString()}</p>
+                <p className="text-xs text-green-600">+₹{s.marginDelta.toFixed(0)} margin</p>
               </div>
               <button
                 type="button"

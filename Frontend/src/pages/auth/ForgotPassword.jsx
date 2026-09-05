@@ -10,10 +10,12 @@ export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
+
   const handleRequestOtp = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/forgot-password', {
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: data.email })
@@ -31,7 +33,7 @@ export default function ForgotPassword() {
   const handleResetPassword = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/reset-password', {
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: data.otp, newPassword: data.newPassword })

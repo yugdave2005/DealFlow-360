@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import DealFlowLogo from '../../components/DealFlowLogo';
 import { 
   Briefcase, 
   UserCheck, 
@@ -29,39 +30,38 @@ const ROLES = [
   },
   {
     id: 'FINANCE',
-    title: 'Finance',
+    title: 'Finance Controller',
     icon: CreditCard
   },
   {
     id: 'OPERATIONS',
-    title: 'Operations',
+    title: 'Operations / Fulfillment',
     icon: Truck
   },
   {
     id: 'CUSTOMER',
-    title: 'Customer',
+    title: 'Customer Client',
     icon: User
   }
 ];
 
 export default function Signup() {
-  const [selectedRole, setSelectedRole] = useState('SALES_REP');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
-
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: {
       role: 'SALES_REP'
     }
   });
 
-  const handleRoleSelect = (roleId) => {
-    setSelectedRole(roleId);
-    setValue('role', roleId, { shouldValidate: true });
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const selectedRole = watch('role');
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
+
+  const handleRoleSelect = (roleId) => {
+    setValue('role', roleId, { shouldValidate: true });
+  };
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -69,23 +69,25 @@ export default function Signup() {
       const res = await fetch(`${API_BASE_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          role: selectedRole
-        })
+        body: JSON.stringify(data)
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || 'Signup failed');
       
       localStorage.setItem('accessToken', result.data.accessToken);
-      if (result.data.user) {
-        localStorage.setItem('user', JSON.stringify(result.data.user));
-      }
+      localStorage.setItem('user', JSON.stringify(result.data.user));
 
       toast.success(`Account created successfully!`);
       
-      if (selectedRole === 'CUSTOMER') {
-        navigate('/customer');
+      const role = result.data.user.role;
+      if (role === 'ADMIN' || role === 'SALES_MANAGER' || role === 'SALES_REP') {
+        navigate('/sales/dashboard');
+      } else if (role === 'FINANCE') {
+        navigate('/sales/invoices');
+      } else if (role === 'OPERATIONS') {
+        navigate('/sales/fulfillment');
+      } else if (role === 'CUSTOMER') {
+        navigate('/customer/quotations/current');
       } else {
         navigate('/sales/dashboard');
       }
@@ -102,13 +104,11 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 py-8">
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-200/80">
         <div className="p-6 sm:p-10">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              DealFlow<span className="text-blue-600">360</span>
-            </h1>
-            <p className="text-slate-500 mt-2 text-sm sm:text-base">
+          <div className="flex flex-col items-center mb-8">
+            <DealFlowLogo variant="light" size="lg" className="mb-2" />
+            <p className="text-slate-500 mt-1 text-sm text-center">
               Create your account to start managing quotes, approvals, and deals.
             </p>
           </div>
@@ -126,7 +126,7 @@ export default function Signup() {
                 <input 
                   type="text" 
                   {...register('name', { required: 'Name is required' })} 
-                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
                   placeholder="Jane Doe" 
                 />
               </div>
@@ -151,7 +151,7 @@ export default function Signup() {
                       message: 'Invalid email address'
                     }
                   })} 
-                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
                   placeholder="jane@company.com" 
                 />
               </div>
@@ -173,7 +173,7 @@ export default function Signup() {
                     required: 'Password is required', 
                     minLength: { value: 8, message: 'Password must be at least 8 characters' } 
                   })} 
-                  className="w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
+                  className="w-full pl-11 pr-11 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:bg-white text-slate-900 placeholder-slate-400 transition-all text-sm sm:text-base"
                   placeholder="••••••••" 
                 />
                 <button
@@ -211,12 +211,12 @@ export default function Signup() {
                       onClick={() => handleRoleSelect(role.id)}
                       className={`relative flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all ${
                         isSelected 
-                          ? 'border-blue-600 bg-blue-50/70 shadow-sm text-blue-900 font-semibold ring-1 ring-blue-600/20' 
+                          ? 'border-indigo-600 bg-indigo-50/70 shadow-xs text-indigo-950 font-semibold ring-1 ring-indigo-600/20' 
                           : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-medium'
                       }`}
                     >
                       <div className={`p-1.5 rounded-lg shrink-0 ${
-                        isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'
+                        isSelected ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600'
                       }`}>
                         <Icon className="w-4 h-4" />
                       </div>
@@ -224,7 +224,7 @@ export default function Signup() {
                         {role.title}
                       </span>
                       {isSelected && (
-                        <CheckCircle2 className="w-4 h-4 text-blue-600 ml-auto shrink-0 fill-blue-600 text-white" />
+                        <CheckCircle2 className="w-4 h-4 text-indigo-600 ml-auto shrink-0 fill-indigo-600 text-white" />
                       )}
                     </button>
                   );
@@ -235,7 +235,7 @@ export default function Signup() {
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm shadow-blue-500/20"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-xs"
             >
               {isLoading ? (
                 <>
@@ -257,7 +257,7 @@ export default function Signup() {
           <button 
             type="button"
             onClick={loginWithGoogle}
-            className="w-full mt-4 bg-white border border-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 transition-colors flex justify-center items-center gap-2.5 shadow-sm text-sm"
+            className="w-full mt-4 bg-white border border-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 transition-colors flex justify-center items-center gap-2.5 shadow-xs text-sm"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -269,7 +269,7 @@ export default function Signup() {
           </button>
 
           <p className="mt-6 text-center text-sm text-slate-500">
-            Already have an account? <Link to="/auth/login" className="text-blue-600 hover:text-blue-500 font-semibold">Log in</Link>
+            Already have an account? <Link to="/auth/login" className="text-indigo-600 hover:text-indigo-500 font-semibold">Log in</Link>
           </p>
         </div>
       </div>

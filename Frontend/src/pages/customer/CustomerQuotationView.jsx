@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import DealFlowLogo from '../../components/DealFlowLogo';
 
-const API = 'http://localhost:5000/api/v1/customer-portal';
+const API = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/customer-portal`;
 
 export default function CustomerQuotationView() {
   const { id } = useParams();
@@ -63,14 +64,21 @@ export default function CustomerQuotationView() {
 
   const version = quote.versions?.[0];
   const items = version?.items || [];
-  const statusColors = { SENT: 'bg-blue-100 text-blue-700', NEGOTIATION: 'bg-amber-100 text-amber-700', CONFIRMED: 'bg-green-100 text-green-700' };
+  const statusColors = { 
+    SENT: 'bg-slate-100 text-slate-700 border border-slate-200', 
+    NEGOTIATION: 'bg-amber-50 text-amber-700 border border-amber-200', 
+    CONFIRMED: 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 font-sans">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">DealFlow<span className="text-blue-600">360</span> Portal</h1>
-          <button onClick={() => navigate('/')} className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition">Return to internal</button>
+          <div className="flex items-center gap-3">
+            <DealFlowLogo variant="light" size="lg" />
+            <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded border border-slate-200">Customer Portal</span>
+          </div>
+          <button onClick={() => navigate('/')} className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition">Return to workspace</button>
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden mb-6">
@@ -94,10 +102,10 @@ export default function CustomerQuotationView() {
                 <div key={item.id} className="flex justify-between items-center p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <div>
                     <p className="font-bold text-slate-800 text-lg">{item.productId.slice(0, 8).toUpperCase()}</p>
-                    <p className="text-sm text-slate-500">{item.quantity} x ${parseFloat(item.unitPrice).toLocaleString()}</p>
+                    <p className="text-sm text-slate-500">{item.quantity} x ₹{parseFloat(item.unitPrice).toLocaleString()}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-slate-900 text-lg">${(item.quantity * item.unitPrice).toLocaleString()}</p>
+                    <p className="font-bold text-slate-900 text-lg">₹{(item.quantity * item.unitPrice).toLocaleString()}</p>
                     {item.discountPercentage > 0 && <span className="text-xs font-bold text-red-500 px-2 py-0.5 bg-red-50 rounded-md">-{item.discountPercentage}% off</span>}
                   </div>
                 </div>
@@ -109,7 +117,7 @@ export default function CustomerQuotationView() {
               <div className="text-right">
                 <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Total Agreed Value</p>
                 <p className="text-5xl font-black text-slate-900 tracking-tight">
-                  <span className="text-2xl text-slate-400 mr-1">$</span>
+                  <span className="text-2xl text-slate-400 mr-1">₹</span>
                   {parseFloat(version?.totalAmount - version?.totalDiscount).toLocaleString()}
                 </p>
               </div>
@@ -127,7 +135,7 @@ export default function CustomerQuotationView() {
                   />
                   <input 
                     type="number" value={counterDiscount} onChange={e => setCounterDiscount(e.target.value)}
-                    placeholder="Target total discount amount ($)" 
+                    placeholder="Target total discount amount (₹)" 
                     className="w-full p-3 rounded-lg border border-slate-200 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
                   <button 

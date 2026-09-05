@@ -10,5 +10,6 @@ router.use(requireAuth); // All quotation routes require auth
 
 router.post('/', requireRole(['SALES_REP', 'SALES_MANAGER', 'ADMIN']), validate(createQuotationSchema), quotationController.createQuotation);
 router.get('/', requireRole(['SALES_REP', 'SALES_MANAGER', 'ADMIN', 'FINANCE', 'OPERATIONS']), quotationController.listQuotations);
+router.get('/:id', requireRole(['SALES_REP', 'SALES_MANAGER', 'ADMIN', 'FINANCE', 'OPERATIONS']), quotationController.getQuotation);
 
 export default router;
