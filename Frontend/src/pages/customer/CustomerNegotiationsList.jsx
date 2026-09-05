@@ -1,36 +1,54 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   MessageSquare, 
   Clock, 
   ArrowRight, 
-  Inbox
+  Inbox,
+  User,
+  CheckCircle2,
+  TrendingDown,
+  FileText,
+  Building
 } from 'lucide-react';
+import { api } from '../../lib/axios';
 import StatusBadge from '../../components/common/StatusBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-const API_QUOTATIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
-const getToken = () => localStorage.getItem('accessToken');
-
 export default function CustomerNegotiationsList() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('ALL'); // ALL | ACTIVE | CONFIRMED
 
   const { data: quotations = [], isLoading } = useQuery({
     queryKey: ['customerNegotiationsList'],
     queryFn: async () => {
-      const res = await fetch(API_QUOTATIONS, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || [];
+      try {
+        const res = await api.get('/customer-portal/quotations');
+        const list = res.data?.data || res.data || (Array.isArray(res) ? res : []);
+        return Array.isArray(list) ? list : [];
+      } catch (e) {
+        const fallback = await api.get('/quotations').catch(() => ({ data: [] }));
+        const list = fallback.data?.data || fallback.data || (Array.isArray(fallback) ? fallback : []);
+        return Array.isArray(list) ? list : [];
+      }
     }
   });
 
-  const negotiations = quotations.filter(q => 
-    ['UNDER_NEGOTIATION', 'NEGOTIATION', 'PENDING_APPROVAL'].includes(q.status)
-  );
+  const filteredNegotiations = useMemo(() => {
+    return (Array.isArray(quotations) ? quotations : []).filter(q => {
+      const allMessages = (q.versions || []).flatMap(v => v.messages || []);
+      const isNegotiating = ['UNDER_NEGOTIATION', 'NEGOTIATION', 'PENDING_APPROVAL', 'SENT'].includes(q.status) || allMessages.length > 0;
+
+      if (activeTab === 'ACTIVE') {
+        return ['UNDER_NEGOTIATION', 'NEGOTIATION', 'PENDING_APPROVAL', 'SENT'].includes(q.status);
+      }
+      if (activeTab === 'CONFIRMED') {
+        return ['CONFIRMED', 'APPROVED'].includes(q.status);
+      }
+      return isNegotiating || true; // Show all relevant proposals in ALL
+    });
+  }, [quotations, activeTab]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -47,14 +65,50 @@ export default function CustomerNegotiationsList() {
             </div>
           </div>
         </div>
+
+        {/* Tabs */}
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+          <button
+            onClick={() => setActiveTab('ALL')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'ALL'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            All Proposals ({quotations.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('ACTIVE')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'ACTIVE'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            In Review
+          </button>
+          <button
+            onClick={() => setActiveTab('CONFIRMED')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === 'CONFIRMED'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Finalized Deals
+          </button>
+        </div>
       </div>
 
       {/* Negotiations List */}
       <div className="space-y-4">
         {isLoading ? (
-          <LoadingSkeleton count={2} />
-        ) : negotiations.length === 0 ? (
-          <div className="py-16 text-center bg-white rounded-2xl border border-slate-200/80">
+          <div className="space-y-4">
+            <LoadingSkeleton count={2} />
+          </div>
+        ) : filteredNegotiations.length === 0 ? (
+          <div className="py-16 text-center bg-white rounded-2xl border border-slate-200/80 p-8 shadow-xs">
             <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-2" />
             <h3 className="text-sm font-semibold text-slate-800">No Active Negotiations</h3>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
@@ -62,38 +116,108 @@ export default function CustomerNegotiationsList() {
             </p>
           </div>
         ) : (
-          negotiations.map(q => {
+          filteredNegotiations.map(q => {
             const v = q.activeVersion || (q.versions && q.versions[0]) || {};
             const total = Number(v.totalAmount || q.totalAmount || 0);
+            const discount = Number(v.totalDiscount || 0);
+
+            // Extract all negotiation messages from versions
+            const allMessages = (q.versions || [])
+              .flatMap(ver => (ver.messages || []).map(m => ({ ...m, versionNumber: ver.versionNumber })))
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            const latestMessage = allMessages[0];
+            const messagesCount = allMessages.length;
+
             return (
-              <div key={q.id} className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 space-y-4">
+              <div key={q.id} className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 space-y-4 hover:border-slate-300 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-indigo-700">{q.quotationNumber || `QT-${q.id.slice(0,6)}`}</span>
-                    <span className="text-xs text-slate-500">· Created {q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'Recent'}</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-mono font-bold text-indigo-700 text-sm">
+                      {q.quotationNumber || `QT-${q.id.slice(0, 6)}`}
+                    </span>
+                    <span className="text-xs text-slate-400">·</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Created {q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'Recent'}
+                    </span>
+                    {q.versions && q.versions.length > 1 && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        Rev v{q.versions.length}
+                      </span>
+                    )}
                   </div>
                   <StatusBadge status={q.status} />
                 </div>
 
-                <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200/80 text-xs space-y-2">
-                  <div className="flex justify-between font-bold text-amber-900">
-                    <span>Proposal Value: ₹{total.toLocaleString('en-IN')}</span>
-                    <span className="text-amber-800">Status: {q.status}</span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200/80">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Commercial Proposal Value</span>
+                    <span className="text-lg font-extrabold text-slate-900 font-mono">₹{total.toLocaleString('en-IN')}</span>
                   </div>
-                  <p className="text-amber-800">
-                    Proposal is currently in review between your team and sales management.
-                  </p>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Applied Discount</span>
+                    <span className="text-sm font-bold text-emerald-700 font-mono">
+                      -₹{discount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Negotiation Status</span>
+                    <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 mt-0.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      {q.status === 'CONFIRMED' ? 'Terms finalized & accepted' :
+                       q.status === 'PENDING_APPROVAL' ? 'Counter-offer in governance review' :
+                       q.status === 'NEGOTIATION' ? 'Active negotiation thread' : 'Commercial proposal active'}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-2">
-                  <span className="text-xs text-slate-500">Awaiting commercial terms alignment</span>
-                  <button
-                    onClick={() => navigate(`/customer/quotations/${q.id}`)}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                  >
-                    <span>View Quotation Details</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                {/* Latest Negotiation Thread Message */}
+                {latestMessage ? (
+                  <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200/80 text-xs space-y-2">
+                    <div className="flex items-center justify-between font-bold text-amber-900">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+                        <span>
+                          {latestMessage.senderRole === 'CUSTOMER' ? 'Your Latest Counter-Offer' : 'Sales Representative Message'}
+                        </span>
+                        {latestMessage.proposedDiscount && (
+                          <span className="px-2 py-0.5 rounded bg-amber-200/70 text-amber-900 text-[10px] font-mono font-bold">
+                            {latestMessage.proposedDiscount}% Discount
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-amber-700 font-normal">
+                        {new Date(latestMessage.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-amber-800 text-xs pl-4 border-l-2 border-amber-300">
+                      "{latestMessage.content}"
+                    </p>
+                    {messagesCount > 1 && (
+                      <div className="text-[11px] text-amber-700/80 font-medium pl-4 pt-1">
+                        + {messagesCount - 1} earlier exchange{messagesCount > 2 ? 's' : ''} in negotiation history
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+                    <span>No counter-proposals submitted yet. You can propose revised discounts or commercial terms.</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+                  <span className="text-xs text-slate-500">
+                    {q.status === 'CONFIRMED' ? 'Agreement reached. View proposal specifications anytime.' : 'Click to inspect detailed terms, submit counter-discounts, or sign.'}
+                  </span>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => navigate(`/portal/quotations/${q.id}`)}
+                      className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>{q.status === 'CONFIRMED' ? 'View Proposal Details' : 'Review & Negotiate Terms'}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -103,3 +227,4 @@ export default function CustomerNegotiationsList() {
     </div>
   );
 }
+

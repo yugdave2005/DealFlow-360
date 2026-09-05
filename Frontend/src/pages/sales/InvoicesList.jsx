@@ -21,8 +21,7 @@ import StatusBadge from '../../components/common/StatusBadge';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-const API = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/invoices`;
-const getToken = () => localStorage.getItem('accessToken');
+import { api } from '../../lib/axios';
 
 export default function InvoicesList() {
   const queryClient = useQueryClient();
@@ -38,30 +37,23 @@ export default function InvoicesList() {
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['salesInvoices'],
     queryFn: async () => {
-      const res = await fetch(API, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch invoices');
-      const json = await res.json();
-      return json.data || [];
+      try {
+        const res = await api.get('/invoices');
+        const list = res.data?.data || res.data || (Array.isArray(res) ? res : []);
+        return Array.isArray(list) ? list : [];
+      } catch (e) {
+        return [];
+      }
     }
   });
 
   const recordPaymentMutation = useMutation({
     mutationFn: async ({ invoiceId, paymentMethod, paymentReference }) => {
-      const res = await fetch(`${API}/${invoiceId}/pay`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getToken()}` 
-        },
-        body: JSON.stringify({ paymentMethod, paymentReference })
+      const res = await api.post(`/invoices/${invoiceId}/pay`, {
+        paymentMethod,
+        paymentReference
       });
-      if (!res.ok) {
-        // Fallback simulate if API endpoint is simulated
-        return { success: true };
-      }
-      return res.json();
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salesInvoices'] });
@@ -70,7 +62,7 @@ export default function InvoicesList() {
       setPaymentReference('');
     },
     onError: (err) => {
-      toast.error(err.message || 'Payment recording failed');
+      toast.error(err.response?.data?.message || err.message || 'Payment recording failed');
     }
   });
 

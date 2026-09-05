@@ -219,7 +219,7 @@ export const generateFulfillmentPlan = async (orderId, mode = 'BALANCED') => {
 /**
  * Accept the suggested split — mark items as SHIPPED.
  */
-export const acceptPlan = async (planId) => {
+export const acceptPlan = async (planId, splits = []) => {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(planId);
   const whereOr = [
     { order: { orderNumber: planId } }
@@ -237,10 +237,71 @@ export const acceptPlan = async (planId) => {
 
   if (!plan) throw new NotFoundError('Fulfillment plan not found');
 
-  await prisma.fulfillmentItem.updateMany({
-    where: { fulfillmentPlanId: plan.id, status: 'PENDING' },
-    data: { status: 'SHIPPED' }
-  });
+  if (splits && splits.length > 0) {
+    // Delete existing pending items
+    await prisma.fulfillmentItem.deleteMany({
+      where: { fulfillmentPlanId: plan.id }
+    });
+
+    // Create new shipped items per warehouse split
+    await prisma.fulfillmentItem.createMany({
+      data: splits.map(s => ({
+        fulfillmentPlanId: plan.id,
+        productId: s.productId,
+        warehouseId: s.warehouseId,
+        quantity: s.quantity,
+        status: 'SHIPPED',
+        estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+      }))
+    });
+
+    // Deduct inventory and synchronize Product quantityOnHand
+    const affectedProductIds = new Set();
+
+    for (const split of splits) {
+      if (!split.warehouseId || !split.productId) continue;
+      affectedProductIds.add(split.productId);
+
+      const inv = await prisma.inventory.findUnique({
+        where: {
+          warehouseId_productId: {
+            warehouseId: split.warehouseId,
+            productId: split.productId
+          }
+        }
+      });
+      if (inv) {
+        // Decrement available or reserved quantity
+        const newAvailable = Math.max(0, inv.availableQuantity - split.quantity);
+        const newReserved = Math.max(0, inv.reservedQuantity - split.quantity);
+        await prisma.inventory.update({
+          where: { id: inv.id },
+          data: { 
+            availableQuantity: newAvailable,
+            reservedQuantity: newReserved
+          }
+        });
+      }
+    }
+
+    // Keep Product.quantityOnHand exactly matched to the sum of warehouse stocks
+    for (const prodId of affectedProductIds) {
+      const allWarehouseInv = await prisma.inventory.findMany({
+        where: { productId: prodId }
+      });
+      const totalAvailable = allWarehouseInv.reduce((sum, r) => sum + r.availableQuantity, 0);
+      await prisma.product.update({
+        where: { id: prodId },
+        data: { quantityOnHand: totalAvailable }
+      });
+    }
+  } else {
+    // Fallback if no splits provided
+    await prisma.fulfillmentItem.updateMany({
+      where: { fulfillmentPlanId: plan.id, status: 'PENDING' },
+      data: { status: 'SHIPPED' }
+    });
+  }
 
   await prisma.order.update({
     where: { id: plan.orderId },

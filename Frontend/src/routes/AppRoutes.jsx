@@ -15,7 +15,6 @@ import Signup from '../pages/auth/Signup';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 
 // Role Dashboards
-import Dashboard from '../pages/sales/Dashboard'; // Sales Rep Dashboard
 import ManagerDashboard from '../pages/manager/ManagerDashboard'; // Sales Manager Dashboard
 import OperationsDashboard from '../pages/operations/OperationsDashboard'; // Finance/Operations Dashboard
 import CustomerPortalDashboard from '../pages/customer/CustomerPortalDashboard'; // Customer Dashboard
@@ -76,8 +75,7 @@ export default function AppRoutes() {
           element={<RoleRoute allowedRoles={[ROLES.SALES_REP, ROLES.SALES_MANAGER, ROLES.FINANCE_OPERATIONS, ROLES.ADMIN]} />}
         >
           <Route element={<SalesLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route index element={<Navigate to="/sales/quotations" replace />} />
             
             {/* Sales Pipeline */}
             <Route path="quotations" element={<QuotationsList />} />

@@ -28,3 +28,11 @@ export const update = async (req, res, next) => {
     sendSuccess(res, 200, 'Warehouse updated', data);
   } catch (e) { next(e); }
 };
+
+export const remove = async (req, res, next) => {
+  try {
+    const data = await warehouseService.deleteWarehouse(req.params.id);
+    sendSuccess(res, 200, 'Warehouse deleted successfully', data);
+  } catch (e) { next(e); }
+};
+

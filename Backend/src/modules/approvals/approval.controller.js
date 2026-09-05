@@ -22,9 +22,20 @@ export const actionApproval = async (req, res, next) => {
 
 export const getPendingApprovals = async (req, res, next) => {
   try {
-    const approvals = await approvalService.getPendingApprovals(req.user.role);
+    const approvals = await approvalService.getPendingApprovals(req.user.role, req.user.id);
     sendSuccess(res, 200, 'Pending approvals retrieved', approvals);
   } catch (err) {
     next(err);
   }
 };
+
+export const getAllApprovals = async (req, res, next) => {
+  try {
+    const { status } = req.query;
+    const approvals = await approvalService.getAllApprovals(req.user.role, req.user.id, status);
+    sendSuccess(res, 200, 'All approvals retrieved', approvals);
+  } catch (err) {
+    next(err);
+  }
+};
+

@@ -43,3 +43,10 @@ export const updateWarehouse = async (id, body) => {
   if (body.location !== undefined) data.location = body.location;
   return repo.update(id, data);
 };
+
+export const deleteWarehouse = async (id) => {
+  const existing = await repo.findById(id);
+  if (!existing) throw new NotFoundError('Warehouse not found');
+  return repo.remove(id);
+};
+

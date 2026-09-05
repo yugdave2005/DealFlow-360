@@ -28,3 +28,13 @@ export const upsertByCode = (code, data) =>
     update: {},
     create: { code, ...data }
   });
+
+export const remove = async (id) => {
+  await prisma.inventory.deleteMany({ where: { warehouseId: id } });
+  await prisma.fulfillmentItem.updateMany({
+    where: { warehouseId: id },
+    data: { warehouseId: null }
+  });
+  return prisma.warehouse.delete({ where: { id } });
+};
+

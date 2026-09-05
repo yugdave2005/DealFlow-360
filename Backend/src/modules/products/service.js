@@ -20,19 +20,31 @@ export const createProduct = async (body) => {
     ? Number(body.price)
     : (body.pricing?.[0]?.price !== undefined ? Number(body.pricing[0].price) : 0);
 
+  let initialQty = parseInt(body.quantityOnHand, 10) || 0;
+  if (Array.isArray(body.warehouseStock) && body.warehouseStock.length > 0) {
+    const sum = body.warehouseStock.reduce((acc, item) => acc + (Math.max(0, parseInt(item.quantity, 10) || 0)), 0);
+    if (sum > 0 || initialQty === 0) {
+      initialQty = sum;
+    }
+  }
+
   const product = await repo.create({
     name: body.name.trim(),
     category: body.category || 'Hardware',
     isSubscription: isSub,
     recurringInterval: isSub ? (body.recurringInterval || 'Monthly') : null,
-    quantityOnHand: parseInt(body.quantityOnHand, 10) || 0,
+    quantityOnHand: initialQty,
     variantAttributes: body.variantAttributes || null,
     pricing: {
       create: [{ price: isNaN(basePrice) ? 0 : basePrice }]
     }
   });
 
-  return product;
+  if (Array.isArray(body.warehouseStock) && body.warehouseStock.length > 0) {
+    await repo.syncProductInventory(product.id, body.warehouseStock);
+  }
+
+  return repo.findById(product.id);
 };
 
 export const updateProduct = async (id, body) => {
@@ -54,6 +66,11 @@ export const updateProduct = async (id, body) => {
   if (body.variantAttributes !== undefined) updateData.variantAttributes = body.variantAttributes;
 
   await repo.update(id, updateData);
+
+  // Handle warehouse inventory update
+  if (Array.isArray(body.warehouseStock)) {
+    await repo.syncProductInventory(id, body.warehouseStock);
+  }
 
   // Handle pricing update
   const rawPrice = body.price !== undefined ? body.price : body.pricing?.[0]?.price;

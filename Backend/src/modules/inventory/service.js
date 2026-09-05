@@ -84,6 +84,7 @@ export const checkAvailability = async (productId) => {
     warehouses: records.map(r => ({
       warehouseId: r.warehouseId,
       warehouseName: r.warehouse.name,
+      warehouseLocation: r.warehouse.location || '',
       available: r.availableQuantity,
       reserved: r.reservedQuantity
     })),

@@ -34,7 +34,6 @@ export const ROLE_NAVIGATION = {
     {
       title: 'Sales Pipeline',
       items: [
-        { title: 'Dashboard', path: '/sales/dashboard', icon: LayoutDashboard },
         { title: 'Quotations', path: '/sales/quotations', icon: FileText },
         { title: 'Pipeline', path: '/sales/pipeline', icon: Columns3 },
       ]

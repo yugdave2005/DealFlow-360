@@ -37,28 +37,58 @@ export default function WarehouseSplit() {
     queryFn: () => api.get(`/fulfillment/${orderId}`).then(res => res.data?.data || res.data).catch(() => null)
   });
 
-  const [warehouses, setWarehouses] = useState([
-    { id: 'wh-1', name: 'Ahmedabad Central Hub', location: 'Ahmedabad, GJ', available: 120, allocated: 50, ratePerKg: 45 },
-    { id: 'wh-2', name: 'Anand Regional Depot', location: 'Anand, GJ', available: 40, allocated: 30, ratePerKg: 55 },
-    { id: 'wh-3', name: 'Gandhinagar Express', location: 'Gandhinagar, GJ', available: 25, allocated: 20, ratePerKg: 60 },
-    { id: 'wh-4', name: 'Surat Coastal Center', location: 'Surat, GJ', available: 80, allocated: 0, ratePerKg: 75 }
-  ]);
+  const productId = planData?.items?.[0]?.productId || planData?.items?.[0]?.product?.id;
+  const { data: inventoryData } = useQuery({
+    queryKey: ['inventory', productId],
+    queryFn: () => api.get(`/inventory/availability/${productId}`).then(res => res.data?.data || res.data).catch(() => null),
+    enabled: !!productId
+  });
+
+  const [warehouses, setWarehouses] = useState([]);
 
   const productName = planData?.items?.[0]?.product?.name || planData?.productName || 'Commercial Hardware & Systems';
   const requiredUnits = planData?.items?.reduce((sum, it) => sum + (it.quantity || 0), 0) || 1;
   const customerName = planData?.customer?.companyName || planData?.customer?.name || 'Customer Organization';
 
+  const isAlreadyShipped = (planData?.items || []).some(i => i.status === 'SHIPPED') || planData?.order?.status === 'FULFILLED';
+
   useEffect(() => {
-    if (planData?.items && planData.items.length > 0) {
-      const totalUnits = planData.items.reduce((sum, it) => sum + (it.quantity || 0), 0) || 1;
-      setWarehouses([
-        { id: 'wh-1', name: 'Ahmedabad Central Hub', location: 'Ahmedabad, GJ', available: 120, allocated: Math.min(120, totalUnits), ratePerKg: 45 },
-        { id: 'wh-2', name: 'Anand Regional Depot', location: 'Anand, GJ', available: 40, allocated: 0, ratePerKg: 55 },
-        { id: 'wh-3', name: 'Gandhinagar Express', location: 'Gandhinagar, GJ', available: 25, allocated: 0, ratePerKg: 60 },
-        { id: 'wh-4', name: 'Surat Coastal Center', location: 'Surat, GJ', available: 80, allocated: 0, ratePerKg: 75 }
-      ]);
+    if (inventoryData?.warehouses && planData) {
+      const existingItems = planData.items || [];
+      const hasShipped = existingItems.some(i => i.status === 'SHIPPED');
+
+      // Map existing warehouse allocations from the fulfillment plan
+      const allocationMap = new Map();
+      existingItems.forEach(i => {
+        if (i.warehouseId) {
+          allocationMap.set(i.warehouseId, (allocationMap.get(i.warehouseId) || 0) + (i.quantity || 0));
+        }
+      });
+
+      let remaining = requiredUnits;
+      const mapped = inventoryData.warehouses.map(w => {
+        let allocate = 0;
+        if (allocationMap.has(w.warehouseId)) {
+          allocate = allocationMap.get(w.warehouseId);
+        } else if (!hasShipped && remaining > 0) {
+          allocate = Math.min(w.available, remaining);
+          remaining -= allocate;
+        }
+
+        return {
+          id: w.warehouseId,
+          name: w.warehouseName,
+          location: w.warehouseLocation || w.location || '',
+          available: w.available,
+          allocated: allocate,
+          ratePerKg: 45
+        };
+      });
+      setWarehouses(mapped);
+    } else if (planData?.items && planData.items.length > 0 && !inventoryData) {
+       setWarehouses([]);
     }
-  }, [planData]);
+  }, [inventoryData, planData, requiredUnits]);
 
   // Calculations for current allocation
   const totalAllocated = warehouses.reduce((sum, w) => sum + (Number(w.allocated) || 0), 0);
@@ -85,20 +115,38 @@ export default function WarehouseSplit() {
   };
 
   const handleResetToOptimal = () => {
-    setWarehouses([
-      { id: 'wh-1', name: 'Ahmedabad Central Hub', location: 'Ahmedabad, GJ', available: 120, allocated: Math.min(120, requiredUnits), ratePerKg: 45 },
-      { id: 'wh-2', name: 'Anand Regional Depot', location: 'Anand, GJ', available: 40, allocated: 0, ratePerKg: 55 },
-      { id: 'wh-3', name: 'Gandhinagar Express', location: 'Gandhinagar, GJ', available: 25, allocated: 0, ratePerKg: 60 },
-      { id: 'wh-4', name: 'Surat Coastal Center', location: 'Surat, GJ', available: 80, allocated: 0, ratePerKg: 75 }
-    ]);
+    if (inventoryData?.warehouses) {
+      let remaining = requiredUnits;
+      const mapped = inventoryData.warehouses.map(w => {
+        const allocate = Math.min(w.available, remaining);
+        remaining -= allocate;
+        return {
+          id: w.warehouseId,
+          name: w.warehouseName,
+          location: w.warehouseLocation || w.location || '',
+          available: w.available,
+          allocated: allocate,
+          ratePerKg: 45
+        };
+      });
+      setWarehouses(mapped);
+    }
     setIsManualMode(false);
     toast.info('Reset to AI Recommended Multi-Warehouse Plan');
   };
 
   const acceptMutation = useMutation({
-    mutationFn: () => api.post(`/fulfillment/${orderId}/accept`),
+    mutationFn: () => api.post(`/fulfillment/${orderId}/accept`, {
+      splits: warehouses.filter(w => w.allocated > 0).map(w => ({
+        warehouseId: w.id,
+        productId,
+        quantity: w.allocated
+      }))
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fulfillmentPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['fulfillmentPlan', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', productId] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       toast.success('Warehouse Split Plan Confirmed & Dispatched to Carrier Logistics');
@@ -133,6 +181,12 @@ export default function WarehouseSplit() {
                 <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
                   {orderId || 'ORD-1004'}
                 </span>
+                {isAlreadyShipped && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Fulfilled
+                  </span>
+                )}
               </div>
               <p className="text-sm text-slate-500 mt-0.5">
                 Client: <strong>{customerName}</strong> &bull; Intelligent multi-hub inventory allocation
@@ -142,14 +196,21 @@ export default function WarehouseSplit() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => acceptMutation.mutate()}
-            disabled={acceptMutation.isPending || totalAllocated === 0}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{acceptMutation.isPending ? 'Dispatching...' : 'Accept & Dispatch Split'}</span>
-          </button>
+          {isAlreadyShipped ? (
+            <span className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-semibold rounded-xl">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Dispatched & Delivered</span>
+            </span>
+          ) : (
+            <button
+              onClick={() => acceptMutation.mutate()}
+              disabled={acceptMutation.isPending || totalAllocated === 0}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{acceptMutation.isPending ? 'Dispatching...' : 'Accept & Dispatch Split'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -311,14 +372,21 @@ export default function WarehouseSplit() {
               </div>
             </div>
 
-            <button
-              onClick={() => acceptMutation.mutate()}
-              disabled={acceptMutation.isPending || totalAllocated === 0}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{acceptMutation.isPending ? 'Confirming...' : 'Dispatch Shipment'}</span>
-            </button>
+            {isAlreadyShipped ? (
+              <div className="w-full py-3 bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-sm rounded-xl flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Shipment Dispatched & Delivered</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => acceptMutation.mutate()}
+                disabled={acceptMutation.isPending || totalAllocated === 0}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{acceptMutation.isPending ? 'Confirming...' : 'Dispatch Shipment'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

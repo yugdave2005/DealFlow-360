@@ -91,7 +91,7 @@ export default function Pipeline() {
     queryFn: async () => {
       try {
         const res = await api.get('/quotations');
-        return res.data?.data || [];
+        return res.data || [];
       } catch (error) {
         if (error.response?.status !== 401) {
           console.error('Failed to fetch pipeline:', error);
