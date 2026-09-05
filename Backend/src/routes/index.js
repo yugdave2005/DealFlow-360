@@ -15,6 +15,9 @@ import quotationRoutes from '../modules/quotations/quotation.routes.js';
 import approvalRoutes from '../modules/approvals/approval.routes.js';
 import upsellRoutes from '../modules/upsell/upsell.routes.js';
 import fulfillmentRoutes from '../modules/fulfillment/fulfillment.routes.js';
+import subscriptionRoutes from '../modules/subscriptions/subscription.routes.js';
+import invoiceRoutes from '../modules/invoices/invoice.routes.js';
+import dealHealthRoutes from '../modules/dealhealth/dealhealth.routes.js';
 
 // Module Routes
 router.use('/v1', authRoutes);
@@ -24,5 +27,8 @@ router.use('/v1/quotations', quotationRoutes);
 router.use('/v1/approvals', approvalRoutes);
 router.use('/v1/upsell', upsellRoutes);
 router.use('/v1/fulfillment', fulfillmentRoutes);
+router.use('/v1/subscriptions', subscriptionRoutes);
+router.use('/v1/invoices', invoiceRoutes);
+router.use('/v1/deal-health', dealHealthRoutes);
 
 export default router;
