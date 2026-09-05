@@ -133,7 +133,7 @@ export default function InvoicesList() {
             <span className="text-xs font-semibold uppercase tracking-wider">Total Invoices</span>
             <Receipt className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-2xl font-bold text-slate-900">{displayInvoices.length}</p>
+          <p className="text-2xl font-bold text-slate-900">{invoices.length}</p>
           <span className="text-xs text-slate-400 mt-1 block">One-time & recurring</span>
         </div>
 

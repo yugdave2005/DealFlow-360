@@ -26,12 +26,17 @@ import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 const fetchQuotations = async () => {
   const token = localStorage.getItem('accessToken');
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
-  const res = await fetch(`${API_BASE}/quotations`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!res.ok) throw new Error('Failed to fetch quotations');
-  const result = await res.json();
-  return result.data || [];
+  if (!token) return [];
+  try {
+    const res = await fetch(`${API_BASE}/quotations`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) return [];
+    const result = await res.json();
+    return result.data || [];
+  } catch {
+    return [];
+  }
 };
 
 const STATUS_TABS = [
@@ -185,8 +190,8 @@ export default function QuotationsList() {
         <div className="flex items-center gap-1 overflow-x-auto border-t border-slate-100 pt-3 custom-scrollbar">
           {STATUS_TABS.map((tab) => {
             const count = tab.id === 'ALL' 
-              ? displayQuotations.length 
-              : displayQuotations.filter(q => q.status === tab.id || (tab.id === 'NEGOTIATION' && q.status === 'UNDER_NEGOTIATION')).length;
+              ? quotations.length 
+              : quotations.filter(q => q.status === tab.id || (tab.id === 'NEGOTIATION' && q.status === 'UNDER_NEGOTIATION')).length;
 
             return (
               <button

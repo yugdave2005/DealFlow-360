@@ -47,12 +47,18 @@ export default function Pipeline() {
   const { data: quotations = [], isLoading } = useQuery({
     queryKey: ['pipelineQuotations'],
     queryFn: async () => {
-      const res = await fetch(API_BASE, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch pipeline deals');
-      const json = await res.json();
-      return json.data || [];
+      try {
+        const token = getToken();
+        if (!token) return [];
+        const res = await fetch(API_BASE, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return [];
+        const json = await res.json();
+        return json.data || [];
+      } catch {
+        return [];
+      }
     }
   });
 

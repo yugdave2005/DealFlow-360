@@ -79,7 +79,7 @@ export default function SubscriptionsList() {
             <span className="text-xs font-semibold uppercase tracking-wider">Active Subscriptions</span>
             <RefreshCw className="w-4 h-4 text-purple-600" />
           </div>
-          <p className="text-2xl font-bold text-slate-900">{displaySubscriptions.length}</p>
+          <p className="text-2xl font-bold text-slate-900">{subscriptions.length}</p>
           <span className="text-xs text-slate-400 mt-1 block">Recurring client accounts</span>
         </div>
 
