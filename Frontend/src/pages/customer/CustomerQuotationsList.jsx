@@ -7,7 +7,7 @@ import {
   ArrowRight, 
   Inbox
 } from 'lucide-react';
-import { api } from '../../lib/axios';
+import { quotationsApi } from '../../features/quotations/quotations.api';
 import StatusBadge from '../../components/common/StatusBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
@@ -19,10 +19,11 @@ export default function CustomerQuotationsList() {
     queryKey: ['customerQuotationsList'],
     queryFn: async () => {
       try {
-        const res = await api.get('/customer-portal/quotations');
+        const res = await quotationsApi.getCustomerQuotations();
         return res.data?.data || res.data || [];
-      } catch (e) {
-        const fallback = await api.get('/quotations').catch(() => ({ data: { data: [] } }));
+      } catch (err) {
+        // Fallback for demo
+        const fallback = await quotationsApi.getQuotations().catch(() => ({ data: { data: [] } }));
         return fallback.data?.data || fallback.data || [];
       }
     }

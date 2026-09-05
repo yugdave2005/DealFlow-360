@@ -22,11 +22,12 @@ import {
   IndianRupee,
   X
 } from 'lucide-react';
+import EmptyState from '../../components/common/EmptyState';
+import { quotationsApi } from '../../features/quotations/quotations.api';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
-import { api } from '../../lib/axios';
 // 6 Core Commercial Pipeline Stages in Lifecycle Order
 const PIPELINE_STAGES = [
   { 
@@ -90,8 +91,8 @@ export default function Pipeline() {
     queryKey: ['pipelineQuotations'],
     queryFn: async () => {
       try {
-        const res = await api.get('/quotations');
-        return res.data?.data || [];
+        const res = await quotationsApi.getQuotations();
+        return res.data?.data || res.data || [];
       } catch (error) {
         if (error.response?.status !== 401) {
           console.error('Failed to fetch pipeline:', error);

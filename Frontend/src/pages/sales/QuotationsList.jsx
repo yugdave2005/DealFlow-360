@@ -24,10 +24,11 @@ import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
 import { api } from '../../lib/axios';
+import { quotationsApi } from '../../features/quotations/quotations.api';
 
 const fetchQuotations = async () => {
   try {
-    const res = await api.get(`/quotations`);
+    const res = await quotationsApi.getQuotations();
     return res.data || [];
   } catch (error) {
     // If it's a 401, the interceptor handles the redirect.

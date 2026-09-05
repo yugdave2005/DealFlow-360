@@ -22,12 +22,15 @@ import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
 import { api } from '../../lib/axios';
+import { quotationsApi } from '../../features/quotations/quotations.api';
+import { dashboardApi } from '../../features/dashboard/dashboard.api';
+import { dealHealthApi } from '../../features/deal-health/deal-health.api';
 
 const fetchDashboardData = async () => {
   const [metricsRes, quotesRes, healthRes] = await Promise.all([
-    api.get('/dashboard/sales').catch(() => ({ data: { data: null } })),
-    api.get('/quotations').catch(() => ({ data: { data: [] } })),
-    api.get('/deal-health').catch(() => ({ data: { data: null } })),
+    dashboardApi.getSalesMetrics().catch(() => ({ data: { data: null } })),
+    quotationsApi.getQuotations().catch(() => ({ data: { data: [] } })),
+    dealHealthApi.getDealHealthOverview().catch(() => ({ data: { data: null } })),
   ]);
 
   const metrics = metricsRes?.data?.data || null;

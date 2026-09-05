@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../../features/admin/admin.api';
+import { approvalsApi } from '../../features/approvals/approvals.api';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { 
@@ -51,7 +51,7 @@ export default function AdminApprovalRules() {
 
   const { data: rawRules = [], isLoading } = useQuery({
     queryKey: ['adminApprovalRules'],
-    queryFn: () => adminApi.getApprovalRules().then(res => res.data?.data || res.data || []).catch(() => [])
+    queryFn: () => approvalsApi.getApprovalRules().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   const rules = Array.isArray(rawRules) ? rawRules : (rawRules?.data || []);
@@ -65,7 +65,7 @@ export default function AdminApprovalRules() {
   });
 
   const createMutation = useMutation({
-    mutationFn: adminApi.createApprovalRule,
+    mutationFn: approvalsApi.createApprovalRule,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminApprovalRules'] });
       toast.success('Approval rule established');
@@ -81,7 +81,7 @@ export default function AdminApprovalRules() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => adminApi.deleteApprovalRule(id),
+    mutationFn: (id) => approvalsApi.deleteApprovalRule(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminApprovalRules'] });
       toast.success('Approval rule deleted');
@@ -118,7 +118,7 @@ export default function AdminApprovalRules() {
 
     try {
       for (const rule of defaults) {
-        await adminApi.createApprovalRule(rule);
+        await approvalsApi.createApprovalRule(rule);
       }
       queryClient.invalidateQueries({ queryKey: ['adminApprovalRules'] });
       toast.success('Standard 4-Tier Matrix initialized!');

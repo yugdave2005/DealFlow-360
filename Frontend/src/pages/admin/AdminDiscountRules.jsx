@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../../features/admin/admin.api';
+import { discountsApi } from '../../features/discounts/discounts.api';
+import { pricingApi } from '../../features/pricing/pricing.api';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { 
@@ -24,12 +25,12 @@ export default function AdminDiscountRules() {
 
   const { data: rawRules = [], isLoading: isRulesLoading } = useQuery({
     queryKey: ['adminDiscountRules'],
-    queryFn: () => adminApi.getDiscountRules().then(res => res.data?.data || res.data || []).catch(() => [])
+    queryFn: () => discountsApi.getDiscountRules().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   const { data: rawCustomerTiers = [], isLoading: isTiersLoading } = useQuery({
     queryKey: ['adminCustomerTiers'],
-    queryFn: () => adminApi.getCustomerTiers().then(res => res.data?.data || res.data || []).catch(() => [])
+    queryFn: () => pricingApi.getCustomerTiers().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   const rules = Array.isArray(rawRules) ? rawRules : (rawRules?.data || []);
@@ -48,7 +49,7 @@ export default function AdminDiscountRules() {
   const maxDiscountValue = watch('maxDiscountPercentage');
 
   const createMutation = useMutation({
-    mutationFn: adminApi.createDiscountRule,
+    mutationFn: discountsApi.createDiscountRule,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminDiscountRules'] });
       toast.success('Discount ceiling rule created successfully');
@@ -63,7 +64,7 @@ export default function AdminDiscountRules() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => adminApi.deleteDiscountRule(id),
+    mutationFn: (id) => discountsApi.deleteDiscountRule(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminDiscountRules'] });
       toast.success('Discount rule removed');

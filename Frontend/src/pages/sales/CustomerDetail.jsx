@@ -15,7 +15,8 @@ import {
   Plus, 
   Inbox
 } from 'lucide-react';
-import { adminApi } from '../../features/admin/admin.api';
+import { customersApi } from '../../features/customers/customers.api';
+import { quotationsApi } from '../../features/quotations/quotations.api';
 import { api } from '../../lib/axios';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
@@ -29,7 +30,7 @@ export default function CustomerDetail() {
   // Fetch all customers for matching profile metadata
   const { data: customersData = [] } = useQuery({
     queryKey: ['adminCustomersList'],
-    queryFn: () => adminApi.getCustomers().then(res => res.data?.data || res.data || []).catch(() => [])
+    queryFn: () => customersApi.getCustomers().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   const customerRecord = useMemo(() => {
@@ -39,7 +40,7 @@ export default function CustomerDetail() {
 
   const { data: quotations = [], isLoading } = useQuery({
     queryKey: ['customerDetailQuotations', id],
-    queryFn: () => api.get('/quotations').then(res => res.data?.data || res.data || []).catch(() => [])
+    queryFn: () => quotationsApi.getQuotations().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   const customerQuotes = useMemo(() => {

@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { adminApi } from '../../features/admin/admin.api';
+import { customersApi } from '../../features/customers/customers.api';
+import { productsApi } from '../../features/products/products.api';
+import { quotationsApi } from '../../features/quotations/quotations.api';
 import { api } from '../../lib/axios';
 
 // Subcomponents
@@ -54,19 +56,19 @@ export default function QuotationBuilder() {
   // Fetch backend customer accounts
   const { data: dbCustomers = [], isLoading: isCustomersLoading } = useQuery({
     queryKey: ['adminCustomers'],
-    queryFn: () => adminApi.getCustomers().then(res => res.data?.data || res.data || []).catch(() => [])
+    queryFn: () => customersApi.getCustomers().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   // Fetch backend products
   const { data: backendProducts = [], isLoading: isProductsLoading, refetch: refetchProducts } = useQuery({
     queryKey: ['adminProducts'],
-    queryFn: () => adminApi.getProducts().then(res => res.data?.data || res.data || []).catch(() => [])
+    queryFn: () => productsApi.getProducts().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
   // If in edit mode, fetch existing quotation
   const { data: existingQuote, isLoading: isQuoteLoading } = useQuery({
     queryKey: ['quotation', id],
-    queryFn: () => api.get(`/quotations/${id}`).then(res => res.data?.data || res.data).catch(() => null),
+    queryFn: () => quotationsApi.getQuotationById(id).then(res => res.data?.data || res.data).catch(() => null),
     enabled: isEditMode
   });
 
@@ -388,9 +390,9 @@ export default function QuotationBuilder() {
 
       let res;
       if (isEditMode) {
-        res = await api.put(`/quotations/${id}`, payload);
+        res = await quotationsApi.updateQuotation(id, payload);
       } else {
-        res = await api.post('/quotations', payload);
+        res = await quotationsApi.createQuotation(payload);
       }
       return res?.data?.data || res?.data || res;
     },

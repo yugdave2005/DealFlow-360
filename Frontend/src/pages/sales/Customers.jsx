@@ -16,7 +16,7 @@ import {
   Sparkles,
   ExternalLink
 } from 'lucide-react';
-import { adminApi } from '../../features/admin/admin.api';
+import { customersApi } from '../../features/customers/customers.api';
 import RiskBadge from '../../components/common/RiskBadge';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -28,7 +28,7 @@ export default function Customers() {
 
   const { data: customerAccounts = [], isLoading: isCustomersLoading } = useQuery({
     queryKey: ['adminCustomersList'],
-    queryFn: () => adminApi.getCustomers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
+    queryFn: () => customersApi.getCustomers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const { data: quotations = [], isLoading: isQuotesLoading } = useQuery({

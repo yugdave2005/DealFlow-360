@@ -27,6 +27,7 @@ import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
 import { api } from '../../lib/axios';
+import { approvalsApi } from '../../features/approvals/approvals.api';
 
 export default function Approvals() {
   const queryClient = useQueryClient();
@@ -47,8 +48,9 @@ export default function Approvals() {
     queryKey: ['approvalsQueue', statusFilter],
     queryFn: async () => {
       try {
-        const endpoint = statusFilter === 'PENDING' ? `/approvals/pending` : `/approvals`;
-        const res = await api.get(endpoint);
+        const res = statusFilter === 'PENDING' 
+          ? await approvalsApi.getPendingApprovals() 
+          : await approvalsApi.getAllApprovals();
         return res.data?.data || [];
       } catch (error) {
         if (error.response?.status !== 401) {
@@ -61,7 +63,7 @@ export default function Approvals() {
 
   const actionMutation = useMutation({
     mutationFn: async ({ approvalId, action, comments }) => {
-      const res = await api.post(`/approvals/${approvalId}/action`, {
+      const res = await approvalsApi.submitAction(approvalId, {
         action,
         comments
       });

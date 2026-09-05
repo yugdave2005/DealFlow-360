@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../../features/admin/admin.api';
+import { productsApi } from '../../features/products/products.api';
+import { pricingApi } from '../../features/pricing/pricing.api';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
 import { 
@@ -31,7 +32,7 @@ export default function AdminProducts() {
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['adminProducts'],
-    queryFn: () => adminApi.getProducts().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
+    queryFn: () => productsApi.getProducts().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const { register, handleSubmit, reset, watch, control } = useForm({
@@ -54,7 +55,7 @@ export default function AdminProducts() {
 
   // Mutation: Create Product
   const createMutation = useMutation({
-    mutationFn: adminApi.createProduct,
+    mutationFn: productsApi.createProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['adminProductsList'] });
@@ -67,7 +68,7 @@ export default function AdminProducts() {
 
   // Mutation: Update Product
   const updateMutation = useMutation({
-    mutationFn: adminApi.updateProduct,
+    mutationFn: productsApi.updateProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['adminProductsList'] });
@@ -81,7 +82,7 @@ export default function AdminProducts() {
 
   // Mutation: Delete Product
   const deleteMutation = useMutation({
-    mutationFn: adminApi.deleteProduct,
+    mutationFn: productsApi.deleteProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminProducts'] });
       queryClient.invalidateQueries({ queryKey: ['adminProductsList'] });
@@ -212,7 +213,7 @@ export default function AdminProducts() {
 
   const { data: customerTiers = [] } = useQuery({
     queryKey: ['adminCustomerTiers'],
-    queryFn: () => adminApi.getCustomerTiers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
+    queryFn: () => pricingApi.getCustomerTiers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const isSaving = createMutation.isPending || updateMutation.isPending;

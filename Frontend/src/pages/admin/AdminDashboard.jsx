@@ -13,7 +13,9 @@ import {
   History, 
   Package
 } from 'lucide-react';
-import { adminApi } from '../../features/admin/admin.api';
+import { productsApi } from '../../features/products/products.api';
+import { pricingApi } from '../../features/pricing/pricing.api';
+import { quotationsApi } from '../../features/quotations/quotations.api';
 import { api } from '../../lib/axios';
 
 export default function AdminDashboard() {
@@ -21,19 +23,19 @@ export default function AdminDashboard() {
 
   const { data: products = [] } = useQuery({
     queryKey: ['adminProductsList'],
-    queryFn: () => adminApi.getProducts().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
+    queryFn: () => productsApi.getProducts().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const { data: customerTiers = [] } = useQuery({
     queryKey: ['adminCustomerTiers'],
-    queryFn: () => adminApi.getCustomerTiers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
+    queryFn: () => pricingApi.getCustomerTiers().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
   const { data: quotations = [] } = useQuery({
     queryKey: ['adminQuotations'],
     queryFn: async () => {
       try {
-        const res = await api.get('/quotations');
+        const res = await quotationsApi.getQuotations();
         return res.data?.data || [];
       } catch (error) {
         if (error.response?.status !== 401) {

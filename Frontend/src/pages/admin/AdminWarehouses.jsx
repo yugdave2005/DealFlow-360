@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../../features/admin/admin.api';
+import { warehousesApi } from '../../features/warehouses/warehouses.api';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { 
@@ -53,7 +53,7 @@ export default function AdminWarehouses() {
 
   const { data: dbWarehouses = [], isLoading } = useQuery({
     queryKey: ['adminWarehouses'],
-    queryFn: () => adminApi.getWarehouses().then(res => res.data?.data || res.data || [])
+    queryFn: () => warehousesApi.getWarehouses().then(res => res.data?.data || res.data || [])
   });
 
   const warehouses = dbWarehouses.length > 0 ? dbWarehouses.map((wh, idx) => ({
@@ -67,7 +67,7 @@ export default function AdminWarehouses() {
   const { register, handleSubmit, reset } = useForm();
 
   const createMutation = useMutation({
-    mutationFn: adminApi.createWarehouse,
+    mutationFn: warehousesApi.createWarehouse,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminWarehouses'] });
       toast.success('Warehouse hub registered successfully');

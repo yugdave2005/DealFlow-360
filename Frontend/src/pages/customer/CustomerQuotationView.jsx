@@ -6,6 +6,7 @@ import DealFlowLogo from '../../components/DealFlowLogo';
 import { useAuth } from '../../context/AuthContext';
 
 import { api } from '../../lib/axios';
+import { quotationsApi } from '../../features/quotations/quotations.api';
 
 export default function CustomerQuotationView() {
   const { id } = useParams();
@@ -20,14 +21,14 @@ export default function CustomerQuotationView() {
   const { data: quote, isLoading, isError } = useQuery({
     queryKey: ['customerQuotation', id, customerId],
     queryFn: async () => {
-      const res = await api.get(`/customer-portal/quotations/${id}?customerId=${customerId}`);
+      const res = await quotationsApi.getCustomerQuotationById(id, customerId);
       return res.data?.data || res.data;
     }
   });
 
   const acceptMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post(`/customer-portal/quotations/${id}/accept`, { customerId });
+      const res = await quotationsApi.acceptQuotation(id, { customerId });
       return res.data;
     },
     onSuccess: () => {
@@ -38,7 +39,7 @@ export default function CustomerQuotationView() {
 
   const negotiateMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post(`/customer-portal/quotations/${id}/negotiate`, { 
+      const res = await quotationsApi.negotiateQuotation(id, { 
         customerId, 
         notes, 
         counterDiscount: parseFloat(counterDiscount) || 0 

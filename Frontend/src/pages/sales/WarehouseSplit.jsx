@@ -21,6 +21,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { api } from '../../lib/axios';
+import { fulfillmentApi } from '../../features/fulfillment/fulfillment.api';
 import StatusBadge from '../../components/common/StatusBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
@@ -34,7 +35,7 @@ export default function WarehouseSplit() {
   // Fetch live fulfillment plan
   const { data: planData, isLoading } = useQuery({
     queryKey: ['fulfillmentPlan', orderId],
-    queryFn: () => api.get(`/fulfillment/${orderId}`).then(res => res.data?.data || res.data).catch(() => null)
+    queryFn: () => fulfillmentApi.getPlanById(orderId).then(res => res.data?.data || res.data).catch(() => null)
   });
 
   const [warehouses, setWarehouses] = useState([
@@ -96,7 +97,7 @@ export default function WarehouseSplit() {
   };
 
   const acceptMutation = useMutation({
-    mutationFn: () => api.post(`/fulfillment/${orderId}/accept`),
+    mutationFn: () => fulfillmentApi.acceptPlan(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fulfillmentPlans'] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
