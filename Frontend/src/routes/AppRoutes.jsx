@@ -5,6 +5,9 @@ import AuthLayout from '../layouts/AuthLayout';
 import SalesLayout from '../layouts/SalesLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
 import AdminLayout from '../layouts/AdminLayout';
+import AdminProducts from '../pages/admin/AdminProducts';
+import AdminDiscountRules from '../pages/admin/AdminDiscountRules';
+import AdminApprovalRules from '../pages/admin/AdminApprovalRules';
 
 export default function AppRoutes() {
   return (
@@ -30,12 +33,12 @@ export default function AppRoutes() {
           <Route path="deal-health" element={<div>Deal Health</div>} />
         </Route>
 
-        <Route path="/admin/*" element={<RoleRoute allowedRoles={['ADMIN']} />}>
+        <Route path="/admin/*" element={<RoleRoute allowedRoles={['ADMIN', 'SALES_REP']} />}>
           <Route element={<AdminLayout />}>
-            <Route path="products" element={<div>Products</div>} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="discount-rules" element={<AdminDiscountRules />} />
+            <Route path="approval-rules" element={<AdminApprovalRules />} />
             <Route path="customers" element={<div>Customers</div>} />
-            <Route path="discount-rules" element={<div>Discount Rules</div>} />
-            <Route path="approval-rules" element={<div>Approval Rules</div>} />
             <Route path="warehouses" element={<div>Warehouses</div>} />
             <Route path="subscription-plans" element={<div>Subscription Plans</div>} />
             <Route path="reports" element={<div>Reports</div>} />

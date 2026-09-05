@@ -1,119 +1,85 @@
-# DealFlow360 — Foundation Setup Prompt (Backend + Frontend + Database Basics + Docker)
+# DealFlow360 — Full Project Specification
 
-You are setting up the **project foundation** for DealFlow360, a B2B sales operations hackathon project. The `backend/` and `frontend/` folders already exist (currently empty) at the project root — set up inside them. This is a **foundation-only** task: folder structure, configuration, dependencies, and placeholders. Do NOT implement any DealFlow360 business logic (quotations, discounts, risk scoring, approvals, warehouse optimization, billing, negotiations) yet — those come in a later phase after the database design is approved.
+This document is the working spec for building DealFlow360 end to end. It should be read **alongside the original problem statement PDF** (attached separately) — the PDF is the source of truth for business rules; this document translates that into the actual screens, data, and build order based on the approved wireframe.
 
-Work in this order and confirm each phase before moving to the next: **(1) Backend foundation → (2) Database basics → (3) Frontend foundation → (4) Docker Compose to tie it all together.**
-
----
-
-## Phase 1 — Backend Foundation (inside `backend/`)
-
-Stack: Node.js + Express, **JavaScript (not TypeScript)**, PostgreSQL + Prisma ORM, RabbitMQ, Redis, JWT auth, bcrypt, Google OAuth, Brevo for transactional email. Architecture: **modular monolith**, not microservices. ES Modules (`"type": "module"` in package.json).
-
-Build this folder structure under `backend/src/`:
-```
-config/          → env.js, database.js, redis.js, rabbitmq.js
-modules/         → one folder per business module (auth, users, customers, products,
-                    quotations, pricing, discounts, approvals, inventory, warehouses,
-                    fulfillment, negotiations, subscriptions, billing, invoices,
-                    payments, notifications, analytics, audit) — each with
-                    controller/service/repository/routes/validation files, but only
-                    the auth module gets real implementation now; the rest stay as
-                    empty scaffolds with the same file pattern
-middleware/      → auth, role, error, not-found, rate-limit
-services/        → email/brevo.service.js, oauth/google.service.js, token/jwt.service.js
-queues/          → publishers/, consumers/, queue.constants.js
-events/          → event.types.js, event.publisher.js
-utils/           → logger.js, response.js, errors.js
-routes/          → index.js
-app.js, server.js
-```
-Plus `prisma/` (schema.prisma, seed.js, migrations/), `tests/` (unit, integration, e2e), `.env.example`, `.gitignore`, `package.json`, `README.md`.
-
-Install: `express cors helmet dotenv cookie-parser jsonwebtoken bcrypt @prisma/client amqplib ioredis zod pino pino-http express-rate-limit google-auth-library @getbrevo/brevo` — dev: `prisma nodemon jest supertest`. Do not install Passport, Redux, GraphQL, Mongoose, Sequelize, Socket.io, or any microservice framework.
-
-Set up:
-- Express app with Helmet, CORS (restricted to `FRONTEND_URL`, never `*`), JSON body parser, cookie parser, Pino HTTP logging, global rate limiting, centralized error handling, 404 handler.
-- Health endpoints: `GET /api/health`, `/api/health/db`, `/api/health/redis`, `/api/health/rabbitmq`.
-- All business routes versioned under `/api/v1`.
-- Auth foundation: email/password + Google OAuth placeholders, JWT access (short-lived) + refresh (long-lived, httpOnly cookie) tokens, bcrypt hashing — do not implement the full auth workflow yet, just the architecture and services.
-- RabbitMQ: reusable `publishEvent(eventName, payload)` publisher interface; declare (don't fully consume yet) queues for `quotation.approved`, `quotation.rejected`, `quotation.created`, `negotiation.created`, `approval.required`, `order.confirmed`, `payment.received`, `inventory.updated`, `backorder.created`, `subscription.created`, `email.send`, `notification.send`.
-- Redis: reusable client for caching/rate limiting/temp state — never a source of truth for inventory, payments, quotations, or orders.
-- Brevo: `sendEmail({ to, subject, templateId, params })` abstraction, never called directly from controllers.
-- Centralized custom errors (BadRequest/Unauthorized/Forbidden/NotFound/Conflict/Validation) with a consistent `{ success, message, error: { code, details } }` response shape; no stack traces in production.
-- Zod validation pattern for body/params/query.
-- Pino structured logging — never log passwords, tokens, or credentials.
-- RBAC groundwork for roles: `ADMIN, SALES_REP, SALES_MANAGER, FINANCE, OPERATIONS, CUSTOMER` via reusable authorization middleware, not hardcoded per-controller checks.
-
-`.env.example` should include `NODE_ENV, PORT, DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, JWT_ACCESS_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, BREVO_API_KEY, BREVO_SENDER_EMAIL, BREVO_SENDER_NAME, REDIS_URL, RABBITMQ_URL, FRONTEND_URL, COOKIE_DOMAIN`.
-
-When done, show: folder tree, package.json, installed dependencies, `.env.example`, Prisma init status, and any assumptions made.
+Foundation status: backend (Node/Express/Prisma modular monolith), frontend (React/Vite/Tailwind/shadcn), and a minimal auth-only database schema are already scaffolded and working. This spec covers everything from here to a demo-ready product.
 
 ---
 
-## Phase 2 — Database Basics (inside `backend/prisma/`)
+## 1. Tech Stack (already locked in)
 
-At this stage, only initialize Prisma with PostgreSQL and create a **minimal** schema — just enough User/Role structure to support the auth foundation from Phase 1. Do **not** design or generate the full DealFlow360 schema (quotations, versioning, discount rules, approvals, inventory, fulfillment, billing, subscriptions) yet — that requires a separate design pass covering the quotation state machine, discount/risk model, inventory reservation strategy, and fulfillment optimization model, which will be reviewed and approved before the full `schema.prisma` is written.
+**Backend:** Node.js, Express, JavaScript (not TypeScript), PostgreSQL + Prisma, RabbitMQ, Redis, JWT + bcrypt, Google OAuth (optional), Brevo (optional), modular monolith architecture.
 
-Deliverable for this phase: `schema.prisma` with just `User` and `Role` (or equivalent minimal auth models), a working `prisma migrate dev`, and `prisma studio` opening cleanly.
+**Frontend:** React + Vite (JavaScript), React Router, Tailwind CSS, shadcn/ui, TanStack Query, React Hook Form + Zod, Axios, Recharts, Lucide React, Sonner.
 
----
-
-## Phase 3 — Frontend Foundation (inside `frontend/`)
-
-Stack: React + Vite, **JavaScript (not TypeScript)**, React Router, Tailwind CSS, shadcn/ui, TanStack Query, React Hook Form + Zod, Axios, Recharts, Lucide React, Sonner, date-fns.
-
-Build this folder structure under `frontend/src/`:
-```
-assets/
-components/      → ui/, layout/, common/, feedback/
-features/        → one folder per feature (auth, dashboard, quotations, approvals,
-                    customers, products, fulfillment, inventory, subscriptions,
-                    billing, invoices, negotiations, analytics, deal-health, admin),
-                    each self-contained: components/, hooks/, <feature>.api.js,
-                    <feature>.constants.js, <feature>.schemas.js, <feature>.utils.js
-pages/           → auth/, sales/, customer/, admin/
-layouts/          → AuthLayout.jsx, SalesLayout.jsx, CustomerLayout.jsx, AdminLayout.jsx
-routes/          → AppRoutes.jsx, ProtectedRoute.jsx, RoleRoute.jsx
-hooks/
-lib/             → axios.js, queryClient.js, utils.js
-services/        → auth.service.js, api.service.js
-schemas/, constants/, context/, config/
-App.jsx, main.jsx, index.css
-```
-Plus `public/`, `.env.example`, `.gitignore`, `index.html`, `package.json`, `README.md`.
-
-Set up:
-- Routes for `/login /signup /forgot-password`, `/sales/*` (dashboard, quotations, quotations/:id, quotations/new, approvals, fulfillment, inventory, subscriptions, invoices, deal-health), `/admin/*` (products, customers, discount-rules, approval-rules, warehouses, subscription-plans, reports), `/customer/quotation/:id`. **The customer portal must use its own `CustomerLayout`, never the internal sales layout relabeled.**
-- `ProtectedRoute` (auth check → redirect to `/login`) and `RoleRoute` (role check → unauthorized page) — reusable, not hardcoded per page.
-- Centralized Axios instance (`baseURL` from env, `withCredentials: true`, response/error interceptors).
-- TanStack Query configured globally for all server data (customers, products, quotations, approvals, inventory, fulfillment, invoices, subscriptions, analytics) — React state only for local UI state.
-- React Hook Form + Zod patterns ready for Login, Signup, Product, Customer, Quotation, Discount, Approval, Negotiation forms.
-- Reusable UI primitives via Tailwind + shadcn/ui + Lucide: Button, Input, Select, Dialog, Modal, Dropdown, Table, Badge, Card, Tabs, Toast, Tooltip, Skeleton, EmptyState, LoadingState, ErrorState.
-- Semantic status components for: Draft, Pending Approval, Approved, Rejected, Under Negotiation, Confirmed, Fulfillment, Paid, Backordered, Cancelled — no scattered arbitrary Tailwind colors.
-- Dashboard placeholders (KPI cards, charts via Recharts, tables, alerts) clearly marked as placeholder — no fake data presented as real.
-- Sonner notification helpers: `showSuccess()`, `showError()`, `showInfo()`, `showWarning()`.
-- Leave a clean abstraction point for future SSE-based real-time updates — do not install Socket.io or implement real-time behavior now.
-
-`.env.example`: `VITE_API_BASE_URL=http://localhost:5000/api/v1`, `VITE_GOOGLE_CLIENT_ID=`.
-
-Do not implement quotation calculations, discount/risk logic, approval logic, warehouse optimization, billing, subscriptions, or fake AI. Do not create Redux unless there's a genuine need.
-
-When done, show: folder tree, package.json, installed dependencies, `.env.example`, routes created, commands to run, and any assumptions made.
+**Infra:** Docker Compose only (Postgres, Redis, RabbitMQ, backend, frontend). No Kubernetes.
 
 ---
 
-## Phase 4 — Docker Compose (project root)
+## 2. Screen-by-Screen Specification (from approved wireframe)
 
-Add a `docker-compose.yml` at the project root (alongside `backend/` and `frontend/`) with these services:
-- `postgres` — official `postgres` image, named volume for data persistence, exposes 5432, env vars matching `DATABASE_URL` in backend `.env`.
-- `redis` — official `redis` image, exposes 6379.
-- `rabbitmq` — `rabbitmq:3-management` image (gives the management UI on port 15672 for free — useful for demoing/debugging queues), exposes 5672 and 15672.
-- `backend` — built from a `backend/Dockerfile` (Node.js base image, installs deps, runs `npm run dev` or `node src/server.js`), `depends_on` postgres/redis/rabbitmq, reads env from `backend/.env`.
-- `frontend` — built from a `frontend/Dockerfile` (Node.js base image running the Vite dev server, or a multi-stage build served via nginx if you want a production-style container), exposes 5173 (or 80 if using nginx).
+Each screen below shares a common top nav bar (Dashboard / Quotations / Approvals / Fulfillment / Customers / Products / Subscriptions / Invoices / Deal Health / Admin) with the current section highlighted. Two user tracks exist: **internal (sales rep / manager / finance / ops / admin)** and **customer (portal)** — kept on visibly separate layouts, never the same screen relabeled.
 
-Write minimal `Dockerfile`s for `backend/` and `frontend/` alongside the compose file. Add a top-level `README.md` section (or update existing ones) with the single command to bring the whole stack up: `docker compose up --build`. Do not add Kubernetes manifests, Helm charts, or any cluster orchestration at this stage — Docker Compose is the full scope of the infra setup for now.
+1. **Login / Signup** — email/password fields, log in and sign up actions, link to forgot password. Same screen serves both internal users and customers logging into their respective areas (redirect by role after auth).
+2. **Sales Dashboard / Home** — KPI-style widgets (active quotations, pending approvals, at-risk deals), a recent-activity feed (quote created, discount requested, payment received), quick actions (new quotation, view at-risk).
+3. **Quotations List** — tabbed/column view by status (Draft, Pending Approval, Approved, Rejected, Confirmed), each entry showing customer, amount, rep, age. "New Quotation" action. Selecting a row opens Quotation Detail.
+4. **Quotation Detail (Builder)** — customer + rep header, editable line items (product, quantity, unit price, discount %), running total and live margin indicator, a highlighted banner when a line breaks its category discount ceiling, and actions to save draft / submit for approval. This is where the upsell/cross-sell panel lives alongside the cart.
+5. **Fulfillment Detail** — for a specific quotation/order: recommended warehouse split (warehouse, quantity, distance/cost), a highlighted note when backorder exists, "Accept Suggested Split" and "Manual Override" actions.
+6. **Fulfillment List** — all orders needing fulfillment action, with status column (Pending Split / Partially Fulfilled / Fulfilled), filterable.
+7. **Approval Detail** — shows the quotation's blended risk score, a horizontal stepper (Submitted → Manager Review → Finance Review → Approved), reviewer comments, and Approve / Return for Revision / Reject actions with a required reason field.
+8. **Approvals List** — queue of quotations awaiting the current user's decision, filterable by status (Pending / Approved / Rejected), showing customer, rep, risk score, age.
+9. **Subscriptions List** — recurring plans per customer, status badges (Active / Paused / Cancelled), next billing date, plan type (monthly/quarterly/yearly).
+10. **Billing Detail** — for one order: one-time lines and recurring lines shown in separate sections, upcoming billing schedule for recurring lines, "Modify Subscription" / "Cancel Subscription" actions (with automatic credit-note note when applicable).
+11. **Customer Portal Negotiation Screen** — customer-facing, separate layout. Shows quote status (Sent / Under Negotiation / Confirmed), line-level comment/change-request field, a counter-discount field, "Submit Request" and "Confirm Quotation" buttons. Confirming with terms over threshold silently re-enters the Approval flow (screen 7).
+12. **Invoices List** — all invoices with status badges (Draft / Sent / Paid / Overdue), customer, amount, due date.
+13. **Invoice Detail** — line items, a payment-status stepper (Created → Sent → Paid), "Record Payment" / "Send Reminder" actions.
+14. **Deal Health & Anomaly Dashboard** — stalled-deal list (inactive beyond N days), discount-anomaly alerts (rep's discount vs their historical average), delivery-slippage indicators, "Escalate" / "Nudge" actions that open the related quotation.
+15. **Admin / Reporting Dashboard (optional/stretch)** — cross-sales-team reporting, filters by period/team/status/product, export buttons (PDF/XLS).
+16. **Product Catalog** — list of products with tier/category/price/type (goods/service/subscription), "Add Product" and "Manage Price Lists" actions.
+17. **Product Detail Page** — full product form: name, category, tier-based pricing, subscription toggle + recurring interval, quantity on hand, variant attributes.
+18. **Discount Tiers & Approval Chain Config** — two config tables side by side: customer tier → max discount (Bronze/Silver/Gold), and category → max discount (Hardware/Services/etc); below that, the approval-chain rule table mapping risk ranges to required approver level (no approval / Sales Manager / Sales Manager then Finance), with a "Save Configuration" action.
 
 ---
 
-Confirm completion of each phase with the requested output before proceeding to the next.
+## 3. Build Phases
+
+Each phase is a **separate task** for the IDE. Do not start a phase until the previous one is confirmed working. Each phase should end with a short demo-able result (a screen you can click through, or an API you can hit with a real request) — not just files created.
+
+### Phase 1 — Admin configuration foundation
+Screens 16, 17, 18. Build backend CRUD for Products, Price Lists, Customer Tiers, Discount Rules (tier ceiling + category ceiling), and Approval Rules (risk range → approver level). Build the matching frontend admin screens. **Why first:** every downstream module (quotations, discounts, approvals) reads this config — nothing else can be tested realistically without it.
+
+### Phase 2 — Auth + Sales Dashboard shell
+Screens 1, 2. Real login/signup wired to the existing JWT/RBAC backend, role-based redirect after login, and the dashboard shell with widgets wired to real (even if sparse) data — no hardcoded numbers.
+
+### Phase 3 — Quotation Builder core
+Screens 3, 4. Customer + product selection, line items with quantity/discount, live total and margin calculation. No risk/approval logic yet — just a correct, working quote builder and list.
+
+### Phase 4 — Discount/Risk Engine + Approval flow
+Screens 7, 8 (+ risk logic inside screen 4). Implement the blended risk score calculation (per-line ceiling check against Phase 1's config, summed across the order), wire it to auto-create an approval request when thresholds are exceeded, and build the approval queue/detail screens with real approve/reject/return actions and an audit trail.
+
+### Phase 5 — Upsell/Cross-sell panel
+Inside screen 4. Ranked suggestion list (based on simple co-purchase or category-affinity rules is fine for a hackathon), margin-delta display, Add/Dismiss actions updating the live quote total.
+
+### Phase 6 — Fulfillment
+Screens 5, 6. Warehouse stock model, split-recommendation logic (simple cost/distance-weighted split is enough), accept/override actions, backorder flag when stock is short.
+
+### Phase 7 — Subscriptions + Billing
+Screens 9, 10. Recurring plan model, mixed one-time/recurring line display on the same order, a basic proration calculation for quantity changes, cancel/modify actions.
+
+### Phase 8 — Customer Portal
+Screen 11, on its own restricted layout/auth guard. Quote view, comment/change-request, counter-discount, confirm action — confirming with terms over threshold must silently route back into Phase 4's approval flow with no manual re-trigger needed.
+
+### Phase 9 — Invoices + Payments
+Screens 12, 13. Invoice generation from a confirmed order, payment recording, status stepper.
+
+### Phase 10 — Deal Health Dashboard + polish
+Screen 14 (+ 15 if time allows). Stalled-deal and discount-anomaly detection, escalate/nudge actions. Finish this phase by running the organizers' 8-step "Quick Test Flow" end to end and fixing whatever breaks.
+
+---
+
+## 4. Rules that apply to every phase
+
+- No hardcoded or faked business logic anywhere that's supposed to be computed (discount limits, risk score, warehouse split, proration) — the organizers explicitly check for this.
+- The customer portal (screen 11) must remain a genuinely separate, restricted view.
+- Redis is cache/rate-limit/coordination only — Postgres is the source of truth for inventory, quotations, orders, payments, invoices, subscriptions, approvals.
+- Every phase should be verifiable by clicking through the UI or hitting the API directly — not just "code exists."

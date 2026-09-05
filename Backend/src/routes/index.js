@@ -8,8 +8,9 @@ router.get('/health/db', (req, res) => res.json({ status: 'OK', message: 'DB Hea
 router.get('/health/redis', (req, res) => res.json({ status: 'OK', message: 'Redis Health endpoint (Mock)' }));
 router.get('/health/rabbitmq', (req, res) => res.json({ status: 'OK', message: 'RabbitMQ Health endpoint (Mock)' }));
 
+import adminRoutes from '../modules/admin/routes.js';
+
 // Module Routes
-// router.use('/v1/auth', authRoutes);
-// etc...
+router.use('/v1/admin', adminRoutes);
 
 export default router;
