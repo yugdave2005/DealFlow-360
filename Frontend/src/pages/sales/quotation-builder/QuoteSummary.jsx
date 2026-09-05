@@ -22,25 +22,25 @@ export default function QuoteSummary({
   const isRiskHigh = riskScore >= 45;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-4 sticky top-20">
+    <div className="bg-white rounded-[14px] border border-[#E6E1D9] p-5 shadow-sm space-y-4 sticky top-20">
       
       {/* Title */}
-      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+      <h3 className="text-[12px] font-semibold text-[#96918A] uppercase tracking-wider">
         Quote Summary
       </h3>
 
       {/* One-Time vs Recurring */}
-      <div className="space-y-1.5 text-xs">
-        <div className="flex justify-between text-slate-600">
+      <div className="space-y-2 text-[14px]">
+        <div className="flex justify-between text-[#6F6B66]">
           <span>One-time</span>
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-[#171717]">
             ₹{oneTimeSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </span>
         </div>
 
-        <div className="flex justify-between text-slate-600">
+        <div className="flex justify-between text-[#6F6B66]">
           <span>Recurring</span>
-          <span className="font-semibold text-purple-700">
+          <span className="font-semibold text-[#C96648]">
             ₹{recurringSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })} / month
           </span>
         </div>
@@ -48,24 +48,24 @@ export default function QuoteSummary({
         <button
           type="button"
           onClick={onOpenBilling}
-          className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 transition-colors pt-0.5 block"
+          className="text-[13px] font-semibold text-[#D97757] hover:text-[#C96648] transition-colors pt-1 block cursor-pointer"
         >
           View billing breakdown &rarr;
         </button>
       </div>
 
-      <div className="h-[1px] bg-slate-100" />
+      <div className="h-[1px] bg-[#EEEAE4]" />
 
       {/* Financial Line Breakdown */}
-      <div className="space-y-1.5 text-xs text-slate-600">
+      <div className="space-y-2 text-[14px] text-[#6F6B66]">
         <div className="flex justify-between">
           <span>Subtotal</span>
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-[#171717]">
             ₹{subtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </span>
         </div>
 
-        <div className="flex justify-between text-rose-600">
+        <div className="flex justify-between text-[#C95757]">
           <span>Discount</span>
           <span className="font-semibold">
             {totalDiscount > 0 ? `-₹${totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '₹0'}
@@ -74,55 +74,55 @@ export default function QuoteSummary({
 
         <div className="flex justify-between">
           <span>GST (18%)</span>
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-[#171717]">
             ₹{tax.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </span>
         </div>
       </div>
 
-      <div className="h-[1px] bg-slate-100" />
+      <div className="h-[1px] bg-[#EEEAE4]" />
 
       {/* Grand Total & Margin */}
-      <div className="space-y-1">
+      <div className="space-y-2">
         <div className="flex justify-between items-baseline">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Grand Total</span>
-          <span className="text-xl font-bold text-slate-900 tracking-tight">
+          <span className="text-[13px] font-semibold text-[#6F6B66] uppercase tracking-wider">Grand Total</span>
+          <span className="text-[24px] sm:text-[28px] font-bold text-[#171717] tracking-tight">
             ₹{grandTotalWithTax.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </span>
         </div>
 
-        <div className="flex justify-between items-center text-xs text-slate-600 pt-0.5">
+        <div className="flex justify-between items-center text-[13px] text-[#6F6B66] pt-1">
           <span>Expected Margin</span>
-          <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[11px]">
+          <span className="font-bold text-[#3F8F63] bg-[#EAF5EE] border border-[#BDE3CE] px-2.5 py-0.5 rounded-[6px] text-[12px]">
             {marginPercentage}%
           </span>
         </div>
       </div>
 
-      {/* Subtle Governance Status Row */}
-      <div className="pt-3 border-t border-slate-100 space-y-1.5">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+      {/* Governance Status Row */}
+      <div className="pt-4 border-t border-[#EEEAE4] space-y-2">
+        <div className="flex items-center justify-between text-[13px]">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-[#96918A]">
             Governance
           </span>
           <button
             type="button"
             onClick={onOpenGovernance}
-            className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 transition-colors inline-flex items-center gap-0.5"
+            className="text-[13px] font-semibold text-[#D97757] hover:text-[#C96648] transition-colors inline-flex items-center gap-0.5 cursor-pointer"
           >
             <span>View details</span>
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${isRiskHigh ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-            <span className="font-semibold text-slate-800">
+        <div className="flex items-center justify-between text-[13px]">
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isRiskHigh ? 'bg-[#C95757]' : 'bg-[#3F8F63]'}`} />
+            <span className="font-semibold text-[#171717]">
               {isRiskHigh ? 'High Risk' : 'Low Risk'} ({riskScore}/100)
             </span>
           </div>
-          <span className="text-[11px] font-medium text-slate-500">
+          <span className="text-[12px] font-medium text-[#6F6B66]">
             {approvalRequirement === 'NONE' ? 'Approval not required' : 'Approval required'}
           </span>
         </div>

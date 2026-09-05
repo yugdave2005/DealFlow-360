@@ -9,38 +9,33 @@ import {
   ShieldAlert, 
   Building2, 
   Plus, 
-  Trash2, 
-  ArrowRight, 
-  Sparkles, 
-  Sliders, 
-  CheckCircle2, 
-  Zap,
-  Info 
+  Trash2
 } from 'lucide-react';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import EmptyState from '../../components/common/EmptyState';
 
 const APPROVER_META = {
   SALES_REP: {
     label: 'None (Self - Sales Rep)',
-    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    badge: 'bg-[#EAF5EE] text-[#3F8F63] border-[#C2E2CE]',
     icon: UserCheck,
     description: 'Instant dispatch without managerial sign-off'
   },
   SALES_MANAGER: {
     label: 'Sales Manager',
-    badge: 'bg-amber-50 text-amber-700 border-amber-200',
+    badge: 'bg-[#FBF2E3] text-[#C98A32] border-[#F3DFC1]',
     icon: ShieldCheck,
     description: 'Team lead margin & discount review'
   },
   FINANCE: {
     label: 'Finance Controller',
-    badge: 'bg-orange-50 text-orange-700 border-orange-200',
+    badge: 'bg-[#F8E9E3] text-[#C96648] border-[#E9B8A7]',
     icon: Building2,
     description: 'Finance & legal payment terms audit'
   },
   ADMIN: {
     label: 'VP of Sales / Admin',
-    badge: 'bg-rose-50 text-rose-700 border-rose-200',
+    badge: 'bg-[#FBEAEA] text-[#C95757] border-[#F5D5D5]',
     icon: ShieldAlert,
     description: 'Executive authorization for critical exposure'
   }
@@ -103,154 +98,150 @@ export default function AdminApprovalRules() {
     createMutation.mutate({
       minRiskScore: min,
       maxRiskScore: max,
-      requiredApproverLevel: formData.requiredApproverLevel,
-      priority: 1
+      requiredApproverLevel: formData.requiredApproverLevel
     });
   };
 
-  const handleSeedDefaults = async () => {
-    const defaults = [
-      { minRiskScore: 0, maxRiskScore: 25, requiredApproverLevel: 'SALES_REP', priority: 1 },
-      { minRiskScore: 26, maxRiskScore: 50, requiredApproverLevel: 'SALES_MANAGER', priority: 2 },
-      { minRiskScore: 51, maxRiskScore: 75, requiredApproverLevel: 'FINANCE', priority: 3 },
-      { minRiskScore: 76, maxRiskScore: 100, requiredApproverLevel: 'ADMIN', priority: 4 },
-    ];
-
-    try {
-      for (const rule of defaults) {
-        await adminApi.createApprovalRule(rule);
-      }
-      queryClient.invalidateQueries({ queryKey: ['adminApprovalRules'] });
-      toast.success('Standard 4-Tier Matrix initialized!');
-    } catch {
-      toast.error('Failed to seed rules');
+  const handleDelete = (id) => {
+    if (window.confirm('Are you sure you want to delete this approval rule?')) {
+      deleteMutation.mutate(id);
     }
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6 pb-24 animate-in fade-in duration-200">
-      
+    <div className="p-6 sm:p-10 max-w-[1400px] mx-auto space-y-7 pb-28">
+      {/* 1. Page Header (Flat Canvas) */}
+      <div className="border-b border-[#EEEAE4] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+          <div>
+            <h1 className="text-[34px] sm:text-[40px] font-semibold text-[#171717] tracking-tight leading-tight">
+              Approval Rules & Governance
+            </h1>
+            <p className="text-[15px] sm:text-[16px] text-[#6F6B66] mt-1.5 font-normal">
+              Configure risk scoring thresholds to automatically assign required authorization levels for deal proposals.
+            </p>
+          </div>
+        </div>
+      </div>
 
-
-      {/* 3. Streamlined Add Mapping Form */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
-          <Plus className="w-4 h-4 text-indigo-600" />
-          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Add Risk Threshold Mapping</h2>
+      {/* 2. Add Risk Threshold Mapping Form */}
+      <div className="bg-white p-6 sm:p-7 rounded-[14px] border border-[#E6E1D9] shadow-sm space-y-5">
+        <div className="flex items-center justify-between border-b border-[#EEEAE4] pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-[8px] bg-[#F8E9E3] border border-[#E9B8A7] flex items-center justify-center text-[#D97757]">
+              <Plus className="w-4 h-4" />
+            </div>
+            <h2 className="text-[16px] font-semibold text-[#171717]">Add Risk Threshold Mapping</h2>
+          </div>
+          <span className="text-[13px] text-[#96918A]">Evaluated dynamically on every quotation change</span>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-          {/* Min score */}
-          <div className="flex items-center gap-2">
-            <input
-              {...register('minRiskScore')}
-              type="number"
-              min="0"
-              max="99"
-              placeholder="Min (0)"
-              className="w-28 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-              required
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col md:flex-row items-stretch md:items-center gap-4 pt-1">
+          <div className="flex items-center gap-3 flex-1">
+            <input 
+              type="number" 
+              min="0" 
+              max="100" 
+              placeholder="0" 
+              {...register('minRiskScore', { required: true })} 
+              className="w-24 h-11 px-3.5 bg-white border border-[#E6E1D9] rounded-[10px] text-[14px] font-semibold text-center text-[#171717] focus:outline-none focus:border-[#D97757] font-mono"
             />
-            <span className="text-xs font-bold text-slate-400">to</span>
-            <input
-              {...register('maxRiskScore')}
-              type="number"
-              min="1"
-              max="100"
-              placeholder="Max (25)"
-              className="w-28 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 text-center focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-              required
+            <span className="text-[13px] font-semibold text-[#6F6B66]">to</span>
+            <input 
+              type="number" 
+              min="1" 
+              max="100" 
+              placeholder="50" 
+              {...register('maxRiskScore', { required: true })} 
+              className="w-24 h-11 px-3.5 bg-white border border-[#E6E1D9] rounded-[10px] text-[14px] font-semibold text-center text-[#171717] focus:outline-none focus:border-[#D97757] font-mono"
             />
-          </div>
-
-          <span className="hidden sm:inline text-slate-400 font-bold">→</span>
-
-          {/* Approver Select */}
-          <div className="flex-1 min-w-[200px]">
-            <select
+            <span className="text-[14px] font-semibold text-[#6F6B66] mx-1">→</span>
+            
+            <select 
               {...register('requiredApproverLevel')}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
-              required
+              className="flex-1 h-11 px-4 bg-white border border-[#E6E1D9] rounded-[10px] text-[14px] font-medium text-[#171717] focus:outline-none focus:border-[#D97757] cursor-pointer"
             >
               <option value="SALES_REP">None (Self - Sales Representative)</option>
-              <option value="SALES_MANAGER">Sales Manager / Team Lead</option>
+              <option value="SALES_MANAGER">Sales Manager</option>
               <option value="FINANCE">Finance Controller</option>
               <option value="ADMIN">VP of Sales / Platform Admin</option>
             </select>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
+            className="h-11 px-5 bg-[#D97757] hover:bg-[#C96648] text-white text-[14px] font-semibold rounded-[10px] shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>{createMutation.isPending ? 'Saving...' : 'Add Mapping'}</span>
           </button>
         </form>
       </div>
 
-      {/* 4. Full Width Configured Rules Ledger Table */}
-      <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-            Configured Risk Bands ({rules.length})
-          </span>
-          <span className="text-[11px] text-slate-500">Evaluated in real-time on every quote change</span>
+      {/* 3. Configured Risk Bands Table */}
+      <div className="bg-white rounded-[14px] border border-[#E6E1D9] shadow-sm overflow-hidden flex flex-col">
+        <div className="p-5 border-b border-[#E6E1D9] bg-[#FAF9F6] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[14px] font-semibold text-[#171717] uppercase tracking-wider">
+              Configured Risk Bands ({rules.length})
+            </span>
+          </div>
+          <span className="text-[13px] text-[#96918A]">Evaluated in real-time on every quote change</span>
         </div>
 
         {isLoading ? (
-          <div className="p-6"><LoadingSkeleton rows={4} /></div>
+          <div className="p-8"><LoadingSkeleton rows={4} /></div>
         ) : rules.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 text-xs">
-            No approval rules configured. Click "Restore Standard 4-Tier Matrix" above.
+          <div className="p-14">
+            <EmptyState 
+              icon={ShieldCheck} 
+              title="No approval rules configured" 
+              description="Add risk score bands above to automate manager & finance approvals."
+            />
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full text-left border-collapse text-[14px]">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Risk Range</th>
-                  <th className="py-3 px-4">Required Approver</th>
-                  <th className="py-3 px-4">Policy Routing Rule</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="bg-[#FAF9F6] border-b border-[#E6E1D9] text-[12px] font-semibold text-[#96918A] uppercase tracking-[0.05em]">
+                  <th className="py-4 px-6">Risk Range</th>
+                  <th className="py-4 px-5">Required Approver</th>
+                  <th className="py-4 px-5">Policy Routing Rule</th>
+                  <th className="py-4 px-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#EEEAE4]">
                 {rules.map((rule) => {
-                  const meta = APPROVER_META[rule.requiredApproverLevel] || APPROVER_META.SALES_MANAGER;
+                  const meta = APPROVER_META[rule.requiredApproverLevel] || APPROVER_META.SALES_REP;
                   const Icon = meta.icon;
 
                   return (
-                    <tr key={rule.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                        <span className="bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg">
+                    <tr key={rule.id} className="hover:bg-[#FBFAF8] transition-colors h-[70px]">
+                      <td className="py-4 px-6 whitespace-nowrap">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-[8px] font-mono text-[13px] font-semibold bg-[#FAF9F6] border border-[#E6E1D9] text-[#171717]">
                           {rule.minRiskScore} – {rule.maxRiskScore} pts
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] border ${meta.badge}`}>
-                          <Icon className="w-3.5 h-3.5" />
-                          {meta.label}
+                      <td className="py-4 px-5 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold border ${meta.badge}`}>
+                          <Icon className="w-4 h-4" />
+                          <span>{meta.label}</span>
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-slate-600 font-medium">
+                      <td className="py-4 px-5 text-[#6F6B66] text-[14px]">
                         {meta.description}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-4 px-6 text-right whitespace-nowrap">
                         <button
                           type="button"
-                          onClick={() => {
-                            if (window.confirm(`Delete rule for range ${rule.minRiskScore} - ${rule.maxRiskScore}?`)) {
-                              deleteMutation.mutate(rule.id);
-                            }
-                          }}
+                          onClick={() => handleDelete(rule.id)}
                           disabled={deleteMutation.isPending}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          className="p-2 text-[#96918A] hover:text-[#C95757] hover:bg-[#FBEAEA] rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                          title="Delete Rule"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -263,7 +254,6 @@ export default function AdminApprovalRules() {
           </div>
         )}
       </div>
-
     </div>
   );
 }

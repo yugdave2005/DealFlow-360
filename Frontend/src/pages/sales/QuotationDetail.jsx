@@ -143,7 +143,7 @@ export default function QuotationDetail() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      toast.success('Quotation confirmed! Order ORD-1004 created & dispatched to fulfillment.');
+      toast.success('Quotation confirmed! Order created & dispatched to fulfillment.');
     },
     onError: (err) => toast.error(err.message)
   });
@@ -154,12 +154,12 @@ export default function QuotationDetail() {
 
   if (isError || !quote) {
     return (
-      <div className="p-12 text-center max-w-xl mx-auto bg-white rounded-2xl border border-slate-200 mt-8 space-y-4">
-        <h3 className="text-lg font-bold text-slate-900">Quotation Not Found</h3>
-        <p className="text-sm text-slate-500">The requested quotation does not exist or you lack authorization to view it.</p>
+      <div className="p-12 text-center max-w-xl mx-auto bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] mt-8 space-y-4">
+        <h3 className="text-lg font-bold text-[#1E1B18]">Quotation Not Found</h3>
+        <p className="text-sm text-[#78716C]">The requested quotation does not exist or you lack authorization to view it.</p>
         <button
           onClick={() => navigate('/sales/quotations')}
-          className="px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-xs"
+          className="px-4 py-2 bg-[#B85D19] hover:bg-[#9E4E13] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
         >
           Back to Quotations
         </button>
@@ -189,28 +189,28 @@ export default function QuotationDetail() {
         return {
           title: 'Action Required: Submit for Governance Approval',
           desc: 'Review line items, pricing, and discount limits. Click "Submit for Approval" to evaluate risk.',
-          color: 'bg-indigo-50 border-indigo-200 text-indigo-900',
+          color: 'bg-[#FBF9F7] border-[#EBE8E2] text-[#1E1B18]',
           badge: 'Next Step'
         };
       case 'PENDING_APPROVAL':
         return {
           title: 'In Progress: Awaiting Manager / Finance Authorization',
           desc: `Quotation has risk score ${currentVersion.riskScore || 25}. Currently pending sign-off in the approval queue.`,
-          color: 'bg-purple-50 border-purple-200 text-purple-900',
+          color: 'bg-purple-50/70 border-purple-200 text-purple-900',
           badge: 'Under Review'
         };
       case 'APPROVED':
         return {
           title: 'Ready: Quotation Authorized',
           desc: 'Terms approved. Click "Send to Customer" to dispatch proposal to the secure Customer Portal.',
-          color: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+          color: 'bg-emerald-50/70 border-emerald-200 text-emerald-900',
           badge: 'Approved'
         };
       case 'SENT':
         return {
           title: 'Dispatched: Waiting for Customer Response',
           desc: 'Proposal has been emailed and is active on the Customer Portal. You can open the client view to simulate customer negotiation.',
-          color: 'bg-blue-50 border-blue-200 text-blue-900',
+          color: 'bg-[#F5EFEB] border-[#E8DFD8] text-[#1E1B18]',
           badge: 'Awaiting Client'
         };
       case 'UNDER_NEGOTIATION':
@@ -218,28 +218,28 @@ export default function QuotationDetail() {
         return {
           title: 'Action Required: Customer Counter-Proposal Received',
           desc: 'Customer requested a discount concession. Click "Respond to Negotiation" below to review and counter.',
-          color: 'bg-amber-50 border-amber-200 text-amber-900',
+          color: 'bg-amber-50/80 border-amber-200 text-amber-900',
           badge: 'Negotiation'
         };
       case 'CONFIRMED':
         return {
           title: 'Deal Confirmed: Order Generated',
           desc: 'Customer approved terms. Order created & multi-warehouse fulfillment allocation is active.',
-          color: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+          color: 'bg-emerald-50/70 border-emerald-200 text-emerald-900',
           badge: 'Order Created'
         };
       case 'REJECTED':
         return {
           title: 'Quotation Rejected by Governance',
           desc: 'Approver rejected terms. Review manager comment below and edit quotation to formulate a new revision.',
-          color: 'bg-rose-50 border-rose-200 text-rose-900',
+          color: 'bg-rose-50/70 border-rose-200 text-rose-900',
           badge: 'Revision Required'
         };
       default:
         return {
           title: 'Deal Active',
           desc: 'Track deal health and fulfillment status.',
-          color: 'bg-slate-50 border-slate-200 text-slate-900',
+          color: 'bg-[#FBF9F7] border-[#EBE8E2] text-[#1E1B18]',
           badge: 'Active'
         };
     }
@@ -248,26 +248,26 @@ export default function QuotationDetail() {
   const guidance = getNextActionGuidance();
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12 p-6">
+    <div className="max-w-7xl mx-auto space-y-6 pb-12 p-6 sm:p-8">
       {/* Top Breadcrumb & Control Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#FFFFFF] p-5 sm:p-6 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/sales/quotations')}
-            className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors shrink-0"
+            className="p-2.5 text-[#78716C] hover:text-[#1E1B18] hover:bg-[#F5EFEB] rounded-xl transition-colors shrink-0 cursor-pointer"
             title="Back to Quotations"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl font-extrabold text-slate-900 font-mono tracking-tight">{quote.quotationNumber}</h1>
+              <h1 className="text-2xl font-extrabold text-[#1E1B18] font-mono tracking-tight">{quote.quotationNumber}</h1>
               <StatusBadge status={quote.status} />
               <RiskBadge score={currentVersion.riskScore || 25} />
             </div>
-            <p className="text-slate-500 text-xs sm:text-sm mt-0.5 flex items-center gap-2">
-              <Building className="w-3.5 h-3.5 text-slate-400" />
-              <span>{quote.customer?.companyName || quote.customer?.name || `Customer #${quote.customerId?.slice(-6)}`}</span>
+            <p className="text-[#78716C] text-xs sm:text-sm mt-1 flex items-center gap-2">
+              <Building className="w-3.5 h-3.5 text-[#A8A29E]" />
+              <span className="font-medium text-[#44403C]">{quote.customer?.companyName || quote.customer?.name || `Customer #${quote.customerId?.slice(-6)}`}</span>
               <span>&bull;</span>
               <span>Created {new Date(quote.createdAt).toLocaleDateString()}</span>
             </p>
@@ -282,7 +282,7 @@ export default function QuotationDetail() {
               type="button"
               onClick={() => submitMutation.mutate()}
               disabled={submitMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B85D19] hover:bg-[#9E4E13] text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
             >
               <CheckSquare className="w-3.5 h-3.5" />
               <span>{submitMutation.isPending ? 'Evaluating...' : 'Submit for Approval'}</span>
@@ -295,7 +295,7 @@ export default function QuotationDetail() {
               type="button"
               onClick={() => sendMutation.mutate()}
               disabled={sendMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Send to Customer</span>
@@ -307,7 +307,7 @@ export default function QuotationDetail() {
             <button
               type="button"
               onClick={() => setNegotiationModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
             >
               <MessageSquare className="w-3.5 h-3.5" />
               <span>Respond to Negotiation</span>
@@ -320,7 +320,7 @@ export default function QuotationDetail() {
               type="button"
               onClick={() => confirmMutation.mutate()}
               disabled={confirmMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Confirm & Create Order</span>
@@ -334,9 +334,9 @@ export default function QuotationDetail() {
               window.open(`/customer/quotation/${quote.id}`, '_blank');
               toast.info('Opened Customer-Facing Proposal Portal in new tab');
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-[#EBE8E2] bg-[#FFFFFF] hover:bg-[#FAF8F5] text-[#44403C] text-xs font-semibold rounded-xl transition-colors shadow-xs cursor-pointer"
           >
-            <ExternalLink className="w-3.5 h-3.5 text-indigo-600" />
+            <ExternalLink className="w-3.5 h-3.5 text-[#B85D19]" />
             <span>Open Customer Portal</span>
           </button>
 
@@ -344,7 +344,7 @@ export default function QuotationDetail() {
           {hasPermission('quotation:edit') && (quote.status === 'DRAFT' || quote.status === 'REJECTED') && (
             <Link
               to={`/sales/quotations/${quote.id}/edit`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#F5EFEB] hover:bg-[#E8DFD8] text-[#1E1B18] text-xs font-semibold rounded-xl transition-colors"
             >
               <Edit className="w-3.5 h-3.5" />
               <span>Edit Quotation</span>
@@ -356,7 +356,7 @@ export default function QuotationDetail() {
             <button
               type="button"
               onClick={() => navigate(`/sales/fulfillment/ORD-${quote.id.slice(-4)}`)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#B85D19] hover:bg-[#9E4E13] text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
             >
               <Truck className="w-3.5 h-3.5" />
               <span>Track Fulfillment</span>
@@ -368,17 +368,17 @@ export default function QuotationDetail() {
       {/* "What should I do next?" Guidance Banner */}
       <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 ${guidance.color}`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-white/80 flex items-center justify-center shrink-0 shadow-xs">
-            <Sparkles className="w-4 h-4 text-indigo-600" />
+          <div className="w-8 h-8 rounded-xl bg-[#FFFFFF] flex items-center justify-center shrink-0 shadow-xs border border-[#EBE8E2]">
+            <Sparkles className="w-4 h-4 text-[#B85D19]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="font-bold text-sm">{guidance.title}</h4>
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-white/60">
+              <h4 className="font-bold text-sm text-[#1E1B18]">{guidance.title}</h4>
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-[#F5EFEB] text-[#44403C] border border-[#E8DFD8]">
                 {guidance.badge}
               </span>
             </div>
-            <p className="text-xs opacity-90 mt-0.5">{guidance.desc}</p>
+            <p className="text-xs text-[#78716C] mt-0.5">{guidance.desc}</p>
           </div>
         </div>
       </div>
@@ -388,34 +388,34 @@ export default function QuotationDetail() {
 
       {/* Commercial Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Grand Total (Inc. GST)</span>
-          <h3 className="text-xl font-black text-slate-900 mt-1">₹{grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h3>
-          <span className="text-[10px] text-slate-400 mt-1 block">Subtotal: ₹{subtotal.toLocaleString('en-IN')}</span>
+        <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider block">Grand Total (Inc. GST)</span>
+          <h3 className="text-xl font-black text-[#1E1B18] mt-1">₹{grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h3>
+          <span className="text-[10px] text-[#A8A29E] mt-1 block">Subtotal: ₹{subtotal.toLocaleString('en-IN')}</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Discount</span>
+        <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider block">Total Discount</span>
           <h3 className="text-xl font-black text-rose-600 mt-1">-₹{totalDiscount.toLocaleString('en-IN')}</h3>
           <span className="text-[10px] text-rose-600 mt-1 block">{((totalDiscount / (subtotal || 1)) * 100).toFixed(0)}% Overall</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Expected Margin</span>
+        <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider block">Expected Margin</span>
           <h3 className="text-xl font-black text-emerald-700 mt-1">₹{marginAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h3>
           <span className="text-[10px] text-emerald-700 font-bold mt-1 block">{marginPercentage}% Net Margin</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Governance Risk Score</span>
-          <h3 className="text-xl font-black text-slate-900 mt-1">{currentVersion.riskScore || 25} / 100</h3>
-          <span className="text-[10px] text-slate-500 mt-1 block">Risk model evaluation</span>
+        <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider block">Governance Risk Score</span>
+          <h3 className="text-xl font-black text-[#1E1B18] mt-1">{currentVersion.riskScore || 25} / 100</h3>
+          <span className="text-[10px] text-[#78716C] mt-1 block">Risk model evaluation</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Version</span>
-          <h3 className="text-xl font-black text-indigo-700 mt-1">v{currentVersion.versionNumber || 1}</h3>
-          <span className="text-[10px] text-slate-500 mt-1 block">{versions.length} total revision(s)</span>
+        <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider block">Active Version</span>
+          <h3 className="text-xl font-black text-[#B85D19] mt-1">v{currentVersion.versionNumber || 1}</h3>
+          <span className="text-[10px] text-[#78716C] mt-1 block">{versions.length} total revision(s)</span>
         </div>
       </div>
 
@@ -425,13 +425,13 @@ export default function QuotationDetail() {
         {/* Left 2 Cols: Line Items & Customer Negotiation History */}
         <div className="lg:col-span-2 space-y-6">
           {/* Line Items Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div className="p-5 border-b border-[#EBE8E2] flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Quotation Line Items</h3>
-                <p className="text-xs text-slate-500">Commercial hardware, services and recurring subscriptions</p>
+                <h3 className="text-base font-bold text-[#1E1B18]">Quotation Line Items</h3>
+                <p className="text-xs text-[#78716C]">Commercial hardware, services and recurring subscriptions</p>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg">
+              <span className="text-xs font-semibold px-2.5 py-1 bg-[#F5EFEB] text-[#44403C] rounded-lg border border-[#E8DFD8]">
                 {items.length} product(s)
               </span>
             </div>
@@ -439,7 +439,7 @@ export default function QuotationDetail() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
+                  <tr className="bg-[#FAF8F5] border-b border-[#EBE8E2] text-[11px] text-[#78716C] font-semibold uppercase tracking-wider">
                     <th className="py-3 px-4">Item & SKU</th>
                     <th className="py-3 px-4">Qty</th>
                     <th className="py-3 px-4">Unit Price</th>
@@ -447,7 +447,7 @@ export default function QuotationDetail() {
                     <th className="py-3 px-4 text-right">Line Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#EBE8E2]/60">
                   {items.map((item, idx) => {
                     const unitPrice = Number(item.unitPrice || 0);
                     const qty = Number(item.quantity || 1);
@@ -455,19 +455,19 @@ export default function QuotationDetail() {
                     const lineTotal = (qty * unitPrice) * (1 - disc / 100);
 
                     return (
-                      <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={idx} className="hover:bg-[#FAF8F5]/50 transition-colors">
                         <td className="py-3.5 px-4">
-                          <div className="font-bold text-slate-800 text-sm">{item.product?.name || `Product Line #${idx + 1}`}</div>
-                          <span className="text-[10px] text-slate-400 font-mono">SKU: {item.product?.id?.slice(0, 8) || 'GEN-SKU-99'}</span>
+                          <div className="font-bold text-[#1E1B18] text-sm">{item.product?.name || `Product Line #${idx + 1}`}</div>
+                          <span className="text-[10px] text-[#A8A29E] font-mono">SKU: {item.product?.id?.slice(0, 8) || 'GEN-SKU-99'}</span>
                         </td>
-                        <td className="py-3.5 px-4 font-semibold text-slate-700">{qty}</td>
-                        <td className="py-3.5 px-4 font-semibold text-slate-700">₹{unitPrice.toLocaleString('en-IN')}</td>
+                        <td className="py-3.5 px-4 font-semibold text-[#44403C]">{qty}</td>
+                        <td className="py-3.5 px-4 font-semibold text-[#44403C]">₹{unitPrice.toLocaleString('en-IN')}</td>
                         <td className="py-3.5 px-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${disc > 15 ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-700'}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${disc > 15 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-[#F5EFEB] text-[#44403C] border border-[#E8DFD8]'}`}>
                             {disc}%
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-slate-900 text-sm">
+                        <td className="py-3.5 px-4 text-right font-bold text-[#1E1B18] text-sm">
                           ₹{lineTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </td>
                       </tr>
@@ -486,17 +486,17 @@ export default function QuotationDetail() {
                   <MessageSquare className="w-5 h-5 text-amber-700" />
                   <h3 className="font-bold text-amber-900 text-base">Customer Counter-Discount Request</h3>
                 </div>
-                <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">
+                <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200">
                   Action Required
                 </span>
               </div>
 
-              <div className="bg-white p-4 rounded-xl border border-amber-200 text-xs space-y-2">
-                <div className="flex justify-between font-bold text-slate-900">
+              <div className="bg-[#FFFFFF] p-4 rounded-xl border border-amber-200 text-xs space-y-2">
+                <div className="flex justify-between font-bold text-[#1E1B18]">
                   <span>Customer Proposal: Requesting 20% Concession</span>
                   <span className="text-rose-600 font-bold">15% &rarr; 20% (+5%)</span>
                 </div>
-                <p className="text-slate-600">
+                <p className="text-[#78716C]">
                   "We are ready to sign the enterprise hardware order immediately if a 20% discount is authorized for the full lot."
                 </p>
               </div>
@@ -504,7 +504,7 @@ export default function QuotationDetail() {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   onClick={() => setNegotiationModalOpen(true)}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   Review & Respond to Counter-Proposal
                 </button>
@@ -513,10 +513,10 @@ export default function QuotationDetail() {
           )}
 
           {/* Version History */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-3">
+          <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-5 space-y-3">
             <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-slate-400" />
-              <h3 className="font-bold text-slate-900 text-sm">Quotation Revision History</h3>
+              <History className="w-4 h-4 text-[#A8A29E]" />
+              <h3 className="font-bold text-[#1E1B18] text-sm">Quotation Revision History</h3>
             </div>
             
             <div className="space-y-2">
@@ -526,19 +526,19 @@ export default function QuotationDetail() {
                   onClick={() => setSelectedVersionIndex(vIdx)}
                   className={`p-3 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-colors ${
                     selectedVersionIndex === vIdx 
-                      ? 'bg-indigo-50/60 border-indigo-200 text-indigo-900 font-bold' 
-                      : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100/60'
+                      ? 'bg-[#F5EFEB] border-[#B85D19]/40 text-[#1E1B18] font-bold ring-1 ring-[#B85D19]/30' 
+                      : 'bg-[#FAF8F5] border-[#EBE8E2] text-[#78716C] hover:bg-[#F5EFEB]/60'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="px-2 py-0.5 rounded bg-white text-slate-800 font-mono font-bold shadow-xs">
+                    <span className="px-2 py-0.5 rounded bg-[#FFFFFF] text-[#1E1B18] font-mono font-bold shadow-xs border border-[#EBE8E2]">
                       v{ver.versionNumber}
                     </span>
                     <span>Total: ₹{Number(ver.totalAmount).toLocaleString('en-IN')}</span>
                     <span>·</span>
                     <span>Discount: {((Number(ver.totalDiscount) / (Number(ver.totalAmount) || 1)) * 100).toFixed(0)}%</span>
                   </div>
-                  <span className="text-slate-400 font-normal">
+                  <span className="text-[#A8A29E] font-normal">
                     {ver.createdAt ? new Date(ver.createdAt).toLocaleDateString() : 'Active Revision'}
                   </span>
                 </div>
@@ -550,35 +550,35 @@ export default function QuotationDetail() {
         {/* Right 1 Col: Approval Status & Governance Radar */}
         <div className="space-y-6">
           {/* Approval Routing Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+          <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-5 space-y-4">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-indigo-600" />
-              <h3 className="font-bold text-slate-900 text-sm">Approval Governance</h3>
+              <ShieldCheck className="w-4 h-4 text-[#B85D19]" />
+              <h3 className="font-bold text-[#1E1B18] text-sm">Approval Governance</h3>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+              <div className="p-3 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-slate-800">Sales Manager Review</span>
-                  <p className="text-slate-400 mt-0.5">Discounts up to 20%</p>
+                  <span className="font-bold text-[#1E1B18]">Sales Manager Review</span>
+                  <p className="text-[#A8A29E] mt-0.5">Discounts up to 20%</p>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
                   quote.status === 'APPROVED' || quote.status === 'CONFIRMED' || quote.status === 'SENT'
                     ? 'bg-emerald-100 text-emerald-800'
                     : quote.status === 'PENDING_APPROVAL'
                     ? 'bg-purple-100 text-purple-800'
-                    : 'bg-slate-200 text-slate-600'
+                    : 'bg-[#F5EFEB] text-[#78716C]'
                 }`}>
                   {quote.status === 'APPROVED' || quote.status === 'CONFIRMED' || quote.status === 'SENT' ? 'APPROVED' : quote.status === 'PENDING_APPROVAL' ? 'PENDING' : 'NOT TRIGGERED'}
                 </span>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+              <div className="p-3 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-slate-800">Finance Second-Level</span>
-                  <p className="text-slate-400 mt-0.5">Discounts exceeding 20%</p>
+                  <span className="font-bold text-[#1E1B18]">Finance Second-Level</span>
+                  <p className="text-[#A8A29E] mt-0.5">Discounts exceeding 20%</p>
                 </div>
-                <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-slate-100 text-slate-500">
+                <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-[#F5EFEB] text-[#78716C]">
                   NOT REQUIRED
                 </span>
               </div>
@@ -586,18 +586,18 @@ export default function QuotationDetail() {
           </div>
 
           {/* Customer Profile Mini Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-3">
+          <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Customer Account</span>
-              <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
+              <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider">Customer Account</span>
+              <span className="px-2 py-0.5 rounded-full bg-[#F5EFEB] text-[#B85D19] font-bold text-[10px] border border-[#E8DFD8]">
                 {quote.customer?.tier || 'ENTERPRISE'} TIER
               </span>
             </div>
-            <h4 className="font-bold text-slate-900 text-sm">{quote.customer?.companyName || quote.customer?.name}</h4>
-            <p className="text-xs text-slate-500">{quote.customer?.email}</p>
-            <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+            <h4 className="font-bold text-[#1E1B18] text-sm">{quote.customer?.companyName || quote.customer?.name}</h4>
+            <p className="text-xs text-[#78716C]">{quote.customer?.email}</p>
+            <div className="pt-2 border-t border-[#EBE8E2] text-[11px] text-[#78716C] flex justify-between">
               <span>Auto-Approval Ceiling:</span>
-              <strong className="text-slate-800">&le; 15% Discount</strong>
+              <strong className="text-[#1E1B18]">&le; 15% Discount</strong>
             </div>
           </div>
         </div>
@@ -605,21 +605,24 @@ export default function QuotationDetail() {
 
       {/* Negotiation Response Modal */}
       {negotiationModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1E1B18]/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-[#FFFFFF] w-full max-w-lg rounded-2xl shadow-xl border border-[#EBE8E2] p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EBE8E2]">
               <div>
                 <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Negotiation Decision</span>
-                <h3 className="text-lg font-bold text-slate-900">Respond to Customer Counter-Proposal</h3>
+                <h3 className="text-lg font-bold text-[#1E1B18]">Respond to Customer Counter-Proposal</h3>
               </div>
-              <button onClick={() => setNegotiationModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button 
+                onClick={() => setNegotiationModalOpen(false)} 
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#78716C] hover:text-[#1E1B18] hover:bg-[#F5EFEB] transition-colors cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1.5">Decision Action</label>
+                <label className="block font-semibold text-[#44403C] mb-1.5">Decision Action</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: 'ACCEPT', label: 'Accept 20%', desc: 'Apply requested term' },
@@ -630,14 +633,14 @@ export default function QuotationDetail() {
                       key={act.id}
                       type="button"
                       onClick={() => setNegotiationAction(act.id)}
-                      className={`p-3 rounded-xl border text-left transition-all ${
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         negotiationAction === act.id
-                          ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                          ? 'border-[#B85D19] bg-[#F5EFEB] ring-1 ring-[#B85D19]'
+                          : 'border-[#EBE8E2] bg-[#FFFFFF] hover:bg-[#FAF8F5]'
                       }`}
                     >
-                      <strong className="block text-slate-900 text-xs">{act.label}</strong>
-                      <span className="text-[10px] text-slate-400">{act.desc}</span>
+                      <strong className="block text-[#1E1B18] text-xs">{act.label}</strong>
+                      <span className="text-[10px] text-[#78716C]">{act.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -656,21 +659,21 @@ export default function QuotationDetail() {
               )}
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Notes / Rationale</label>
+                <label className="block font-semibold text-[#44403C] mb-1">Notes / Rationale</label>
                 <textarea
                   rows={2}
                   placeholder="Add context for sales management and customer records..."
                   value={negotiationNotes}
                   onChange={(e) => setNegotiationNotes(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
+                  className="w-full p-2.5 bg-[#FBF9F7] border border-[#EBE8E2] rounded-xl text-xs text-[#1E1B18] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#B85D19]/20 focus:border-[#B85D19]"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#EBE8E2]">
               <button
                 onClick={() => setNegotiationModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-4 py-2 text-xs font-semibold text-[#78716C] hover:bg-[#F5EFEB] rounded-xl transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -683,7 +686,7 @@ export default function QuotationDetail() {
                   });
                 }}
                 disabled={respondNegotiationMutation.isPending}
-                className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs"
+                className="px-5 py-2 text-xs font-bold text-white bg-[#B85D19] hover:bg-[#9E4E13] rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
               >
                 {respondNegotiationMutation.isPending ? 'Processing...' : 'Confirm Decision'}
               </button>

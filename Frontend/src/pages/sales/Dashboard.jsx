@@ -164,16 +164,20 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Top Header & New Quotation CTA */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+    <div className="w-full px-6 sm:px-8 pt-0 pb-8 space-y-5 font-sans">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-0">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Sales Overview</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">Pipeline performance and active quotation pipeline</p>
+          <h1 className="text-3xl sm:text-[34px] font-semibold text-[#171717] tracking-tight leading-tight">
+            Sales Overview
+          </h1>
+          <p className="text-sm sm:text-[14.5px] text-[#6F6B66] mt-1">
+            Pipeline performance and active quotation pipeline
+          </p>
         </div>
         <Link 
           to="/sales/quotations/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-xs shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#D97757] hover:bg-[#C96648] text-white text-sm font-semibold rounded-[10px] transition-all shadow-xs shrink-0 active:scale-[0.97]"
         >
           <Plus className="w-4 h-4" />
           <span>New Quotation</span>
@@ -183,80 +187,82 @@ export default function Dashboard() {
       {/* 4 Primary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Active Quotations */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+        <div className="bg-white rounded-[14px] p-5 border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-colors">
           <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Quotations</span>
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-700 border border-blue-200/60">
+            <span className="text-xs font-semibold text-[#96918A] uppercase tracking-wider">Active Quotations</span>
+            <div className="w-9 h-9 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#4A90D9]">
               <FileText className="w-4 h-4" />
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 mt-2">{quotes.length}</h2>
-          <p className="text-slate-500 text-xs mt-2">In Draft, Negotiation, or Sent</p>
+          <h2 className="text-3xl font-bold text-[#171717] mt-2">{quotes.length}</h2>
+          <p className="text-[#96918A] text-xs mt-2">In Draft, Negotiation, or Sent</p>
         </div>
 
         {/* Pending Approvals */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+        <div className="bg-white rounded-[14px] p-5 border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-colors">
           <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pending Approvals</span>
-            <div className="p-2 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/60">
+            <span className="text-xs font-semibold text-[#96918A] uppercase tracking-wider">Pending Approvals</span>
+            <div className="w-9 h-9 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#8B6CC7]">
               <CheckSquare className="w-4 h-4" />
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 mt-2">{quotes.filter(q => q.status === 'PENDING_APPROVAL').length}</h2>
-          <p className="text-slate-500 text-xs mt-2">Awaiting management review</p>
+          <h2 className="text-3xl font-bold text-[#171717] mt-2">{quotes.filter(q => q.status === 'PENDING_APPROVAL').length}</h2>
+          <p className="text-[#96918A] text-xs mt-2">Awaiting management review</p>
         </div>
 
         {/* At-Risk Deals */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+        <div className="bg-white rounded-[14px] p-5 border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-colors">
           <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">At-Risk Deals</span>
-            <div className="p-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200/60">
+            <span className="text-xs font-semibold text-[#96918A] uppercase tracking-wider">At-Risk Deals</span>
+            <div className="w-9 h-9 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#C95757]">
               <ShieldAlert className="w-4 h-4" />
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-rose-600 mt-2">
+          <h2 className="text-3xl font-bold text-[#C95757] mt-2">
             {quotes.filter(q => {
               const v = q.activeVersion || (q.versions && q.versions[0]) || {};
               return (v.riskScore || 0) > 40;
             }).length}
           </h2>
-          <p className="text-slate-500 text-xs mt-2">Risk score above configured threshold</p>
+          <p className="text-[#96918A] text-xs mt-2">Risk score above configured threshold</p>
         </div>
 
         {/* Pipeline Value */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+        <div className="bg-white rounded-[14px] p-5 border border-[#E6E1D9] shadow-xs hover:border-[#D8D1C8] transition-colors">
           <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pipeline Value</span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+            <span className="text-xs font-semibold text-[#96918A] uppercase tracking-wider">Pipeline Value</span>
+            <div className="w-9 h-9 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#3F8F63]">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 mt-2">
+          <h2 className="text-3xl font-bold text-[#171717] mt-2">
             ₹{pipelineValue.toLocaleString('en-IN')}
           </h2>
-          <p className="text-slate-500 text-xs mt-2">Total value of active opportunities</p>
+          <p className="text-[#96918A] text-xs mt-2">Total value of active opportunities</p>
         </div>
       </div>
 
       {/* Grid: Needs Attention & Real-time Stream */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Needs Your Attention (2 cols on lg) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
+        <div className="lg:col-span-2 bg-white rounded-[14px] border border-[#E6E1D9] p-5 sm:p-6 shadow-xs flex flex-col">
+          <div className="flex items-center justify-between border-b border-[#E6E1D9]/60 pb-3.5 mb-4">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
-              <h2 className="text-base font-bold text-slate-900">Needs Your Attention</h2>
+              <AlertTriangle className="w-4 h-4 text-[#D9A654]" />
+              <h2 className="text-[15px] font-semibold text-[#171717]">Needs Your Attention</h2>
             </div>
-            <span className="text-xs text-slate-500 font-medium">
+            <span className="text-xs text-[#96918A] font-medium">
               {attentionItems.length > 0 ? `${attentionItems.length} action item(s)` : 'All deals healthy'}
             </span>
           </div>
 
           {attentionItems.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center py-10 text-center">
-              <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-2" />
-              <p className="text-sm font-semibold text-slate-800">No urgent risks or bottlenecks</p>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm">All pending quotations and approvals are currently progressing within threshold SLA limits.</p>
+              <div className="w-10 h-10 rounded-[10px] bg-[#F5F2ED] border border-[#E6E1D9] flex items-center justify-center text-[#3F8F63] mb-3">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <p className="text-sm font-semibold text-[#171717]">No urgent risks or bottlenecks</p>
+              <p className="text-xs text-[#96918A] mt-1 max-w-sm">All pending quotations and approvals are currently progressing within threshold SLA limits.</p>
             </div>
           ) : (
             <div className="space-y-3 flex-1">
@@ -266,29 +272,29 @@ export default function Dashboard() {
                   <div
                     key={item.id}
                     onClick={() => navigate(item.actionUrl)}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border border-slate-200/90 bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-300 transition-all cursor-pointer group gap-3"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-[10px] border border-[#E6E1D9] bg-[#FAF9F6] hover:bg-[#F5F2ED] hover:border-[#D8D1C8] transition-all cursor-pointer group gap-3"
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${
-                        item.color === 'purple' ? 'bg-purple-100 text-purple-700' :
-                        item.color === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
+                      <div className={`w-8 h-8 rounded-[8px] shrink-0 mt-0.5 flex items-center justify-center ${
+                        item.color === 'purple' ? 'bg-purple-50 text-purple-600 border border-purple-100' :
+                        item.color === 'amber' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-rose-50 text-rose-600 border border-rose-100'
                       }`}>
                         <Icon className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{item.title}</span>
-                          <span className="text-[10px] uppercase font-semibold px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-600">
+                          <span className="text-xs font-semibold text-[#171717] group-hover:text-[#D97757] transition-colors">{item.title}</span>
+                          <span className="text-[10px] uppercase font-semibold px-2 py-0.5 bg-[#F5F2ED] border border-[#E6E1D9] rounded-full text-[#6F6B66]">
                             {item.type}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5">{item.reason}</p>
+                        <p className="text-xs text-[#96918A] mt-0.5">{item.reason}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                       <RiskBadge score={item.riskScore} />
-                      <div className="p-1 rounded-lg text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all">
+                      <div className="p-1 rounded-lg text-[#96918A] group-hover:text-[#D97757] group-hover:translate-x-0.5 transition-all">
                         <ChevronRight className="w-4 h-4" />
                       </div>
                     </div>
@@ -300,18 +306,18 @@ export default function Dashboard() {
         </div>
 
         {/* Real-time Stream */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
+        <div className="bg-white rounded-[14px] border border-[#E6E1D9] p-5 sm:p-6 shadow-xs flex flex-col">
+          <div className="flex items-center justify-between border-b border-[#E6E1D9]/60 pb-3.5 mb-4">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-indigo-600" />
-              <h2 className="text-base font-bold text-slate-900">Real-time Stream</h2>
+              <Activity className="w-4 h-4 text-[#D97757]" />
+              <h2 className="text-[15px] font-semibold text-[#171717]">Real-time Stream</h2>
             </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-100"></span>
+            <span className="w-2 h-2 rounded-full bg-[#3F8F63] ring-4 ring-[#3F8F63]/15"></span>
           </div>
 
           <div className="space-y-4 flex-1 overflow-y-auto">
             {activityStream.length === 0 ? (
-              <div className="py-12 text-center text-xs text-slate-400 italic">
+              <div className="py-12 text-center text-xs text-[#96918A] italic">
                 No recent activity yet.
               </div>
             ) : (
@@ -323,17 +329,17 @@ export default function Dashboard() {
                     to={event.link}
                     className="flex items-start gap-3 group"
                   >
-                    <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${event.iconBg}`}>
+                    <div className={`p-2 rounded-[10px] shrink-0 mt-0.5 ${event.iconBg}`}>
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                        <p className="text-xs font-semibold text-[#171717] group-hover:text-[#D97757] transition-colors truncate">
                           {event.title}
                         </p>
-                        <span className="text-[10px] text-slate-400 shrink-0">{event.time}</span>
+                        <span className="text-[10px] text-[#96918A] shrink-0">{event.time}</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">{event.detail}</p>
+                      <p className="text-[11px] text-[#96918A] mt-0.5 leading-tight">{event.detail}</p>
                     </div>
                   </Link>
                 );
@@ -344,13 +350,13 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Quotations Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white rounded-[14px] border border-[#E6E1D9] shadow-xs overflow-hidden">
+        <div className="p-5 sm:p-6 border-b border-[#E6E1D9]/60 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Recent Quotations</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Active commercial deals across your pipeline</p>
+            <h2 className="text-[15px] font-semibold text-[#171717]">Recent Quotations</h2>
+            <p className="text-xs text-[#96918A] mt-0.5">Active commercial deals across your pipeline</p>
           </div>
-          <Link to="/sales/quotations" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+          <Link to="/sales/quotations" className="text-xs font-semibold text-[#D97757] hover:text-[#C96648] flex items-center gap-1 transition-colors">
             View All Quotations &rarr;
           </Link>
         </div>
@@ -358,7 +364,7 @@ export default function Dashboard() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+              <tr className="bg-[#FAF9F6] border-b border-[#E6E1D9] text-[#6F6B66] font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3.5 px-5">Quote</th>
                 <th className="py-3.5 px-5">Customer</th>
                 <th className="py-3.5 px-5">Amount</th>
@@ -369,10 +375,10 @@ export default function Dashboard() {
                 <th className="py-3.5 px-5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-[#E6E1D9]/50 text-[#3D3A36]">
               {quotes.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-400">
+                  <td colSpan="8" className="p-8 text-center text-[#96918A]">
                     No quotations generated yet. Click "+ New Quotation" to formulate a deal.
                   </td>
                 </tr>
@@ -385,22 +391,22 @@ export default function Dashboard() {
                   const marginPct = (100 - Number(discountPct) - 25).toFixed(0); // Estimated margin formula based on cost model
 
                   return (
-                    <tr key={quote.id} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="py-3.5 px-5 font-bold text-slate-900">
-                        <Link to={`/sales/quotations/${quote.id}`} className="text-indigo-600 hover:underline font-mono">
+                    <tr key={quote.id} className="hover:bg-[#FAF9F6] transition-colors group">
+                      <td className="py-3.5 px-5 font-semibold text-[#171717]">
+                        <Link to={`/sales/quotations/${quote.id}`} className="text-[#D97757] hover:text-[#C96648] hover:underline font-mono tracking-tight">
                           {quote.quotationNumber}
                         </Link>
                       </td>
-                      <td className="py-3.5 px-5 font-medium text-slate-800">
+                      <td className="py-3.5 px-5 font-medium text-[#3D3A36]">
                         {quote.customer?.name || `Customer #${quote.customerId.slice(-6)}`}
                       </td>
-                      <td className="py-3.5 px-5 font-bold text-slate-900">
+                      <td className="py-3.5 px-5 font-bold text-[#171717]">
                         ₹{amount.toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3.5 px-5 text-slate-600">
-                        {discountPct}% <span className="text-[10px] text-slate-400">(-₹{discount.toLocaleString('en-IN')})</span>
+                      <td className="py-3.5 px-5 text-[#6F6B66]">
+                        {discountPct}% <span className="text-[10px] text-[#96918A]">(-₹{discount.toLocaleString('en-IN')})</span>
                       </td>
-                      <td className="py-3.5 px-5 font-semibold text-emerald-700">
+                      <td className="py-3.5 px-5 font-semibold text-[#3F8F63]">
                         {marginPct}%
                       </td>
                       <td className="py-3.5 px-5">
@@ -412,7 +418,7 @@ export default function Dashboard() {
                       <td className="py-3.5 px-5 text-right">
                         <Link
                           to={`/sales/quotations/${quote.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-[8px] bg-[#F5F2ED] text-[#6F6B66] hover:bg-[#D97757]/10 hover:text-[#D97757] border border-[#E6E1D9] transition-colors"
                         >
                           Open &rarr;
                         </Link>

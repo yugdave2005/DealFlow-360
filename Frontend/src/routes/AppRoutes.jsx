@@ -14,12 +14,6 @@ import Login from '../pages/auth/Login';
 import Signup from '../pages/auth/Signup';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 
-// Role Dashboards
-import ManagerDashboard from '../pages/manager/ManagerDashboard'; // Sales Manager Dashboard
-import OperationsDashboard from '../pages/operations/OperationsDashboard'; // Finance/Operations Dashboard
-import CustomerPortalDashboard from '../pages/customer/CustomerPortalDashboard'; // Customer Dashboard
-import AdminDashboard from '../pages/admin/AdminDashboard'; // Admin Dashboard
-
 // Sales Workspace Pages
 import QuotationsList from '../pages/sales/QuotationsList';
 import QuotationBuilder from '../pages/sales/QuotationBuilder';
@@ -76,6 +70,7 @@ export default function AppRoutes() {
         >
           <Route element={<SalesLayout />}>
             <Route index element={<Navigate to="/sales/quotations" replace />} />
+            <Route path="dashboard" element={<Navigate to="/sales/quotations" replace />} />
             
             {/* Sales Pipeline */}
             <Route path="quotations" element={<QuotationsList />} />
@@ -102,6 +97,9 @@ export default function AppRoutes() {
             
             {/* Catalog */}
             <Route path="products" element={<AdminProducts />} />
+
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/sales/quotations" replace />} />
           </Route>
         </Route>
 
@@ -111,12 +109,13 @@ export default function AppRoutes() {
           element={<RoleRoute allowedRoles={[ROLES.SALES_MANAGER, ROLES.ADMIN]} />}
         >
           <Route element={<SalesLayout />}>
-            <Route index element={<ManagerDashboard />} />
-            <Route path="dashboard" element={<ManagerDashboard />} />
+            <Route index element={<Navigate to="/sales/approvals" replace />} />
+            <Route path="dashboard" element={<Navigate to="/sales/approvals" replace />} />
             <Route path="pipeline" element={<Pipeline />} />
             <Route path="approvals" element={<Approvals />} />
             <Route path="deal-health" element={<DealHealth />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="*" element={<Navigate to="/sales/approvals" replace />} />
           </Route>
         </Route>
 
@@ -126,13 +125,14 @@ export default function AppRoutes() {
           element={<RoleRoute allowedRoles={[ROLES.FINANCE_OPERATIONS, ROLES.ADMIN]} />}
         >
           <Route element={<SalesLayout />}>
-            <Route index element={<OperationsDashboard />} />
-            <Route path="dashboard" element={<OperationsDashboard />} />
+            <Route index element={<Navigate to="/sales/approvals" replace />} />
+            <Route path="dashboard" element={<Navigate to="/sales/approvals" replace />} />
             <Route path="fulfillment" element={<FulfillmentList />} />
             <Route path="fulfillment/:orderId" element={<WarehouseSplit />} />
             <Route path="approvals" element={<Approvals />} />
             <Route path="invoices" element={<InvoicesList />} />
             <Route path="subscriptions" element={<SubscriptionsList />} />
+            <Route path="*" element={<Navigate to="/sales/approvals" replace />} />
           </Route>
         </Route>
 
@@ -142,18 +142,20 @@ export default function AppRoutes() {
           element={<RoleRoute allowedRoles={[ROLES.CUSTOMER, ROLES.ADMIN]} />}
         >
           <Route element={<CustomerLayout />}>
-            <Route index element={<CustomerPortalDashboard />} />
+            <Route index element={<Navigate to="/portal/quotations" replace />} />
+            <Route path="dashboard" element={<Navigate to="/portal/quotations" replace />} />
             <Route path="quotations" element={<CustomerQuotationsList />} />
             <Route path="quotations/:id" element={<CustomerQuotationView />} />
             <Route path="negotiations" element={<CustomerNegotiationsList />} />
             <Route path="profile" element={<CustomerProfile />} />
+            <Route path="*" element={<Navigate to="/portal/quotations" replace />} />
           </Route>
         </Route>
 
         {/* Dedicated Standalone Customer Quotation Review Routes */}
         <Route path="/customer/*">
-          <Route index element={<CustomerPortalDashboard />} />
-          <Route path="dashboard" element={<CustomerPortalDashboard />} />
+          <Route index element={<Navigate to="/customer/quotations" replace />} />
+          <Route path="dashboard" element={<Navigate to="/customer/quotations" replace />} />
           <Route path="quotations" element={<CustomerQuotationsList />} />
           <Route path="quotations/:id" element={<CustomerQuotationView />} />
           <Route path="quotation/:id" element={<CustomerQuotationView />} />
@@ -166,29 +168,25 @@ export default function AppRoutes() {
           element={<RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.SALES_MANAGER]} />}
         >
           <Route element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            
-            {/* Configuration */}
+            <Route index element={<Navigate to="/admin/products" replace />} />
+            <Route path="dashboard" element={<Navigate to="/admin/products" replace />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="discount-rules" element={<AdminDiscountRules />} />
             <Route path="approval-rules" element={<AdminApprovalRules />} />
             <Route path="warehouses" element={<AdminWarehouses />} />
-            <Route path="subscription-plans" element={<SubscriptionsList />} />
-            
-            {/* Management & Analytics */}
+            <Route path="subscription-plans" element={<AdminDiscountRules />} />
             <Route path="customers" element={<Customers />} />
             <Route path="reports" element={<Reports />} />
-            <Route path="analytics" element={<Reports />} />
+            <Route path="*" element={<Navigate to="/admin/products" replace />} />
           </Route>
         </Route>
 
       </Route>
 
-      {/* 403 Forbidden Access Denied Page */}
+      {/* Unauthorized Access Route */}
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Catch-all 404 Route */}
+      {/* Global Catch-all */}
       <Route path="*" element={<Navigate to="/auth/login" replace />} />
     </Routes>
   );

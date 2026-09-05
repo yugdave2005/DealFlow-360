@@ -14,32 +14,32 @@ export default function QuotationHeader({
   status = 'DRAFT'
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-      <div className="space-y-1">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#EEEAE4]">
+      <div className="space-y-1.5">
         <div className="flex items-center gap-2">
           <Link
             to="/sales/quotations"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors group"
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6F6B66] hover:text-[#D97757] transition-colors group"
           >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             <span>Quotations</span>
           </Link>
-          <span className="text-slate-300">&bull;</span>
-          <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 rounded border border-slate-200">
+          <span className="text-[#E6E1D9]">&bull;</span>
+          <span className="px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider bg-[#F5F2ED] text-[#6F6B66] rounded-full border border-[#E6E1D9]">
             {status}
           </span>
           {isEditMode && (
-            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 rounded border border-amber-200">
+            <span className="px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider bg-[#FBF2E3] text-[#C98A32] rounded-full border border-[#F5E2BE]">
               Editing Revision
             </span>
           )}
         </div>
 
         <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
+          <h1 className="text-[28px] sm:text-[34px] font-semibold text-[#171717] tracking-tight leading-tight">
             {isEditMode ? `Edit Quotation ${quoteNumber}` : 'New Quotation'}
           </h1>
-          <span className="text-xs text-slate-500 hidden md:inline">
+          <span className="text-[14px] text-[#6F6B66] hidden md:inline">
             {isEditMode ? 'Modify line items, quantities, and commercial discount ceilings' : 'Create a commercial quotation for your customer'}
           </span>
         </div>
@@ -47,7 +47,7 @@ export default function QuotationHeader({
 
       {/* Right Header Actions */}
       <div className="flex items-center gap-2.5 shrink-0">
-        <span className="font-mono text-xs font-bold text-slate-400 mr-1 hidden sm:inline">
+        <span className="font-mono text-[13px] font-bold text-[#96918A] mr-1 hidden sm:inline">
           #{quoteNumber}
         </span>
 
@@ -55,7 +55,7 @@ export default function QuotationHeader({
           type="button"
           onClick={onSaveDraft}
           disabled={isPending || !hasItems}
-          className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors disabled:opacity-40"
+          className="h-10 px-4 text-[13px] font-semibold text-[#171717] bg-white hover:bg-[#FAF9F6] border border-[#E6E1D9] rounded-[9px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors disabled:opacity-40 cursor-pointer"
         >
           {isEditMode ? 'Save Changes' : 'Save Draft'}
         </button>
@@ -64,7 +64,7 @@ export default function QuotationHeader({
           type="button"
           onClick={onPreview}
           disabled={!hasItems}
-          className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors disabled:opacity-40"
+          className="h-10 px-4 text-[13px] font-semibold text-[#171717] bg-white hover:bg-[#FAF9F6] border border-[#E6E1D9] rounded-[9px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors disabled:opacity-40 cursor-pointer"
         >
           Preview
         </button>
@@ -74,9 +74,9 @@ export default function QuotationHeader({
             type="button"
             onClick={onSubmit}
             disabled={isPending || !hasItems}
-            className="px-3.5 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-xs transition-colors disabled:opacity-40 flex items-center gap-1.5"
+            className="h-10 px-5 text-[13px] font-semibold text-white bg-[#C98A32] hover:bg-[#B37929] rounded-[9px] shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors disabled:opacity-40 flex items-center gap-2 cursor-pointer"
           >
-            <ShieldAlert className="w-3.5 h-3.5" />
+            <ShieldAlert className="w-4 h-4" />
             <span>Submit for Approval</span>
           </button>
         ) : (
@@ -84,9 +84,9 @@ export default function QuotationHeader({
             type="button"
             onClick={onSubmit}
             disabled={isPending || !hasItems}
-            className="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-xs transition-colors disabled:opacity-40 flex items-center gap-1.5"
+            className="h-10 px-5 text-[13px] font-semibold text-white bg-[#D97757] hover:bg-[#C96648] rounded-[9px] shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors disabled:opacity-40 flex items-center gap-2 cursor-pointer"
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-4 h-4" />
             <span>{isEditMode ? 'Update & Send' : 'Send to Customer'}</span>
           </button>
         )}

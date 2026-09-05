@@ -2,14 +2,14 @@ import React from 'react';
 
 export default function BillingBreakdown({ oneTimeSubtotal = 0, recurringSubtotal = 0 }) {
   return (
-    <div className="bg-slate-50/90 rounded-lg p-2.5 border border-slate-200/80 space-y-1.5 text-xs">
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+    <div className="bg-[#FAF8F5] rounded-xl p-2.5 border border-[#EBE8E2] space-y-1.5 text-xs">
+      <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider block">
         Hybrid Billing Structure
       </span>
 
-      <div className="flex justify-between items-center text-slate-700">
+      <div className="flex justify-between items-center text-[#44403C]">
         <span className="text-[11px]">One-Time Commercial:</span>
-        <span className="font-bold text-slate-900">
+        <span className="font-bold text-[#1E1B18]">
           ₹{oneTimeSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
         </span>
       </div>

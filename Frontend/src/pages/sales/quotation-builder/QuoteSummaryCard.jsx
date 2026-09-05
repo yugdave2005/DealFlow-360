@@ -15,13 +15,13 @@ export default function QuoteSummaryCard({ calculations }) {
   } = calculations || {};
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 shadow-2xs space-y-3 sticky top-20">
+    <div className="bg-[#FFFFFF] rounded-2xl border border-[#EBE8E2] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-3.5 sticky top-20">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+      <div className="flex items-center justify-between border-b border-[#EBE8E2] pb-2.5">
+        <h3 className="text-xs font-bold text-[#1E1B18] uppercase tracking-wider">
           Quote Summary
         </h3>
-        <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">
+        <span className="text-[10px] font-bold text-[#A8A29E] uppercase font-mono">
           INR (₹)
         </span>
       </div>
@@ -33,10 +33,10 @@ export default function QuoteSummaryCard({ calculations }) {
       />
 
       {/* Financial Line Items */}
-      <div className="space-y-1.5 text-xs text-slate-600">
+      <div className="space-y-1.5 text-xs text-[#78716C]">
         <div className="flex justify-between">
-          <span className="text-slate-500">Subtotal (Gross):</span>
-          <span className="font-semibold text-slate-800">
+          <span className="text-[#78716C]">Subtotal (Gross):</span>
+          <span className="font-semibold text-[#1E1B18]">
             ₹{subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </span>
         </div>
@@ -48,25 +48,25 @@ export default function QuoteSummaryCard({ calculations }) {
           </span>
         </div>
 
-        <div className="flex justify-between text-slate-500">
+        <div className="flex justify-between text-[#78716C]">
           <span>Estimated GST (18%):</span>
-          <span className="font-semibold text-slate-800">
+          <span className="font-semibold text-[#1E1B18]">
             ₹{tax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </span>
         </div>
 
         {/* Grand Total */}
-        <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline">
-          <span className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+        <div className="border-t border-[#EBE8E2] pt-2.5 flex justify-between items-baseline">
+          <span className="font-bold text-[#1E1B18] text-xs uppercase tracking-wider">
             Grand Total:
           </span>
-          <span className="font-black text-slate-900 text-xl tracking-tight">
+          <span className="font-black text-[#1E1B18] text-xl tracking-tight">
             ₹{grandTotalWithTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </span>
         </div>
 
         {/* Expected Margin Banner */}
-        <div className="bg-emerald-50/80 p-2.5 rounded-lg border border-emerald-200/70 flex items-center justify-between mt-2">
+        <div className="bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200/70 flex items-center justify-between mt-2">
           <div>
             <span className="text-[10px] font-bold text-emerald-800 uppercase block tracking-wider">
               Expected Margin
@@ -75,7 +75,7 @@ export default function QuoteSummaryCard({ calculations }) {
               ₹{margin.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
             </span>
           </div>
-          <span className="text-sm font-black text-emerald-700 bg-white/70 px-2 py-0.5 rounded border border-emerald-200/80">
+          <span className="text-sm font-black text-emerald-700 bg-white/80 px-2 py-0.5 rounded-lg border border-emerald-200/80">
             {marginPercentage}%
           </span>
         </div>

@@ -426,7 +426,7 @@ export default function QuotationBuilder() {
   };
 
   return (
-    <div className="max-w-[1440px] mx-auto px-6 py-6 sm:px-8 sm:py-8 space-y-5">
+    <div className="max-w-7xl mx-auto p-4 sm:p-8 space-y-6 pb-24">
       
       {/* 1. Page Header with edit support */}
       <QuotationHeader
@@ -479,20 +479,18 @@ export default function QuotationBuilder() {
         <div className="xl:col-span-5 lg:col-span-5 col-span-12 space-y-4">
           <QuotationItemsTable
             items={watchLineItems}
-            tierLimit={currentCustomer.tierDiscountLimit}
+            tierDiscountLimit={currentCustomer?.tierDiscountLimit || 15}
             onUpdateItem={handleUpdateItem}
             onOpenDrawer={handleOpenDrawer}
             onRemoveItem={handleRemoveItem}
             onClearAll={handleClearAll}
-            calculations={calculations}
           />
 
           {/* Upsell Recommendation Card */}
           <RecommendationPreview
             suggestions={upsellSuggestions}
-            onAddProduct={handleAddProduct}
-            onDismiss={(pId) => setDismissedUpsells(prev => [...prev, pId])}
-            onViewAll={() => setRecommendationsDrawerOpen(true)}
+            onAddSuggestion={handleAddProduct}
+            onOpenAllRecommendations={() => setRecommendationsDrawerOpen(true)}
           />
         </div>
 
@@ -502,12 +500,6 @@ export default function QuotationBuilder() {
             calculations={calculations}
             onOpenGovernance={() => setGovernanceDrawerOpen(true)}
             onOpenBilling={() => setBillingDrawerOpen(true)}
-            onPreview={() => setPreviewModalOpen(true)}
-            onSubmit={handlePrimarySubmit}
-            isPending={saveMutation.isPending}
-            hasItems={watchLineItems.length > 0}
-            approvalRequired={isApprovalRequired}
-            isEditMode={isEditMode}
           />
         </div>
 
@@ -515,10 +507,7 @@ export default function QuotationBuilder() {
 
       {/* 5. Sticky Floating Mobile/Tablet Action Bar */}
       <QuotationActionBar
-        totalWithTax={calculations.grandTotalWithTax}
-        itemCount={watchLineItems.length}
-        riskScore={calculations.riskScore}
-        riskLevel={calculations.riskLevel}
+        onSaveDraft={() => saveMutation.mutate({ status: 'DRAFT' })}
         onPreview={() => setPreviewModalOpen(true)}
         onSubmit={handlePrimarySubmit}
         isPending={saveMutation.isPending}
@@ -532,8 +521,8 @@ export default function QuotationBuilder() {
         onClose={() => setDrawerOpen(false)}
         item={activeDrawerIndex !== null ? watchLineItems[activeDrawerIndex] : null}
         index={activeDrawerIndex}
-        tierLimit={currentCustomer.tierDiscountLimit}
-        onUpdateItem={handleUpdateItem}
+        tierDiscountLimit={currentCustomer?.tierDiscountLimit || 15}
+        onSave={handleUpdateItem}
       />
 
       <CustomerDetailsDrawer
@@ -546,33 +535,30 @@ export default function QuotationBuilder() {
         isOpen={governanceDrawerOpen}
         onClose={() => setGovernanceDrawerOpen(false)}
         calculations={calculations}
-        customer={currentCustomer}
       />
 
       <BillingDrawer
         isOpen={billingDrawerOpen}
         onClose={() => setBillingDrawerOpen(false)}
-        calculations={calculations}
+        oneTimeSubtotal={calculations.oneTimeSubtotal}
+        recurringSubtotal={calculations.recurringSubtotal}
+        items={watchLineItems}
       />
 
       <RecommendationsDrawer
         isOpen={recommendationsDrawerOpen}
         onClose={() => setRecommendationsDrawerOpen(false)}
         suggestions={upsellSuggestions}
-        onAddProduct={handleAddProduct}
+        onAddSuggestion={handleAddProduct}
       />
 
       <QuotePreviewModal
         isOpen={previewModalOpen}
         onClose={() => setPreviewModalOpen(false)}
-        quoteNumber={existingQuote?.quotationNumber || 'QT-DRAFT'}
-        customer={currentCustomer}
+        currentCustomer={currentCustomer}
         items={watchLineItems}
         calculations={calculations}
-        validUntil={validUntilDate}
-        onSubmit={handlePrimarySubmit}
-        isPending={saveMutation.isPending}
-        approvalRequired={isApprovalRequired}
+        validUntilDate={validUntilDate}
       />
 
     </div>
