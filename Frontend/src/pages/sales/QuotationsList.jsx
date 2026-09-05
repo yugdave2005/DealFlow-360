@@ -94,7 +94,7 @@ export default function QuotationsList() {
 
       return true;
     });
-  }, [displayQuotations, activeTab, searchQuery, selectedRisk, selectedCustomer]);
+  }, [quotations, activeTab, searchQuery, selectedRisk, selectedCustomer]);
 
   const handleDuplicate = (quote) => {
     toast.success(`Created duplicate draft for ${quote.quotationNumber}`);
@@ -106,8 +106,12 @@ export default function QuotationsList() {
     setActiveActionMenu(null);
   };
 
+  if (isLoading) {
+    return <LoadingSkeleton type="table" rows={6} />;
+  }
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
@@ -119,7 +123,7 @@ export default function QuotationsList() {
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-xs shrink-0"
         >
           <Plus className="w-4 h-4" />
-          + New Quotation
+          <span>New Quotation</span>
         </Link>
       </div>
 

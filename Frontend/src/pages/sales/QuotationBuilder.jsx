@@ -109,6 +109,24 @@ export default function QuotationBuilder() {
 
   // Dynamic calculations with Hybrid Billing
   const calculations = useMemo(() => {
+    if (watchLineItems.length === 0) {
+      return {
+        subtotal: 0,
+        oneTimeSubtotal: 0,
+        recurringSubtotal: 0,
+        totalDiscount: 0,
+        tax: 0,
+        grandTotal: 0,
+        grandTotalWithTax: 0,
+        margin: 0,
+        marginPercentage: '0.0',
+        riskScore: 0,
+        riskLevel: 'LOW',
+        problematicLines: [],
+        approvalRequirement: 'NONE'
+      };
+    }
+
     let subtotal = 0;
     let oneTimeSubtotal = 0;
     let recurringSubtotal = 0;
@@ -118,15 +136,15 @@ export default function QuotationBuilder() {
 
     watchLineItems.forEach((item, index) => {
       const qty = Number(item.quantity || 1);
-      const price = Number(item.unitPrice || 0);
+      const unit = Number(item.unitPrice || 0);
       const disc = Number(item.discountPercentage || 0);
-      const itemCost = Number(item.cost || (price * 0.65));
+      const cost = Number(item.unitCost || unit * 0.65);
       const allowed = Number(item.allowedDiscount || currentCustomer.tierDiscountLimit || 15);
 
-      const lineGross = qty * price;
+      const lineGross = qty * unit;
       const lineDiscountAmt = lineGross * (disc / 100);
       const lineNet = lineGross - lineDiscountAmt;
-      const lineTotalCost = qty * itemCost;
+      const lineTotalCost = qty * cost;
 
       subtotal += lineGross;
       totalDiscount += lineDiscountAmt;
@@ -623,7 +641,7 @@ export default function QuotationBuilder() {
               </div>
               <div className="flex justify-between text-rose-600">
                 <span>Total Discount:</span>
-                <span className="font-semibold">-₹{calculations.totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                <span className="font-semibold">{calculations.totalDiscount > 0 ? `-₹${calculations.totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '₹0'}</span>
               </div>
               <div className="flex justify-between text-slate-500">
                 <span>Estimated GST (18%):</span>

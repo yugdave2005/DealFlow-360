@@ -161,16 +161,11 @@ export default function Dashboard() {
   }, [quotes]);
 
   if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto space-y-6">
-        <LoadingSkeleton type="cards" rows={4} />
-        <LoadingSkeleton type="table" rows={6} />
-      </div>
-    );
+    return <LoadingSkeleton type="table" rows={6} />;
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Top Header & New Quotation CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
@@ -182,7 +177,7 @@ export default function Dashboard() {
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-xs shrink-0"
         >
           <Plus className="w-4 h-4" />
-          + New Quotation
+          <span>New Quotation</span>
         </Link>
       </div>
 
@@ -196,7 +191,7 @@ export default function Dashboard() {
               <FileText className="w-4 h-4" />
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 mt-2">{metrics.activeQuotations ?? quotes.length}</h2>
+          <h2 className="text-3xl font-extrabold text-slate-900 mt-2">{quotes.length}</h2>
           <p className="text-slate-500 text-xs mt-2">In Draft, Negotiation, or Sent</p>
         </div>
 
@@ -208,7 +203,7 @@ export default function Dashboard() {
               <CheckSquare className="w-4 h-4" />
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 mt-2">{metrics.pendingApprovals ?? quotes.filter(q => q.status === 'PENDING_APPROVAL').length}</h2>
+          <h2 className="text-3xl font-extrabold text-slate-900 mt-2">{quotes.filter(q => q.status === 'PENDING_APPROVAL').length}</h2>
           <p className="text-slate-500 text-xs mt-2">Awaiting management review</p>
         </div>
 
@@ -220,7 +215,12 @@ export default function Dashboard() {
               <ShieldAlert className="w-4 h-4" />
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold text-rose-600 mt-2">{metrics.atRiskDeals ?? (health?.anomalyCount || 0)}</h2>
+          <h2 className="text-3xl font-extrabold text-rose-600 mt-2">
+            {quotes.filter(q => {
+              const v = q.activeVersion || (q.versions && q.versions[0]) || {};
+              return (v.riskScore || 0) > 40;
+            }).length}
+          </h2>
           <p className="text-slate-500 text-xs mt-2">Risk score above configured threshold</p>
         </div>
 
@@ -233,7 +233,7 @@ export default function Dashboard() {
             </div>
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 mt-2">
-            ₹{pipelineValue > 0 ? pipelineValue.toLocaleString('en-IN') : '24,80,000'}
+            ₹{pipelineValue.toLocaleString('en-IN')}
           </h2>
           <p className="text-slate-500 text-xs mt-2">Total value of active opportunities</p>
         </div>

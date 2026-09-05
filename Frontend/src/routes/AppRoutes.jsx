@@ -153,9 +153,15 @@ export default function AppRoutes() {
           </Route>
         </Route>
 
-        {/* Dedicated Standalone Customer Quotation Review Route */}
+        {/* Dedicated Standalone Customer Quotation Review Routes */}
         <Route path="/customer/*">
+          <Route index element={<CustomerPortalDashboard />} />
+          <Route path="dashboard" element={<CustomerPortalDashboard />} />
+          <Route path="quotations" element={<CustomerQuotationsList />} />
+          <Route path="quotations/:id" element={<CustomerQuotationView />} />
           <Route path="quotation/:id" element={<CustomerQuotationView />} />
+          <Route path="negotiations" element={<CustomerNegotiationsList />} />
+          <Route path="orders" element={<CustomerOrdersList />} />
         </Route>
 
         {/* 5. ADMIN PLATFORM CONFIGURATION WORKSPACE */}
