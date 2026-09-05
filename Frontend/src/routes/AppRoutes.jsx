@@ -17,6 +17,9 @@ import QuotationsList from '../pages/sales/QuotationsList';
 import QuotationBuilder from '../pages/sales/QuotationBuilder';
 import Approvals from '../pages/sales/Approvals';
 import FulfillmentList from '../pages/sales/FulfillmentList';
+import SubscriptionsList from '../pages/sales/SubscriptionsList';
+import InvoicesList from '../pages/sales/InvoicesList';
+import DealHealth from '../pages/sales/DealHealth';
 
 export default function AppRoutes() {
   return (
@@ -42,9 +45,9 @@ export default function AppRoutes() {
           <Route path="approvals" element={<Approvals />} />
           <Route path="fulfillment" element={<FulfillmentList />} />
           <Route path="inventory" element={<div>Inventory</div>} />
-          <Route path="subscriptions" element={<div>Subscriptions</div>} />
-          <Route path="invoices" element={<div>Invoices</div>} />
-          <Route path="deal-health" element={<div>Deal Health</div>} />
+          <Route path="subscriptions" element={<SubscriptionsList />} />
+          <Route path="invoices" element={<InvoicesList />} />
+          <Route path="deal-health" element={<DealHealth />} />
         </Route>
 
         <Route path="/admin/*" element={<RoleRoute allowedRoles={['ADMIN', 'SALES_REP']} />}>
