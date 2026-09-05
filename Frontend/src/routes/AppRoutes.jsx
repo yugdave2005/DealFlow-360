@@ -1,0 +1,53 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './ProtectedRoute';
+import RoleRoute from './RoleRoute';
+import AuthLayout from '../layouts/AuthLayout';
+import SalesLayout from '../layouts/SalesLayout';
+import CustomerLayout from '../layouts/CustomerLayout';
+import AdminLayout from '../layouts/AdminLayout';
+
+export default function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<div>Login</div>} />
+        <Route path="/signup" element={<div>Signup</div>} />
+        <Route path="/forgot-password" element={<div>Forgot Password</div>} />
+      </Route>
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="/sales/*" element={<SalesLayout />}>
+          <Route index element={<div>Dashboard Placeholder</div>} />
+          <Route path="quotations" element={<div>Quotations List</div>} />
+          <Route path="quotations/new" element={<div>New Quotation</div>} />
+          <Route path="quotations/:id" element={<div>Quotation Detail</div>} />
+          <Route path="approvals" element={<div>Approvals</div>} />
+          <Route path="fulfillment" element={<div>Fulfillment</div>} />
+          <Route path="inventory" element={<div>Inventory</div>} />
+          <Route path="subscriptions" element={<div>Subscriptions</div>} />
+          <Route path="invoices" element={<div>Invoices</div>} />
+          <Route path="deal-health" element={<div>Deal Health</div>} />
+        </Route>
+
+        <Route path="/admin/*" element={<RoleRoute allowedRoles={['ADMIN']} />}>
+          <Route element={<AdminLayout />}>
+            <Route path="products" element={<div>Products</div>} />
+            <Route path="customers" element={<div>Customers</div>} />
+            <Route path="discount-rules" element={<div>Discount Rules</div>} />
+            <Route path="approval-rules" element={<div>Approval Rules</div>} />
+            <Route path="warehouses" element={<div>Warehouses</div>} />
+            <Route path="subscription-plans" element={<div>Subscription Plans</div>} />
+            <Route path="reports" element={<div>Reports</div>} />
+          </Route>
+        </Route>
+      </Route>
+
+      <Route path="/customer/*" element={<CustomerLayout />}>
+        <Route path="quotation/:id" element={<div>Customer Quotation View</div>} />
+      </Route>
+
+      <Route path="/unauthorized" element={<div>Unauthorized</div>} />
+    </Routes>
+  );
+}
