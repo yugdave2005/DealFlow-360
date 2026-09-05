@@ -15,6 +15,22 @@ export const createQuotation = async (req, res, next) => {
   }
 };
 
+export const updateQuotation = async (req, res, next) => {
+  try {
+    const quotation = await quotationService.updateQuotation(
+      req.params.id,
+      {
+        customerId: req.body.customerId,
+        lineItems: req.body.lineItems
+      },
+      req.user.id
+    );
+    sendSuccess(res, 200, 'Quotation updated successfully', quotation);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const listQuotations = async (req, res, next) => {
   try {
     const quotations = await quotationService.getQuotations(req.user.id, req.user.role);

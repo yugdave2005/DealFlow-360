@@ -353,8 +353,22 @@ export const updateUser = async (req, res, next) => {
 export const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await prisma.user.delete({ where: { id } });
-    sendSuccess(res, 200, 'User deleted successfully');
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    try {
+      await prisma.user.delete({ where: { id } });
+      return sendSuccess(res, 200, 'User deleted successfully');
+    } catch (err) {
+      // In case of any foreign key constraint, deactivate user instead of failing with 500
+      await prisma.user.update({
+        where: { id },
+        data: { isActive: false }
+      });
+      return sendSuccess(res, 200, 'User has linked records and was deactivated instead of deleted');
+    }
   } catch (err) { next(err); }
 };
 

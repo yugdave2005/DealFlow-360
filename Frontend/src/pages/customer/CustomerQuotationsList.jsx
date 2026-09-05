@@ -7,11 +7,9 @@ import {
   ArrowRight, 
   Inbox
 } from 'lucide-react';
+import { api } from '../../lib/axios';
 import StatusBadge from '../../components/common/StatusBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-
-const API_QUOTATIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
-const getToken = () => localStorage.getItem('accessToken');
 
 export default function CustomerQuotationsList() {
   const navigate = useNavigate();
@@ -20,16 +18,17 @@ export default function CustomerQuotationsList() {
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ['customerQuotationsList'],
     queryFn: async () => {
-      const res = await fetch(API_QUOTATIONS, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || [];
+      try {
+        const res = await api.get('/customer-portal/quotations');
+        return res.data?.data || res.data || [];
+      } catch (e) {
+        const fallback = await api.get('/quotations').catch(() => ({ data: { data: [] } }));
+        return fallback.data?.data || fallback.data || [];
+      }
     }
   });
 
-  const filteredQuotes = quotes.filter(q => 
+  const filteredQuotes = (Array.isArray(quotes) ? quotes : []).filter(q => 
     (q.quotationNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (q.customer?.companyName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );

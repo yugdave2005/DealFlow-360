@@ -9,7 +9,8 @@ const router = express.Router();
 router.use(requireAuth); // All quotation routes require auth
 
 router.post('/', requireRole(['SALES_REP', 'SALES_MANAGER', 'ADMIN']), validate(createQuotationSchema), quotationController.createQuotation);
-router.get('/', requireRole(['SALES_REP', 'SALES_MANAGER', 'ADMIN', 'FINANCE', 'OPERATIONS']), quotationController.listQuotations);
+router.put('/:id', requireRole(['SALES_REP', 'SALES_MANAGER', 'ADMIN']), quotationController.updateQuotation);
+router.get('/', requireRole(['SALES_REP', 'SALES_MANAGER', 'ADMIN', 'FINANCE', 'OPERATIONS', 'CUSTOMER']), quotationController.listQuotations);
 router.get('/:id', requireRole(['SALES_REP', 'SALES_MANAGER', 'ADMIN', 'FINANCE', 'OPERATIONS', 'CUSTOMER']), quotationController.getQuotation);
 
 // Lifecycle Transitions

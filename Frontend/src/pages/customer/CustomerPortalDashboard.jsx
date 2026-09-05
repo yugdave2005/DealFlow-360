@@ -11,11 +11,9 @@ import {
   ArrowRight,
   Inbox
 } from 'lucide-react';
+import { api } from '../../lib/axios';
 import StatusBadge from '../../components/common/StatusBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-
-const API_QUOTATIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
-const getToken = () => localStorage.getItem('accessToken');
 
 export default function CustomerPortalDashboard() {
   const navigate = useNavigate();
@@ -23,18 +21,20 @@ export default function CustomerPortalDashboard() {
   const { data: quotations = [], isLoading } = useQuery({
     queryKey: ['customerPortalQuotations'],
     queryFn: async () => {
-      const res = await fetch(API_QUOTATIONS, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || [];
+      try {
+        const res = await api.get('/customer-portal/quotations');
+        return res.data?.data || res.data || [];
+      } catch (e) {
+        const fallback = await api.get('/quotations').catch(() => ({ data: { data: [] } }));
+        return fallback.data?.data || fallback.data || [];
+      }
     }
   });
 
-  const activeQuotations = quotations.filter(q => !['CANCELLED', 'REJECTED'].includes(q.status));
-  const pendingNegotiations = quotations.filter(q => ['UNDER_NEGOTIATION', 'NEGOTIATION', 'PENDING_APPROVAL'].includes(q.status));
-  const confirmedOrders = quotations.filter(q => ['CONFIRMED', 'COMPLETED', 'PAID'].includes(q.status));
+  const quotesList = Array.isArray(quotations) ? quotations : [];
+  const activeQuotations = quotesList.filter(q => !['CANCELLED', 'REJECTED'].includes(q.status));
+  const pendingNegotiations = quotesList.filter(q => ['UNDER_NEGOTIATION', 'NEGOTIATION', 'PENDING_APPROVAL'].includes(q.status));
+  const confirmedOrders = quotesList.filter(q => ['CONFIRMED', 'COMPLETED', 'PAID'].includes(q.status));
   
   const outstandingBalance = confirmedOrders.reduce((sum, q) => {
     const v = q.activeVersion || (q.versions && q.versions[0]) || {};
@@ -113,14 +113,14 @@ export default function CustomerPortalDashboard() {
             onClick={() => navigate('/customer/quotations')}
             className="text-xs font-bold text-cyan-700 hover:underline flex items-center gap-1"
           >
-            <span>View All ({quotations.length})</span>
+            <span>View All ({quotesList.length})</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {isLoading ? (
           <LoadingSkeleton count={2} />
-        ) : quotations.length === 0 ? (
+        ) : quotesList.length === 0 ? (
           <div className="py-12 text-center bg-slate-50 rounded-xl border border-slate-100">
             <Inbox className="w-8 h-8 text-slate-300 mx-auto mb-2" />
             <p className="text-xs font-semibold text-slate-700">No active quotations found</p>
@@ -128,7 +128,7 @@ export default function CustomerPortalDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {quotations.slice(0, 5).map(quote => {
+            {quotesList.slice(0, 5).map(quote => {
               const v = quote.activeVersion || (quote.versions && quote.versions[0]) || {};
               const total = Number(v.totalAmount || quote.totalAmount || 0);
               const discount = Number(v.totalDiscount || 0);

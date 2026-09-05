@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreVertical, Trash2, Edit3, AlertCircle } from 'lucide-react';
+import { Trash2, Edit3, AlertCircle } from 'lucide-react';
 
 export default function QuotationItemRow({
   item,
@@ -9,24 +9,58 @@ export default function QuotationItemRow({
   onOpenDrawer,
   tierDiscountLimit = 15
 }) {
-  const qty = Number(item.quantity || 1);
-  const price = Number(item.unitPrice || 0);
-  const disc = Number(item.discountPercentage || 0);
+  const qty = item.quantity === '' ? '' : Number(item.quantity ?? 1);
+  const price = item.unitPrice === '' ? '' : Number(item.unitPrice ?? 0);
+  const disc = item.discountPercentage === '' ? '' : Number(item.discountPercentage ?? 0);
   const allowed = Number(item.allowedDiscount || tierDiscountLimit || 15);
-  const isOverLimit = disc > allowed;
+  const isOverLimit = Number(disc || 0) > allowed;
 
-  const lineGross = qty * price;
-  const lineDiscountAmt = lineGross * (disc / 100);
+  const numericQty = Number(qty || 1);
+  const numericPrice = Number(price || 0);
+  const numericDisc = Number(disc || 0);
+
+  const lineGross = numericQty * numericPrice;
+  const lineDiscountAmt = lineGross * (numericDisc / 100);
   const lineNet = lineGross - lineDiscountAmt;
 
   const isSub = item.isSubscription || item.category === 'SUBSCRIPTIONS';
+
+  const handleDiscountChange = (e) => {
+    const val = e.target.value;
+    if (val === '') {
+      onUpdate?.(index, { ...item, discountPercentage: '' });
+    } else {
+      const parsed = parseFloat(val);
+      onUpdate?.(index, { ...item, discountPercentage: isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed)) });
+    }
+  };
+
+  const handlePriceChange = (e) => {
+    const val = e.target.value;
+    if (val === '') {
+      onUpdate?.(index, { ...item, unitPrice: '' });
+    } else {
+      const parsed = parseFloat(val);
+      onUpdate?.(index, { ...item, unitPrice: isNaN(parsed) ? 0 : Math.max(0, parsed) });
+    }
+  };
+
+  const handleQtyChange = (e) => {
+    const val = e.target.value;
+    if (val === '') {
+      onUpdate?.(index, { ...item, quantity: '' });
+    } else {
+      const parsed = parseInt(val, 10);
+      onUpdate?.(index, { ...item, quantity: isNaN(parsed) ? 1 : Math.max(1, parsed) });
+    }
+  };
 
   return (
     <tr className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors group text-xs">
       {/* Product Name & SKU */}
       <td className="py-3 pl-4 pr-3 align-middle">
         <div 
-          onClick={() => onOpenDrawer(index)}
+          onClick={() => onOpenDrawer?.(index)}
           className="cursor-pointer group/title"
         >
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -52,7 +86,7 @@ export default function QuotationItemRow({
         <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white">
           <button
             type="button"
-            onClick={() => onUpdate(index, { ...item, quantity: Math.max(1, qty - 1) })}
+            onClick={() => onUpdate?.(index, { ...item, quantity: Math.max(1, numericQty - 1) })}
             className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 font-bold transition-colors"
           >
             -
@@ -61,12 +95,13 @@ export default function QuotationItemRow({
             type="number"
             min="1"
             value={qty}
-            onChange={(e) => onUpdate(index, { ...item, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-            className="w-8 text-center bg-transparent text-xs font-semibold text-slate-900 focus:outline-none p-0"
+            onChange={handleQtyChange}
+            onBlur={() => { if (qty === '' || Number(qty) < 1) onUpdate?.(index, { ...item, quantity: 1 }); }}
+            className="w-9 text-center bg-transparent text-xs font-semibold text-slate-900 focus:outline-none p-0"
           />
           <button
             type="button"
-            onClick={() => onUpdate(index, { ...item, quantity: qty + 1 })}
+            onClick={() => onUpdate?.(index, { ...item, quantity: numericQty + 1 })}
             className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 font-bold transition-colors"
           >
             +
@@ -81,8 +116,10 @@ export default function QuotationItemRow({
           <input
             type="number"
             step="100"
+            min="0"
             value={price}
-            onChange={(e) => onUpdate(index, { ...item, unitPrice: parseFloat(e.target.value) || 0 })}
+            onChange={handlePriceChange}
+            onBlur={() => { if (price === '') onUpdate?.(index, { ...item, unitPrice: 0 }); }}
             className="w-full pl-4 pr-1.5 py-1 text-xs font-semibold text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-600 text-right"
           />
         </div>
@@ -91,25 +128,26 @@ export default function QuotationItemRow({
       {/* Discount % */}
       <td className="py-3 px-2 align-middle text-right">
         <div className="inline-flex items-center justify-end gap-1">
-          <div className="relative w-16">
+          <div className="relative w-18">
             <input
               type="number"
-              step="0.5"
+              step="1"
               min="0"
-              max="90"
+              max="100"
               value={disc}
-              onChange={(e) => onUpdate(index, { ...item, discountPercentage: parseFloat(e.target.value) || 0 })}
-              className={`w-full pr-4 pl-1.5 py-1 text-xs font-semibold text-right rounded-lg border focus:outline-none focus:ring-1 ${
+              onChange={handleDiscountChange}
+              onBlur={() => { if (disc === '') onUpdate?.(index, { ...item, discountPercentage: 0 }); }}
+              className={`w-full pr-5 pl-2 py-1 text-xs font-semibold text-right rounded-lg border focus:outline-none focus:ring-2 ${
                 isOverLimit 
                   ? 'border-rose-300 bg-rose-50 text-rose-700 focus:ring-rose-500' 
-                  : 'border-slate-200 bg-white text-slate-900 focus:ring-indigo-600'
+                  : 'border-slate-300 bg-white text-slate-900 focus:ring-indigo-500'
               }`}
             />
-            <span className={`absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] ${isOverLimit ? 'text-rose-500' : 'text-slate-400'}`}>%</span>
+            <span className={`absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none font-bold ${isOverLimit ? 'text-rose-500' : 'text-slate-400'}`}>%</span>
           </div>
           {isOverLimit && (
             <span 
-              title={`Exceeds ${allowed}% limit by +${(disc - allowed).toFixed(1)}%`}
+              title={`Exceeds ${allowed}% limit by +${(numericDisc - allowed).toFixed(1)}%`}
               className="text-rose-500 cursor-help"
             >
               <AlertCircle className="w-3.5 h-3.5" />
@@ -129,7 +167,7 @@ export default function QuotationItemRow({
         <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
           <button
             type="button"
-            onClick={() => onOpenDrawer(index)}
+            onClick={() => onOpenDrawer?.(index)}
             className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded transition-colors"
             title="Edit Item Details"
           >
@@ -137,7 +175,7 @@ export default function QuotationItemRow({
           </button>
           <button
             type="button"
-            onClick={() => onRemove(index)}
+            onClick={() => onRemove?.(index)}
             className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
             title="Remove Item"
           >

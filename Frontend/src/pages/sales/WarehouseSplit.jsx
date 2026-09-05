@@ -20,11 +20,9 @@ import {
   MapPin,
   ChevronRight
 } from 'lucide-react';
+import { api } from '../../lib/axios';
 import StatusBadge from '../../components/common/StatusBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/fulfillment`;
-const getToken = () => localStorage.getItem('accessToken');
 
 export default function WarehouseSplit() {
   const { orderId } = useParams();
@@ -33,7 +31,12 @@ export default function WarehouseSplit() {
 
   const [isManualMode, setIsManualMode] = useState(false);
 
-  // Sample or backend warehouse splits
+  // Fetch live fulfillment plan
+  const { data: planData, isLoading } = useQuery({
+    queryKey: ['fulfillmentPlan', orderId],
+    queryFn: () => api.get(`/fulfillment/${orderId}`).then(res => res.data?.data || res.data).catch(() => null)
+  });
+
   const [warehouses, setWarehouses] = useState([
     { id: 'wh-1', name: 'Ahmedabad Central Hub', location: 'Ahmedabad, GJ', available: 120, allocated: 50, ratePerKg: 45 },
     { id: 'wh-2', name: 'Anand Regional Depot', location: 'Anand, GJ', available: 40, allocated: 30, ratePerKg: 55 },
@@ -41,8 +44,21 @@ export default function WarehouseSplit() {
     { id: 'wh-4', name: 'Surat Coastal Center', location: 'Surat, GJ', available: 80, allocated: 0, ratePerKg: 75 }
   ]);
 
-  const requiredUnits = 100;
-  const productName = 'Enterprise Rack Server Pro / Workstation';
+  const productName = planData?.items?.[0]?.product?.name || planData?.productName || 'Commercial Hardware & Systems';
+  const requiredUnits = planData?.items?.reduce((sum, it) => sum + (it.quantity || 0), 0) || 1;
+  const customerName = planData?.customer?.companyName || planData?.customer?.name || 'Customer Organization';
+
+  useEffect(() => {
+    if (planData?.items && planData.items.length > 0) {
+      const totalUnits = planData.items.reduce((sum, it) => sum + (it.quantity || 0), 0) || 1;
+      setWarehouses([
+        { id: 'wh-1', name: 'Ahmedabad Central Hub', location: 'Ahmedabad, GJ', available: 120, allocated: Math.min(120, totalUnits), ratePerKg: 45 },
+        { id: 'wh-2', name: 'Anand Regional Depot', location: 'Anand, GJ', available: 40, allocated: 0, ratePerKg: 55 },
+        { id: 'wh-3', name: 'Gandhinagar Express', location: 'Gandhinagar, GJ', available: 25, allocated: 0, ratePerKg: 60 },
+        { id: 'wh-4', name: 'Surat Coastal Center', location: 'Surat, GJ', available: 80, allocated: 0, ratePerKg: 75 }
+      ]);
+    }
+  }, [planData]);
 
   // Calculations for current allocation
   const totalAllocated = warehouses.reduce((sum, w) => sum + (Number(w.allocated) || 0), 0);
@@ -50,16 +66,13 @@ export default function WarehouseSplit() {
   const backorderCount = totalAllocated < requiredUnits ? requiredUnits - totalAllocated : 0;
   const activeShipments = warehouses.filter(w => (Number(w.allocated) || 0) > 0).length;
   
-  // Dynamic cost calculation based on shipment overhead & weight rates
   const currentCost = warehouses.reduce((sum, w) => {
     const qty = Number(w.allocated) || 0;
     if (qty === 0) return sum;
-    return sum + (qty * w.ratePerKg) + 200; // 200 base shipment dispatch fee
+    return sum + (qty * w.ratePerKg) + 200;
   }, 0);
 
-  const recommendedCost = 2450;
-  const recommendedShipments = 3;
-  const isCostHigherThanRecommended = currentCost > recommendedCost;
+  const recommendedCost = 1540;
 
   const handleQuantityChange = (whId, newQty) => {
     const qty = Math.max(0, parseInt(newQty) || 0);
@@ -73,23 +86,28 @@ export default function WarehouseSplit() {
 
   const handleResetToOptimal = () => {
     setWarehouses([
-      { id: 'wh-1', name: 'Ahmedabad Central Hub', location: 'Ahmedabad, GJ', available: 120, allocated: 50, ratePerKg: 45 },
-      { id: 'wh-2', name: 'Anand Regional Depot', location: 'Anand, GJ', available: 40, allocated: 30, ratePerKg: 55 },
-      { id: 'wh-3', name: 'Gandhinagar Express', location: 'Gandhinagar, GJ', available: 25, allocated: 20, ratePerKg: 60 },
+      { id: 'wh-1', name: 'Ahmedabad Central Hub', location: 'Ahmedabad, GJ', available: 120, allocated: Math.min(120, requiredUnits), ratePerKg: 45 },
+      { id: 'wh-2', name: 'Anand Regional Depot', location: 'Anand, GJ', available: 40, allocated: 0, ratePerKg: 55 },
+      { id: 'wh-3', name: 'Gandhinagar Express', location: 'Gandhinagar, GJ', available: 25, allocated: 0, ratePerKg: 60 },
       { id: 'wh-4', name: 'Surat Coastal Center', location: 'Surat, GJ', available: 80, allocated: 0, ratePerKg: 75 }
     ]);
     setIsManualMode(false);
     toast.info('Reset to AI Recommended Multi-Warehouse Plan');
   };
 
-  const handleConfirmPlan = () => {
-    if (totalAllocated === 0) {
-      toast.error('Cannot confirm plan with 0 units allocated');
-      return;
+  const acceptMutation = useMutation({
+    mutationFn: () => api.post(`/fulfillment/${orderId}/accept`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fulfillmentPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('Warehouse Split Plan Confirmed & Dispatched to Carrier Logistics');
+      navigate('/sales/fulfillment');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || err.message || 'Dispatch failed');
     }
-    toast.success('Warehouse Split Plan Confirmed & Dispatched to Logistics');
-    navigate('/sales/fulfillment');
-  };
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -117,7 +135,7 @@ export default function WarehouseSplit() {
                 </span>
               </div>
               <p className="text-sm text-slate-500 mt-0.5">
-                Intelligent multi-hub inventory allocation & route cost optimizer
+                Client: <strong>{customerName}</strong> &bull; Intelligent multi-hub inventory allocation
               </p>
             </div>
           </div>
@@ -125,11 +143,12 @@ export default function WarehouseSplit() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={handleConfirmPlan}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-xs transition-colors"
+            onClick={() => acceptMutation.mutate()}
+            disabled={acceptMutation.isPending || totalAllocated === 0}
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>Accept & Dispatch Split</span>
+            <span>{acceptMutation.isPending ? 'Dispatching...' : 'Accept & Dispatch Split'}</span>
           </button>
         </div>
       </div>
@@ -248,10 +267,10 @@ export default function WarehouseSplit() {
                           {isAllocated ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               <CheckCircle2 className="w-3 h-3" />
-                              Active Dispatch
+                              Allocated
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-400 font-medium">Idle</span>
+                            <span className="text-xs text-slate-400 font-medium">Standby</span>
                           )}
                         </td>
                       </tr>
@@ -261,95 +280,45 @@ export default function WarehouseSplit() {
               </table>
             </div>
           </div>
-
-          {/* Backorder Alert Card if shortage */}
-          {backorderCount > 0 && (
-            <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl space-y-3">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-amber-900 text-sm">Inventory Backorder Alert ({backorderCount} units)</h4>
-                  <p className="text-xs text-amber-800 mt-1">
-                    Available warehouse stock is insufficient for full immediate dispatch. A backorder shipment will be queued for fulfillment from OEM manufacturing depot.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-amber-200/60 text-xs">
-                <span className="text-amber-800 font-medium">Expected Restock: <strong>4 business days</strong></span>
-                <button
-                  onClick={() => toast.success('Backorder consolidated and notification sent to procurement')}
-                  className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-lg transition-colors"
-                >
-                  Consolidate Remaining Backorder
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Right 1 Col: AI Optimization Summary & Comparison */}
+        {/* Right Col: Logistics Optimization Summary */}
         <div className="space-y-6">
-          {/* Plan Summary Card */}
-          <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 space-y-5">
+          <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80 space-y-6">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-600" />
-              <h3 className="font-bold text-slate-900 text-base">Fulfillment Analytics</h3>
+              <Sparkles className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-bold text-slate-900 text-base">Cost Optimization</h3>
             </div>
 
-            {/* Metrics */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span className="text-xs font-medium text-slate-500">Shipment Count</span>
-                <span className="text-sm font-bold text-slate-900">{activeShipments} Dispatches</span>
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1">
+                <span className="text-xs font-semibold text-slate-400 uppercase">Estimated Freight Cost</span>
+                <p className="text-3xl font-extrabold text-slate-900">
+                  ₹{currentCost.toLocaleString('en-IN')}
+                </p>
+                <p className="text-xs text-emerald-700 font-medium">Lowest cost route across Gujarat fulfillment grid</p>
               </div>
-              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span className="text-xs font-medium text-slate-500">Estimated Shipping Cost</span>
-                <span className="text-sm font-bold text-slate-900">₹{currentCost.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span className="text-xs font-medium text-slate-500">Delivery Estimate</span>
-                <span className="text-sm font-bold text-emerald-700">2 – 4 Days SLA</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span className="text-xs font-medium text-slate-500">Inventory Utilization</span>
-                <span className="text-sm font-bold text-slate-900">{Math.round((totalAllocated / 265) * 100)}%</span>
-              </div>
-            </div>
 
-            {/* Warnings if manual override is suboptimal */}
-            {isCostHigherThanRecommended && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs space-y-1 text-rose-800">
-                <div className="flex items-center gap-1.5 font-bold text-rose-900">
-                  <ShieldAlert className="w-4 h-4 text-rose-600" />
-                  <span>Suboptimal Cost Warning</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                  <span className="text-xs text-slate-400 block">Hub Dispatches</span>
+                  <strong className="text-base text-slate-800">{activeShipments} Dispatches</strong>
                 </div>
-                <p>Manual split incurs +₹{(currentCost - recommendedCost).toLocaleString('en-IN')} additional freight cost vs AI recommendation.</p>
+                <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                  <span className="text-xs text-slate-400 block">Delivery SLA</span>
+                  <strong className="text-base text-slate-800">2-3 Days</strong>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* AI Strategy Comparison */}
-          <div className="bg-gradient-to-b from-indigo-900 to-slate-900 text-white p-6 rounded-2xl shadow-sm space-y-4">
-            <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider">Multi-Route Engine</span>
-            <h4 className="font-bold text-white text-base">Plan Comparison</h4>
-
-            {/* Recommended Plan */}
-            <div className="p-3 bg-white/10 rounded-xl border border-white/10 space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-sm text-emerald-300">Recommended Plan</span>
-                <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Optimal</span>
-              </div>
-              <p className="text-xs text-slate-300">3 Shipments · Est. ₹2,450 · 2–4 Days</p>
             </div>
 
-            {/* Alternative Plan */}
-            <div className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-sm text-slate-200">Alternative Single-Hub</span>
-                <span className="text-xs text-slate-400">4 Shipments</span>
-              </div>
-              <p className="text-xs text-slate-400">Cost: ₹2,780 · Savings lost: ₹330</p>
-            </div>
+            <button
+              onClick={() => acceptMutation.mutate()}
+              disabled={acceptMutation.isPending || totalAllocated === 0}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{acceptMutation.isPending ? 'Confirming...' : 'Dispatch Shipment'}</span>
+            </button>
           </div>
         </div>
       </div>

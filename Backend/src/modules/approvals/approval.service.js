@@ -1,15 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { calculateRiskScore, getRiskLevel } from '../risk/risk.engine.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
+import { broadcastEvent } from '../../services/socket/socket.service.js';
 
 const prisma = new PrismaClient();
 
 /**
  * Submit a DRAFT quotation for approval.
- * 1. Calculate risk score
- * 2. Match against ApprovalRules to determine required approver
- * 3. Create ApprovalRequest
- * 4. Update quotation status to PENDING_APPROVAL
  */
 export const submitForApproval = async (quotationId, userId) => {
   const quotation = await prisma.quotation.findUnique({
@@ -57,6 +54,14 @@ export const submitForApproval = async (quotationId, userId) => {
     data: { status: 'PENDING_APPROVAL' }
   });
 
+  broadcastEvent('APPROVAL_REQUESTED', {
+    quotationId,
+    quotationNumber: quotation.quotationNumber,
+    requiredRole,
+    riskScore,
+    status: 'PENDING_APPROVAL'
+  });
+
   return { riskScore, riskLevel, requiredRole, approvalRequest };
 };
 
@@ -87,13 +92,22 @@ export const actionApproval = async (approvalRequestId, action, userId, comments
     }
   });
 
-  // Update quotation status based on action
-  const newQuotationStatus = action === 'APPROVED' ? 'CONFIRMED' :
+  // Update quotation status based on action:
+  // Approved internal governance -> move to SENT (ready for customer negotiation/acceptance), NOT directly CONFIRMED
+  const newQuotationStatus = action === 'APPROVED' ? 'SENT' :
     action === 'REJECTED' ? 'REJECTED' : 'NEGOTIATION';
 
   await prisma.quotation.update({
     where: { id: approval.quotationVersion.quotation.id },
     data: { status: newQuotationStatus }
+  });
+
+  broadcastEvent('APPROVAL_ACTIONED', {
+    quotationId: approval.quotationVersion.quotation.id,
+    action,
+    newStatus: newQuotationStatus,
+    comments,
+    message: `Quotation ${approval.quotationVersion.quotation.quotationNumber} was ${action.toLowerCase()}`
   });
 
   return updatedApproval;

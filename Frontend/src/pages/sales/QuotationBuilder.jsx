@@ -26,6 +26,7 @@ import QuotationActionBar from './quotation-builder/QuotationActionBar';
 export default function QuotationBuilder() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const isEditMode = Boolean(id);
   const queryClient = useQueryClient();
 
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
@@ -62,6 +63,13 @@ export default function QuotationBuilder() {
     queryFn: () => adminApi.getProducts().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
+  // If in edit mode, fetch existing quotation
+  const { data: existingQuote, isLoading: isQuoteLoading } = useQuery({
+    queryKey: ['quotation', id],
+    queryFn: () => api.get(`/quotations/${id}`).then(res => res.data?.data || res.data).catch(() => null),
+    enabled: isEditMode
+  });
+
   const customers = useMemo(() => {
     const rawList = Array.isArray(dbCustomers) ? dbCustomers : (dbCustomers?.data || []);
     if (rawList.length > 0) {
@@ -76,7 +84,6 @@ export default function QuotationBuilder() {
       }));
     }
 
-    // High quality fallback accounts if no accounts registered yet
     return [
       {
         id: 'cust-seed-1',
@@ -108,13 +115,6 @@ export default function QuotationBuilder() {
     ];
   }, [dbCustomers]);
 
-  useEffect(() => {
-    if (customers.length > 0 && !selectedCustomerId) {
-      setSelectedCustomerId(customers[0].id);
-      setValue('customerId', customers[0].id);
-    }
-  }, [customers, selectedCustomerId]);
-
   const products = useMemo(() => {
     const rawProds = Array.isArray(backendProducts) ? backendProducts : (backendProducts?.data || []);
     if (rawProds && rawProds.length > 0) {
@@ -134,7 +134,7 @@ export default function QuotationBuilder() {
     return [];
   }, [backendProducts]);
 
-  const { register, control, handleSubmit, watch, setValue, formState: { isDirty } } = useForm({
+  const { register, control, handleSubmit, watch, setValue, reset, formState: { isDirty } } = useForm({
     defaultValues: {
       customerId: '',
       lineItems: []
@@ -145,6 +145,38 @@ export default function QuotationBuilder() {
     control,
     name: 'lineItems'
   });
+
+  // Populate form if in edit mode and quotation loaded
+  useEffect(() => {
+    if (isEditMode && existingQuote) {
+      if (existingQuote.customerId) {
+        setSelectedCustomerId(existingQuote.customerId);
+        setValue('customerId', existingQuote.customerId);
+      }
+      const ver = existingQuote.activeVersion || existingQuote.versions?.[0];
+      if (ver && ver.items && ver.items.length > 0) {
+        const itemsToLoad = ver.items.map(it => {
+          const prod = products.find(p => p.id === it.productId);
+          return {
+            productId: it.productId,
+            productName: it.productName || it.product?.name || prod?.name || `Product #${it.productId?.slice(-4)}`,
+            sku: it.productSku || it.product?.sku || prod?.sku || `SKU-${it.productId?.slice(0, 6)}`,
+            category: it.productCategory || it.product?.category || prod?.category || 'HARDWARE',
+            quantity: Number(it.quantity || 1),
+            unitPrice: Number(it.unitPrice || prod?.basePrice || 0),
+            cost: Number(prod?.cost || Number(it.unitPrice || 0) * 0.65),
+            discountPercentage: Number(it.discountPercentage || 0),
+            isSubscription: Boolean(it.product?.isSubscription || prod?.isSubscription),
+            allowedDiscount: prod?.allowedDiscount || 15
+          };
+        });
+        setValue('lineItems', itemsToLoad);
+      }
+    } else if (!isEditMode && customers.length > 0 && !selectedCustomerId) {
+      setSelectedCustomerId(customers[0].id);
+      setValue('customerId', customers[0].id);
+    }
+  }, [isEditMode, existingQuote, products, customers, selectedCustomerId, setValue]);
 
   const watchLineItems = watch('lineItems') || [];
   const currentCustomer = customers.find(c => c.id === selectedCustomerId) || customers[0] || {
@@ -187,7 +219,7 @@ export default function QuotationBuilder() {
       const qty = Number(item.quantity || 1);
       const unit = Number(item.unitPrice || 0);
       const disc = Number(item.discountPercentage || 0);
-      const cost = Number(item.unitCost || item.cost || unit * 0.65);
+      const cost = Number(item.cost || unit * 0.65);
       const allowed = Number(item.allowedDiscount || currentCustomer.tierDiscountLimit || 15);
 
       const lineGross = qty * unit;
@@ -353,7 +385,7 @@ export default function QuotationBuilder() {
     toast.info('Cleared quotation cart');
   };
 
-  const createMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async ({ status = 'DRAFT' }) => {
       const payload = {
         customerId: selectedCustomerId,
@@ -365,20 +397,26 @@ export default function QuotationBuilder() {
         }))
       };
 
-      const res = await api.post('/quotations', payload);
-      return res?.data || res;
+      let res;
+      if (isEditMode) {
+        res = await api.put(`/quotations/${id}`, payload);
+      } else {
+        res = await api.post('/quotations', payload);
+      }
+      return res?.data?.data || res?.data || res;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['salesDashboard'] });
-      toast.success(`Quotation ${data?.quotationNumber || 'draft'} formulated successfully!`);
-      navigate(`/sales/quotations/${data?.id || ''}`);
+      toast.success(isEditMode ? `Quotation ${data?.quotationNumber || ''} updated successfully!` : `Quotation ${data?.quotationNumber || ''} created successfully!`);
+      navigate(`/sales/quotations/${data?.id || id}`);
     },
     onError: (err) => {
       if (err.response?.status === 401) {
         toast.error('Session expired. Please sign in again.');
       } else {
-        toast.error(err.response?.data?.message || err.message || 'Failed to create quotation');
+        toast.error(err.response?.data?.message || err.message || 'Failed to save quotation');
       }
     }
   });
@@ -395,36 +433,35 @@ export default function QuotationBuilder() {
   const isApprovalRequired = calculations.approvalRequirement !== 'NONE';
 
   const handlePrimarySubmit = () => {
-    if (isApprovalRequired) {
-      createMutation.mutate({ status: 'PENDING_APPROVAL' });
-    } else {
-      createMutation.mutate({ status: 'SENT' });
-    }
+    saveMutation.mutate({ status: isApprovalRequired ? 'PENDING_APPROVAL' : 'SENT' });
   };
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 py-6 sm:px-8 sm:py-8 space-y-5">
       
-      {/* 1. Simple, Compact Page Header */}
+      {/* 1. Page Header with edit support */}
       <QuotationHeader
-        onSaveDraft={() => createMutation.mutate({ status: 'DRAFT' })}
+        onSaveDraft={() => saveMutation.mutate({ status: 'DRAFT' })}
         onPreview={() => setPreviewModalOpen(true)}
         onSubmit={handlePrimarySubmit}
-        isPending={createMutation.isPending}
+        isPending={saveMutation.isPending}
         hasItems={watchLineItems.length > 0}
         approvalRequired={isApprovalRequired}
+        quoteNumber={existingQuote?.quotationNumber || 'QT-DRAFT'}
+        isEditMode={isEditMode}
+        status={existingQuote?.status || 'DRAFT'}
       />
 
-      {/* 2. Subtle Workflow Stepper */}
+      {/* 2. Workflow Stepper */}
       <QuotationStepper currentStep={currentStep} />
 
-      {/* 3. Simplified Customer Section */}
+      {/* 3. Customer Section */}
       <CustomerSummary
         customers={customers}
         selectedCustomerId={selectedCustomerId}
-        onSelectCustomer={(id) => {
-          setSelectedCustomerId(id);
-          setValue('customerId', id);
+        onSelectCustomer={(cId) => {
+          setSelectedCustomerId(cId);
+          setValue('customerId', cId);
         }}
         currentCustomer={currentCustomer}
         validUntilDate={validUntilDate}
@@ -432,10 +469,10 @@ export default function QuotationBuilder() {
         onOpenDetails={() => setCustomerDetailsOpen(true)}
       />
 
-      {/* 4. Main 3-Column SaaS Workspace (Balanced: 33% Catalog / 42% Quotation Items / 25% Summary) */}
+      {/* 4. Main 3-Column SaaS Workspace */}
       <div className="grid grid-cols-1 xl:grid-cols-12 lg:grid-cols-12 gap-5 items-start">
         
-        {/* Left Column: Product Catalog (col-span-4) */}
+        {/* Left Column: Product Catalog */}
         <div className="xl:col-span-4 lg:col-span-4 col-span-12">
           <ProductCatalog
             products={filteredCatalogProducts}
@@ -449,96 +486,104 @@ export default function QuotationBuilder() {
           />
         </div>
 
-        {/* Center Column: Quotation Items Table (col-span-5 - Main Focus) */}
+        {/* Center Column: Quotation Items Table */}
         <div className="xl:col-span-5 lg:col-span-5 col-span-12 space-y-4">
           <QuotationItemsTable
             items={watchLineItems}
+            tierLimit={currentCustomer.tierDiscountLimit}
             onUpdateItem={handleUpdateItem}
-            onRemoveItem={handleRemoveItem}
             onOpenDrawer={handleOpenDrawer}
-            tierDiscountLimit={currentCustomer.tierDiscountLimit}
+            onRemoveItem={handleRemoveItem}
             onClearAll={handleClearAll}
+            calculations={calculations}
           />
 
-          {/* Compact Recommendation Section */}
+          {/* Upsell Recommendation Card */}
           <RecommendationPreview
             suggestions={upsellSuggestions}
-            onAddSuggestion={handleAddProduct}
-            onOpenAllRecommendations={() => setRecommendationsDrawerOpen(true)}
+            onAddProduct={handleAddProduct}
+            onDismiss={(pId) => setDismissedUpsells(prev => [...prev, pId])}
+            onViewAll={() => setRecommendationsDrawerOpen(true)}
           />
         </div>
 
-        {/* Right Column: Clean Sticky Summary & Governance (col-span-3) */}
+        {/* Right Column: Dynamic Deal Governance Summary */}
         <div className="xl:col-span-3 lg:col-span-3 col-span-12">
           <QuoteSummary
             calculations={calculations}
-            onOpenBilling={() => setBillingDrawerOpen(true)}
             onOpenGovernance={() => setGovernanceDrawerOpen(true)}
+            onOpenBilling={() => setBillingDrawerOpen(true)}
+            onPreview={() => setPreviewModalOpen(true)}
+            onSubmit={handlePrimarySubmit}
+            isPending={saveMutation.isPending}
+            hasItems={watchLineItems.length > 0}
+            approvalRequired={isApprovalRequired}
+            isEditMode={isEditMode}
           />
         </div>
 
       </div>
 
-      {/* 5. Sticky Action Bar */}
+      {/* 5. Sticky Floating Mobile/Tablet Action Bar */}
       <QuotationActionBar
-        onSaveDraft={() => createMutation.mutate({ status: 'DRAFT' })}
+        totalWithTax={calculations.grandTotalWithTax}
+        itemCount={watchLineItems.length}
+        riskScore={calculations.riskScore}
+        riskLevel={calculations.riskLevel}
         onPreview={() => setPreviewModalOpen(true)}
         onSubmit={handlePrimarySubmit}
-        isPending={createMutation.isPending}
+        isPending={saveMutation.isPending}
         hasItems={watchLineItems.length > 0}
         approvalRequired={isApprovalRequired}
-        isDirty={isDirty}
       />
 
-      {/* 6. Customer Details Drawer */}
+      {/* DRAWERS & MODALS */}
+      <QuotationItemDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        item={activeDrawerIndex !== null ? watchLineItems[activeDrawerIndex] : null}
+        index={activeDrawerIndex}
+        tierLimit={currentCustomer.tierDiscountLimit}
+        onUpdateItem={handleUpdateItem}
+      />
+
       <CustomerDetailsDrawer
         isOpen={customerDetailsOpen}
         onClose={() => setCustomerDetailsOpen(false)}
         customer={currentCustomer}
       />
 
-      {/* 7. Quotation Item Edit Drawer */}
-      <QuotationItemDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        item={activeDrawerIndex !== null ? watchLineItems[activeDrawerIndex] : null}
-        index={activeDrawerIndex}
-        onSave={handleUpdateItem}
-        tierDiscountLimit={currentCustomer.tierDiscountLimit}
-      />
-
-      {/* 8. Governance Drawer */}
       <GovernanceDrawer
         isOpen={governanceDrawerOpen}
         onClose={() => setGovernanceDrawerOpen(false)}
         calculations={calculations}
+        customer={currentCustomer}
       />
 
-      {/* 9. Billing Schedule Drawer */}
       <BillingDrawer
         isOpen={billingDrawerOpen}
         onClose={() => setBillingDrawerOpen(false)}
-        oneTimeSubtotal={calculations.oneTimeSubtotal}
-        recurringSubtotal={calculations.recurringSubtotal}
-        items={watchLineItems}
+        calculations={calculations}
       />
 
-      {/* 10. Recommendations Drawer */}
       <RecommendationsDrawer
         isOpen={recommendationsDrawerOpen}
         onClose={() => setRecommendationsDrawerOpen(false)}
         suggestions={upsellSuggestions}
-        onAddSuggestion={handleAddProduct}
+        onAddProduct={handleAddProduct}
       />
 
-      {/* 11. Customer-Facing Preview Modal */}
       <QuotePreviewModal
         isOpen={previewModalOpen}
         onClose={() => setPreviewModalOpen(false)}
-        currentCustomer={currentCustomer}
+        quoteNumber={existingQuote?.quotationNumber || 'QT-DRAFT'}
+        customer={currentCustomer}
         items={watchLineItems}
         calculations={calculations}
-        validUntilDate={validUntilDate}
+        validUntil={validUntilDate}
+        onSubmit={handlePrimarySubmit}
+        isPending={saveMutation.isPending}
+        approvalRequired={isApprovalRequired}
       />
 
     </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Save, Eye, Send, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Send, ShieldAlert, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function QuotationHeader({
@@ -9,7 +9,9 @@ export default function QuotationHeader({
   isPending,
   hasItems,
   approvalRequired,
-  quoteNumber = 'QT-DRAFT'
+  quoteNumber = 'QT-DRAFT',
+  isEditMode = false,
+  status = 'DRAFT'
 }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
@@ -24,14 +26,21 @@ export default function QuotationHeader({
           </Link>
           <span className="text-slate-300">&bull;</span>
           <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 rounded border border-slate-200">
-            DRAFT
+            {status}
           </span>
+          {isEditMode && (
+            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 rounded border border-amber-200">
+              Editing Revision
+            </span>
+          )}
         </div>
 
         <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">New Quotation</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
+            {isEditMode ? `Edit Quotation ${quoteNumber}` : 'New Quotation'}
+          </h1>
           <span className="text-xs text-slate-500 hidden md:inline">
-            Create a commercial quotation for your customer
+            {isEditMode ? 'Modify line items, quantities, and commercial discount ceilings' : 'Create a commercial quotation for your customer'}
           </span>
         </div>
       </div>
@@ -48,7 +57,7 @@ export default function QuotationHeader({
           disabled={isPending || !hasItems}
           className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors disabled:opacity-40"
         >
-          Save Draft
+          {isEditMode ? 'Save Changes' : 'Save Draft'}
         </button>
 
         <button
@@ -78,7 +87,7 @@ export default function QuotationHeader({
             className="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-xs transition-colors disabled:opacity-40 flex items-center gap-1.5"
           >
             <Send className="w-3.5 h-3.5" />
-            <span>Send to Customer</span>
+            <span>{isEditMode ? 'Update & Send' : 'Send to Customer'}</span>
           </button>
         )}
       </div>

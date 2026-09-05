@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -15,34 +15,48 @@ import {
   Plus, 
   Inbox
 } from 'lucide-react';
+import { adminApi } from '../../features/admin/admin.api';
+import { api } from '../../lib/axios';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-
-const API_QUOTATIONS = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1'}/quotations`;
-const getToken = () => localStorage.getItem('accessToken');
 
 export default function CustomerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('QUOTATIONS');
 
-  const { data: quotations = [], isLoading } = useQuery({
-    queryKey: ['customerDetailQuotations', id],
-    queryFn: async () => {
-      const res = await fetch(API_QUOTATIONS, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || [];
-    }
+  // Fetch all customers for matching profile metadata
+  const { data: customersData = [] } = useQuery({
+    queryKey: ['adminCustomersList'],
+    queryFn: () => adminApi.getCustomers().then(res => res.data?.data || res.data || []).catch(() => [])
   });
 
-  const customerQuotes = quotations.filter(q => q.customerId === id || q.id === id);
-  const firstQuote = customerQuotes[0] || quotations[0];
-  const customerName = firstQuote?.customer?.companyName || firstQuote?.customer?.name || (id ? `Client Account #${id.slice(0, 8)}` : 'Client Account');
-  const customerTier = firstQuote?.customer?.tier || 'STANDARD';
+  const customerRecord = useMemo(() => {
+    const list = Array.isArray(customersData) ? customersData : (customersData?.data || []);
+    return list.find(c => c.id === id) || null;
+  }, [customersData, id]);
+
+  const { data: quotations = [], isLoading } = useQuery({
+    queryKey: ['customerDetailQuotations', id],
+    queryFn: () => api.get('/quotations').then(res => res.data?.data || res.data || []).catch(() => [])
+  });
+
+  const customerQuotes = useMemo(() => {
+    if (!Array.isArray(quotations)) return [];
+    return quotations.filter(q => 
+      q.customerId === id || 
+      q.customer?.id === id || 
+      (customerRecord?.email && q.customer?.email === customerRecord.email) ||
+      (customerRecord?.name && q.customer?.name === customerRecord.name) ||
+      q.id === id
+    );
+  }, [quotations, id, customerRecord]);
+
+  const firstQuote = customerQuotes[0];
+  const customerName = customerRecord?.companyName || customerRecord?.name || firstQuote?.customer?.companyName || firstQuote?.customer?.name || (id ? `Client Account #${id.slice(0, 8)}` : 'Client Account');
+  const customerTier = customerRecord?.tier || firstQuote?.customer?.tier || 'STANDARD';
+  const customerEmail = customerRecord?.email || firstQuote?.customer?.email || 'customer@company.com';
 
   const totalRevenue = customerQuotes
     .filter(q => ['CONFIRMED', 'COMPLETED', 'PAID'].includes(q.status))
@@ -76,7 +90,10 @@ export default function CustomerDetail() {
                   {customerTier} TIER
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">Verified Client Record</p>
+              <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-slate-400" />
+                <span>{customerEmail}</span>
+              </p>
             </div>
           </div>
 
