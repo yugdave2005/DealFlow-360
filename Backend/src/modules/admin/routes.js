@@ -24,6 +24,9 @@ router.delete('/approval-rules/:id', adminController.deleteApprovalRule);
 
 router.get('/warehouses', adminController.getWarehouses);
 router.post('/warehouses', adminController.createWarehouse);
+router.put('/warehouses/:id', adminController.updateWarehouse);
+router.delete('/warehouses/:id', adminController.deleteWarehouse);
+
 
 router.get('/customers', adminController.getCustomers);
 

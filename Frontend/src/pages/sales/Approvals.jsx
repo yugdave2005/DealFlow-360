@@ -51,7 +51,8 @@ export default function Approvals() {
         const res = statusFilter === 'PENDING' 
           ? await approvalsApi.getPendingApprovals() 
           : await approvalsApi.getAllApprovals();
-        return res.data?.data || [];
+        const list = res.data?.data || res.data || (Array.isArray(res) ? res : []);
+        return Array.isArray(list) ? list : [];
       } catch (error) {
         if (error.response?.status !== 401) {
           console.error('Failed to fetch approvals queue:', error);
@@ -115,19 +116,20 @@ export default function Approvals() {
 
   // Filter list
   const filteredApprovals = useMemo(() => {
-    return approvals.filter(item => {
+    return (Array.isArray(approvals) ? approvals : []).filter(item => {
       const v = item.quotationVersion || {};
       const q = v.quotation || {};
       const cust = q.customer || {};
 
       const matchesSearch = (q.quotationNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (cust.companyName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        (cust.companyName || cust.name || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const riskScore = v.riskScore || 0;
       const riskLevel = v.riskLevel || (riskScore > 60 ? 'HIGH' : riskScore > 30 ? 'MEDIUM' : 'LOW');
       const matchesRisk = riskFilter === 'ALL' || riskLevel === riskFilter;
 
-      const matchesLevel = levelFilter === 'ALL' || item.level === levelFilter;
+      const itemRole = item.assignedRole || item.level;
+      const matchesLevel = levelFilter === 'ALL' || itemRole === levelFilter;
 
       return matchesSearch && matchesRisk && matchesLevel;
     });

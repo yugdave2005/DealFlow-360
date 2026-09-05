@@ -109,57 +109,7 @@ export default function AdminDiscountRules() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 pb-24">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-xs border border-slate-200/80">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shadow-xs">
-            <Percent className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Discount Ceilings Configuration</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Define automated governance caps by Customer Tier and Product Category to protect profit margins.</p>
-          </div>
-        </div>
-      </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active Ceilings</span>
-            <Sliders className="w-4 h-4 text-purple-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900">{totalRules}</p>
-          <span className="text-xs text-slate-400 mt-1 block">Configured policy rules</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Tier-Based Rules</span>
-            <Building className="w-4 h-4 text-blue-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900">{tierRulesCount}</p>
-          <span className="text-xs text-slate-400 mt-1 block">Customer tier limits</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Category Rules</span>
-            <Layers className="w-4 h-4 text-emerald-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900">{categoryRulesCount}</p>
-          <span className="text-xs text-slate-400 mt-1 block">Hardware/Services limits</span>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Max Allowed Cap</span>
-            <ShieldCheck className="w-4 h-4 text-amber-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900">{maxCeiling}%</p>
-          <span className="text-xs text-slate-400 mt-1 block">Highest ceiling in matrix</span>
-        </div>
-      </div>
 
       {/* Add New Rule Card */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">

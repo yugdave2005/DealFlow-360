@@ -7,9 +7,10 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-router.post('/generate', requireRole(['ADMIN', 'OPERATIONS', 'FINANCE_OPERATIONS']), fulfillmentController.generatePlan);
+router.post('/generate', requireRole(['ADMIN', 'OPERATIONS', 'FINANCE_OPERATIONS', 'SALES_REP', 'SALES_MANAGER']), fulfillmentController.generatePlan);
 router.get('/', requireRole(['ADMIN', 'OPERATIONS', 'FINANCE_OPERATIONS', 'SALES_MANAGER', 'SALES_REP']), fulfillmentController.listPlans);
 router.get('/:planId', requireRole(['ADMIN', 'OPERATIONS', 'FINANCE_OPERATIONS', 'SALES_MANAGER', 'SALES_REP']), fulfillmentController.getPlan);
-router.post('/:planId/accept', requireRole(['ADMIN', 'OPERATIONS', 'FINANCE_OPERATIONS']), fulfillmentController.acceptPlan);
+router.post('/:planId/accept', requireRole(['ADMIN', 'OPERATIONS', 'FINANCE_OPERATIONS', 'SALES_REP', 'SALES_MANAGER']), fulfillmentController.acceptPlan);
 
 export default router;
+

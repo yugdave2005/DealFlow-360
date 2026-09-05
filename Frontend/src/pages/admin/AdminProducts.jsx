@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsApi } from '../../features/products/products.api';
 import { pricingApi } from '../../features/pricing/pricing.api';
+import { api } from '../../lib/axios';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
 import { 
@@ -18,7 +19,9 @@ import {
   Trash2, 
   Edit3, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Building2,
+  MapPin
 } from 'lucide-react';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import EmptyState from '../../components/common/EmptyState';
@@ -29,13 +32,19 @@ export default function AdminProducts() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [warehouseStocks, setWarehouseStocks] = useState({});
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['adminProducts'],
     queryFn: () => productsApi.getProducts().then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
   });
 
-  const { register, handleSubmit, reset, watch, control } = useForm({
+  const { data: warehouses = [] } = useQuery({
+    queryKey: ['adminWarehouses'],
+    queryFn: () => api.get('/warehouses').then(res => res.data?.data || (Array.isArray(res.data) ? res.data : [])).catch(() => [])
+  });
+
+  const { register, handleSubmit, reset, watch, setValue, control } = useForm({
     defaultValues: {
       name: '',
       category: 'Hardware',
@@ -99,6 +108,19 @@ export default function AdminProducts() {
     }
   });
 
+  const handleWarehouseStockChange = (warehouseId, val) => {
+    const qty = parseInt(val, 10);
+    const safeQty = isNaN(qty) || qty < 0 ? 0 : qty;
+    setWarehouseStocks(prev => {
+      const updated = { ...prev, [warehouseId]: safeQty };
+      const total = Object.values(updated).reduce((sum, n) => sum + (Math.max(0, parseInt(n, 10) || 0)), 0);
+      setValue('quantityOnHand', total);
+      return updated;
+    });
+  };
+
+  const totalAllocatedStock = Object.values(warehouseStocks).reduce((sum, v) => sum + (Math.max(0, parseInt(v, 10) || 0)), 0);
+
   const onSubmit = (data) => {
     // Filter and sanitize variant attributes
     const cleanVariants = (data.variants || [])
@@ -113,12 +135,19 @@ export default function AdminProducts() {
     const parsedQty = parseInt(data.quantityOnHand, 10);
     const isSub = data.isSubscription === 'true' || data.isSubscription === true;
 
+    const warehouseStockPayload = Object.entries(warehouseStocks).map(([warehouseId, quantity]) => ({
+      warehouseId,
+      quantity: Math.max(0, parseInt(quantity, 10) || 0)
+    }));
+    const totalWarehouseQty = warehouseStockPayload.reduce((acc, curr) => acc + curr.quantity, 0);
+
     const payload = {
       name: data.name?.trim(),
       category: data.category || 'Hardware',
       isSubscription: isSub,
       recurringInterval: isSub ? (data.recurringCycle || 'Monthly') : null,
-      quantityOnHand: isNaN(parsedQty) ? 0 : parsedQty,
+      quantityOnHand: totalWarehouseQty > 0 ? totalWarehouseQty : (isNaN(parsedQty) ? 0 : parsedQty),
+      warehouseStock: warehouseStockPayload,
       price: isNaN(parsedPrice) ? 0 : parsedPrice,
       tax: parseInt(data.tax, 10) || 18,
       unit: data.unit || 'Each',
@@ -135,6 +164,10 @@ export default function AdminProducts() {
 
   const handleOpenNew = () => {
     setSelectedProduct(null);
+    const initialStocks = {};
+    warehouses.forEach(w => { initialStocks[w.id] = 0; });
+    setWarehouseStocks(initialStocks);
+
     reset({
       name: '',
       category: 'Hardware',
@@ -152,6 +185,18 @@ export default function AdminProducts() {
 
   const handleRowClick = (prod) => {
     setSelectedProduct(prod);
+
+    // Initialize warehouse stocks from product inventory
+    const currentStocks = {};
+    warehouses.forEach(w => { currentStocks[w.id] = 0; });
+    if (Array.isArray(prod.inventory)) {
+      prod.inventory.forEach(inv => {
+        if (inv.warehouseId) {
+          currentStocks[inv.warehouseId] = inv.availableQuantity || 0;
+        }
+      });
+    }
+    setWarehouseStocks(currentStocks);
 
     // Extract base price correctly
     let basePrice = '';
@@ -354,8 +399,31 @@ export default function AdminProducts() {
                         </div>
                       </td>
                       <td className="py-4 px-4 font-medium text-slate-600">{p.category || 'Hardware'}</td>
-                      <td className="py-4 px-4 text-slate-600 text-xs font-medium font-mono">
-                        {pStock} units in stock
+                      <td className="py-4 px-4 text-xs">
+                        <div className="font-bold text-slate-900 font-mono text-xs">
+                          {pStock} units in stock
+                        </div>
+                        {p.inventory && p.inventory.filter(i => (i.availableQuantity || 0) > 0).length > 0 ? (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {p.inventory.filter(i => (i.availableQuantity || 0) > 0).slice(0, 2).map(i => (
+                              <span 
+                                key={i.id || i.warehouseId} 
+                                title={`${i.warehouse?.name || 'Warehouse'}: ${i.availableQuantity} units`}
+                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/80 font-mono"
+                              >
+                                <Building2 className="w-2.5 h-2.5 text-indigo-500" />
+                                {i.warehouse?.code?.replace('WH-', '') || 'WH'}: {i.availableQuantity}
+                              </span>
+                            ))}
+                            {p.inventory.filter(i => (i.availableQuantity || 0) > 0).length > 2 && (
+                              <span className="text-[10px] text-slate-400 font-semibold self-center">
+                                +{p.inventory.filter(i => (i.availableQuantity || 0) > 0).length - 2} more
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">No warehouse stock</span>
+                        )}
                       </td>
                       <td className="py-4 px-4 font-bold text-slate-900">{pPrice}</td>
                       <td className="py-4 px-4 text-slate-500 text-xs">{pUnit}</td>
@@ -540,7 +608,7 @@ export default function AdminProducts() {
                     ) : (
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          Quantity on Hand / Stock
+                          Total Quantity on Hand / Stock
                         </label>
                         <input 
                           type="number" 
@@ -548,6 +616,9 @@ export default function AdminProducts() {
                           {...register('quantityOnHand')} 
                           className="w-full px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all shadow-2xs" 
                         />
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                          Auto-synced with warehouse allocations below
+                        </span>
                       </div>
                     )}
 
@@ -593,6 +664,65 @@ export default function AdminProducts() {
                     </div>
                   </div>
                 </div>
+
+                {/* Warehouse Stock Allocation Section */}
+                {watchIsSubscription !== 'true' && (
+                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-indigo-600" /> Warehouse Inventory Breakdown
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          {warehouses.length} Active Hubs
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-semibold text-slate-600 font-mono">
+                        Total Stock: <span className="font-bold text-indigo-700">{totalAllocatedStock}</span> units
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500">
+                      Specify the inventory stock amount present at each warehouse location. Total available stock will be synchronized across warehouses.
+                    </p>
+
+                    {warehouses.length === 0 ? (
+                      <div className="py-4 text-center text-xs text-slate-400">
+                        No warehouses configured yet. Add warehouses in the Warehouse Management section.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        {warehouses.map((wh) => (
+                          <div key={wh.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3 transition-colors">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-slate-900 truncate">{wh.name}</span>
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-100/70 text-indigo-700 font-semibold shrink-0">{wh.code}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate mt-0.5">
+                                <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span className="truncate">{wh.location || 'Hub Location'}</span>
+                              </div>
+                            </div>
+                            <div className="w-28 shrink-0">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-right">
+                                Stock Qty
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={warehouseStocks[wh.id] ?? ''}
+                                onChange={(e) => handleWarehouseStockChange(wh.id, e.target.value)}
+                                className="w-full text-right px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 shadow-2xs"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Product Variants Section */}
                 <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs space-y-3">

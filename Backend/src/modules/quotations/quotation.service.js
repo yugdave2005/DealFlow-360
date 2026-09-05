@@ -208,14 +208,16 @@ export const getQuotations = async (userId, role) => {
       versions: {
         include: { 
           items: true,
-          approvals: { orderBy: { createdAt: 'desc' } }
+          approvals: { orderBy: { createdAt: 'desc' } },
+          messages: { orderBy: { createdAt: 'desc' } }
         },
         orderBy: { versionNumber: 'desc' }
       },
       activeVersion: {
         include: {
           items: true,
-          approvals: { orderBy: { createdAt: 'desc' } }
+          approvals: { orderBy: { createdAt: 'desc' } },
+          messages: { orderBy: { createdAt: 'desc' } }
         }
       }
     },

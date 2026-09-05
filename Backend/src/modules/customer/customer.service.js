@@ -3,6 +3,7 @@ import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { broadcastEvent } from '../../services/socket/socket.service.js';
 import * as quotationService from '../quotations/quotation.service.js';
 import { determineApprovalRequirement } from '../../utils/approvalEvaluator.js';
+import { calculateRiskScore } from '../risk/risk.engine.js';
 
 const prisma = new PrismaClient();
 
@@ -17,8 +18,19 @@ export const listCustomerQuotations = async (customerId) => {
   const quotations = await prisma.quotation.findMany({
     where,
     include: {
-      versions: { orderBy: { versionNumber: 'desc' }, take: 1, include: { items: true } },
-      activeVersion: { include: { items: true } }
+      versions: { 
+        orderBy: { versionNumber: 'desc' }, 
+        include: { 
+          items: true,
+          messages: { orderBy: { createdAt: 'desc' } }
+        } 
+      },
+      activeVersion: { 
+        include: { 
+          items: true,
+          messages: { orderBy: { createdAt: 'desc' } }
+        } 
+      }
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -148,7 +160,6 @@ export const negotiateQuotation = async (quotationId, customerId, { notes, count
       versionNumber: newVersionNumber,
       totalAmount,
       totalDiscount: totalDiscountValue,
-      riskScore: activeVersion ? Math.min(100, (activeVersion.riskScore || 25) + 15) : 40,
       internalNotes: `Customer counter-offer: ${discountPct}% discount requested. Notes: ${notes || 'None'}`,
       createdById: salesRepExists ? quotation.salesRepId : null,
       items: {
@@ -174,8 +185,10 @@ export const negotiateQuotation = async (quotationId, customerId, { notes, count
     }
   });
 
+  const realRiskScore = await calculateRiskScore(newVersion.id);
+  
   // Evaluate dynamic governance from DB
-  const approvalEval = await determineApprovalRequirement(prisma, riskScore);
+  const approvalEval = await determineApprovalRequirement(prisma, realRiskScore);
 
   if (approvalEval.required) {
     await prisma.approvalRequest.create({

@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export const getProducts = async (req, res, next) => {
   try {
     const products = await prisma.product.findMany({ 
-      include: { pricing: true },
+      include: { pricing: true, inventory: { include: { warehouse: true } } },
       orderBy: { createdAt: 'desc' }
     });
     sendSuccess(res, 200, 'Products fetched successfully', products);
@@ -24,12 +24,20 @@ export const createProduct = async (req, res, next) => {
       quantityOnHand, 
       variantAttributes,
       price,
-      pricing
+      pricing,
+      warehouseStock
     } = req.body;
 
     const basePrice = price !== undefined ? Number(price) : (pricing?.[0]?.price !== undefined ? Number(pricing[0].price) : 0);
     const isSub = isSubscription === true || isSubscription === 'true';
-    const qty = parseInt(quantityOnHand, 10) || 0;
+    let qty = parseInt(quantityOnHand, 10) || 0;
+
+    if (Array.isArray(warehouseStock) && warehouseStock.length > 0) {
+      const sum = warehouseStock.reduce((acc, item) => acc + (Math.max(0, parseInt(item.quantity, 10) || 0)), 0);
+      if (sum > 0 || qty === 0) {
+        qty = sum;
+      }
+    }
 
     const product = await prisma.product.create({
       data: { 
@@ -49,7 +57,38 @@ export const createProduct = async (req, res, next) => {
         pricing: true
       }
     });
-    sendSuccess(res, 201, 'Product created successfully', product);
+
+    // If warehouseStock is provided, create inventory records
+    if (Array.isArray(warehouseStock) && warehouseStock.length > 0) {
+      for (const item of warehouseStock) {
+        if (!item.warehouseId) continue;
+        const whQty = Math.max(0, parseInt(item.quantity, 10) || 0);
+        await prisma.inventory.upsert({
+          where: {
+            warehouseId_productId: {
+              warehouseId: item.warehouseId,
+              productId: product.id
+            }
+          },
+          update: {
+            availableQuantity: whQty
+          },
+          create: {
+            warehouseId: item.warehouseId,
+            productId: product.id,
+            availableQuantity: whQty,
+            reservedQuantity: 0
+          }
+        });
+      }
+    }
+
+    const created = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: { pricing: true, inventory: { include: { warehouse: true } } }
+    });
+
+    sendSuccess(res, 201, 'Product created successfully', created);
   } catch (err) { next(err); }
 };
 
@@ -64,21 +103,54 @@ export const updateProduct = async (req, res, next) => {
       quantityOnHand, 
       variantAttributes,
       price,
-      pricing
+      pricing,
+      warehouseStock
     } = req.body;
 
     const rawPrice = price !== undefined ? price : pricing?.[0]?.price;
     const basePrice = rawPrice !== undefined ? Number(rawPrice) : undefined;
     const isSub = isSubscription !== undefined ? (isSubscription === true || isSubscription === 'true') : undefined;
-    const qty = quantityOnHand !== undefined ? (parseInt(quantityOnHand, 10) || 0) : undefined;
+    let qty = quantityOnHand !== undefined ? (parseInt(quantityOnHand, 10) || 0) : undefined;
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (category !== undefined) updateData.category = category;
     if (isSub !== undefined) updateData.isSubscription = isSub;
     if (recurringInterval !== undefined) updateData.recurringInterval = isSub ? recurringInterval : null;
-    if (qty !== undefined) updateData.quantityOnHand = qty;
     if (variantAttributes !== undefined) updateData.variantAttributes = variantAttributes;
+
+    // Handle warehouseStock
+    if (Array.isArray(warehouseStock)) {
+      for (const item of warehouseStock) {
+        if (!item.warehouseId) continue;
+        const whQty = Math.max(0, parseInt(item.quantity, 10) || 0);
+        await prisma.inventory.upsert({
+          where: {
+            warehouseId_productId: {
+              warehouseId: item.warehouseId,
+              productId: id
+            }
+          },
+          update: {
+            availableQuantity: whQty
+          },
+          create: {
+            warehouseId: item.warehouseId,
+            productId: id,
+            availableQuantity: whQty,
+            reservedQuantity: 0
+          }
+        });
+      }
+
+      const totalStock = await prisma.inventory.aggregate({
+        where: { productId: id },
+        _sum: { availableQuantity: true }
+      });
+      qty = totalStock._sum.availableQuantity || 0;
+    }
+
+    if (qty !== undefined) updateData.quantityOnHand = qty;
 
     // Update product core fields
     await prisma.product.update({
@@ -105,7 +177,7 @@ export const updateProduct = async (req, res, next) => {
 
     const updated = await prisma.product.findUnique({
       where: { id },
-      include: { pricing: true }
+      include: { pricing: true, inventory: { include: { warehouse: true } } }
     });
 
     sendSuccess(res, 200, 'Product updated successfully', updated);
@@ -116,6 +188,7 @@ export const deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
     await prisma.productPricing.deleteMany({ where: { productId: id } });
+    await prisma.inventory.deleteMany({ where: { productId: id } });
     await prisma.product.delete({ where: { id } });
     sendSuccess(res, 200, 'Product deleted successfully');
   } catch (err) { next(err); }
@@ -280,6 +353,32 @@ export const createWarehouse = async (req, res, next) => {
     sendSuccess(res, 201, 'Warehouse created successfully', warehouse);
   } catch (err) { next(err); }
 };
+
+export const updateWarehouse = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, location } = req.body;
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (location !== undefined) data.location = location;
+    const warehouse = await prisma.warehouse.update({ where: { id }, data });
+    sendSuccess(res, 200, 'Warehouse updated successfully', warehouse);
+  } catch (err) { next(err); }
+};
+
+export const deleteWarehouse = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await prisma.inventory.deleteMany({ where: { warehouseId: id } });
+    await prisma.fulfillmentItem.updateMany({
+      where: { warehouseId: id },
+      data: { warehouseId: null }
+    });
+    await prisma.warehouse.delete({ where: { id } });
+    sendSuccess(res, 200, 'Warehouse deleted successfully');
+  } catch (err) { next(err); }
+};
+
 
 
 // -- Customers Directory --

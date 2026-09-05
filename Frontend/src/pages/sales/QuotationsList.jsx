@@ -188,7 +188,7 @@ export default function QuotationsList() {
         </div>
 
         {/* Status Tabs Bar */}
-        <div className="flex items-center gap-1 overflow-x-auto border-t border-slate-100 pt-3 custom-scrollbar">
+        <div className="flex items-center gap-1 overflow-x-auto border-t border-slate-100 pt-3 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           {STATUS_TABS.map((tab) => {
             const count = tab.id === 'ALL' 
               ? quotations.length 
@@ -217,32 +217,36 @@ export default function QuotationsList() {
       </div>
 
       {/* Quotations Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col min-h-[460px] overflow-hidden">
         {isLoading ? (
-          <LoadingSkeleton type="table" rows={6} />
+          <div className="p-6">
+            <LoadingSkeleton type="table" rows={6} />
+          </div>
         ) : filteredQuotes.length === 0 ? (
-          <EmptyState 
-            icon={FileText}
-            title="No quotations match criteria"
-            description={searchQuery ? "Try refining your search query or reset filters." : "Create your first quotation to formulate deal terms."}
-            actionLabel={!searchQuery ? "Create Quotation" : null}
-            actionTo="/sales/quotations/new"
-          />
+          <div className="flex-1 flex items-center justify-center p-12">
+            <EmptyState 
+              icon={FileText}
+              title="No quotations match criteria"
+              description={searchQuery ? "Try refining your search query or reset filters." : "Create your first quotation to formulate deal terms."}
+              actionLabel={!searchQuery ? "Create Quotation" : null}
+              actionTo="/sales/quotations/new"
+            />
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+          <div className="overflow-x-auto flex-1 flex flex-col">
+            <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
-                  <th className="py-3.5 px-5">Quote Number</th>
-                  <th className="py-3.5 px-5">Customer</th>
-                  <th className="py-3.5 px-5">Products</th>
-                  <th className="py-3.5 px-5">Subtotal</th>
-                  <th className="py-3.5 px-5">Discount</th>
-                  <th className="py-3.5 px-5">Margin</th>
-                  <th className="py-3.5 px-5">Risk</th>
-                  <th className="py-3.5 px-5">Status</th>
-                  <th className="py-3.5 px-5">Updated</th>
-                  <th className="py-3.5 px-5 text-right">Actions</th>
+                <tr className="bg-slate-50/90 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3.5 px-5 font-semibold">Quote Number</th>
+                  <th className="py-3.5 px-5 font-semibold">Customer</th>
+                  <th className="py-3.5 px-5 font-semibold">Products</th>
+                  <th className="py-3.5 px-5 font-semibold">Subtotal</th>
+                  <th className="py-3.5 px-5 font-semibold">Discount</th>
+                  <th className="py-3.5 px-5 font-semibold">Margin</th>
+                  <th className="py-3.5 px-5 font-semibold">Risk</th>
+                  <th className="py-3.5 px-5 font-semibold">Status</th>
+                  <th className="py-3.5 px-5 font-semibold">Updated</th>
+                  <th className="py-3.5 px-5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -256,36 +260,36 @@ export default function QuotationsList() {
 
                   return (
                     <tr key={quote.id} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="py-3.5 px-5 font-bold text-slate-900">
+                      <td className="py-4 px-5 font-bold text-slate-900">
                         <Link to={`/sales/quotations/${quote.id}`} className="text-indigo-600 hover:underline font-mono">
                           {quote.quotationNumber}
                         </Link>
                       </td>
-                      <td className="py-3.5 px-5 font-medium text-slate-800">
+                      <td className="py-4 px-5 font-medium text-slate-800">
                         {quote.customer?.name || `Customer #${quote.customerId.slice(-6)}`}
                       </td>
-                      <td className="py-3.5 px-5 text-slate-600 font-medium">
+                      <td className="py-4 px-5 text-slate-600 font-medium">
                         {itemsCount} item{itemsCount > 1 ? 's' : ''}
                       </td>
-                      <td className="py-3.5 px-5 font-semibold text-slate-900">
+                      <td className="py-4 px-5 font-semibold text-slate-900">
                         ₹{total.toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3.5 px-5 text-slate-600">
+                      <td className="py-4 px-5 text-slate-600">
                         {discountPct}% <span className="text-[10px] text-slate-400">(-₹{discount.toLocaleString('en-IN')})</span>
                       </td>
-                      <td className="py-3.5 px-5 font-semibold text-emerald-700">
+                      <td className="py-4 px-5 font-semibold text-emerald-700">
                         {marginPct}%
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="py-4 px-5">
                         <RiskBadge score={activeVersion?.riskScore || 20} />
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="py-4 px-5">
                         <StatusBadge status={quote.status} />
                       </td>
-                      <td className="py-3.5 px-5 text-slate-500 text-xs">
+                      <td className="py-4 px-5 text-slate-500 text-xs">
                         {new Date(quote.updatedAt || quote.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="py-3.5 px-5 text-right relative">
+                      <td className="py-4 px-5 text-right relative">
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             to={`/sales/quotations/${quote.id}`}
@@ -314,65 +318,71 @@ export default function QuotationsList() {
                           </button>
                         </div>
 
-                        {/* Action Dropdown Menu */}
+                        {/* Action Dropdown Menu with click-outside backdrop */}
                         {activeActionMenu === quote.id && (
-                          <div className="absolute right-5 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200/80 py-1.5 z-30 text-left animate-in fade-in zoom-in-95 duration-100">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigate(`/sales/quotations/${quote.id}`);
-                                setActiveActionMenu(null);
-                              }}
-                              className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-slate-400" />
-                              View Control Center
-                            </button>
+                          <>
+                            <div 
+                              className="fixed inset-0 z-20" 
+                              onClick={() => setActiveActionMenu(null)} 
+                            />
+                            <div className="absolute right-5 top-10 w-48 bg-white rounded-xl shadow-xl border border-slate-200/80 py-1.5 z-30 text-left animate-in fade-in zoom-in-95 duration-100">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigate(`/sales/quotations/${quote.id}`);
+                                  setActiveActionMenu(null);
+                                }}
+                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-400" />
+                                View Control Center
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDuplicate(quote)}
-                              className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            >
-                              <Copy className="w-3.5 h-3.5 text-slate-400" />
-                              Duplicate Quotation
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDuplicate(quote)}
+                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                              >
+                                <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                Duplicate Quotation
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleSendToCustomer(quote)}
-                              className="w-full px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
-                            >
-                              <Send className="w-3.5 h-3.5 text-indigo-500" />
-                              Send to Customer
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSendToCustomer(quote)}
+                                className="w-full px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+                              >
+                                <Send className="w-3.5 h-3.5 text-indigo-500" />
+                                Send to Customer
+                              </button>
 
-                            <div className="border-t border-slate-100 my-1"></div>
+                              <div className="border-t border-slate-100 my-1"></div>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigate('/sales/approvals');
-                                setActiveActionMenu(null);
-                              }}
-                              className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            >
-                              <CheckSquare className="w-3.5 h-3.5 text-purple-500" />
-                              View Approval Queue
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigate('/sales/approvals');
+                                  setActiveActionMenu(null);
+                                }}
+                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                              >
+                                <CheckSquare className="w-3.5 h-3.5 text-purple-500" />
+                                View Approval Queue
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigate('/sales/fulfillment');
-                                setActiveActionMenu(null);
-                              }}
-                              className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            >
-                              <Truck className="w-3.5 h-3.5 text-blue-500" />
-                              View Fulfillment Plan
-                            </button>
-                          </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigate('/sales/fulfillment');
+                                  setActiveActionMenu(null);
+                                }}
+                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                              >
+                                <Truck className="w-3.5 h-3.5 text-blue-500" />
+                                View Fulfillment Plan
+                              </button>
+                            </div>
+                          </>
                         )}
                       </td>
                     </tr>
@@ -380,6 +390,19 @@ export default function QuotationsList() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Table Footer */}
+        {!isLoading && filteredQuotes.length > 0 && (
+          <div className="px-5 py-3.5 bg-slate-50/70 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 font-medium mt-auto">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+              <span>Showing <strong className="text-slate-800 font-semibold">{filteredQuotes.length}</strong> of <strong className="text-slate-800 font-semibold">{quotations.length}</strong> active quotations</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-400">
+              <span>Currency: <strong className="text-slate-700 font-mono">INR (₹)</strong></span>
+            </div>
           </div>
         )}
       </div>
