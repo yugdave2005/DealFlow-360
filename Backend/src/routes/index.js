@@ -9,8 +9,12 @@ router.get('/health/redis', (req, res) => res.json({ status: 'OK', message: 'Red
 router.get('/health/rabbitmq', (req, res) => res.json({ status: 'OK', message: 'RabbitMQ Health endpoint (Mock)' }));
 
 import adminRoutes from '../modules/admin/routes.js';
+import authRoutes from '../modules/auth/auth.routes.js';
+import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
 
 // Module Routes
+router.use('/v1/auth', authRoutes);
+router.use('/v1/dashboard', dashboardRoutes);
 router.use('/v1/admin', adminRoutes);
 
 export default router;

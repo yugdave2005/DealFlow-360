@@ -9,19 +9,25 @@ import AdminProducts from '../pages/admin/AdminProducts';
 import AdminDiscountRules from '../pages/admin/AdminDiscountRules';
 import AdminApprovalRules from '../pages/admin/AdminApprovalRules';
 
+import Login from '../pages/auth/Login';
+import Signup from '../pages/auth/Signup';
+import ForgotPassword from '../pages/auth/ForgotPassword';
+import Dashboard from '../pages/sales/Dashboard';
+
 export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route element={<AuthLayout />}>
-        <Route path="/login" element={<div>Login</div>} />
-        <Route path="/signup" element={<div>Signup</div>} />
-        <Route path="/forgot-password" element={<div>Forgot Password</div>} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
         <Route path="/sales/*" element={<SalesLayout />}>
-          <Route index element={<div>Dashboard Placeholder</div>} />
+          <Route index element={<Dashboard />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="quotations" element={<div>Quotations List</div>} />
           <Route path="quotations/new" element={<div>New Quotation</div>} />
           <Route path="quotations/:id" element={<div>Quotation Detail</div>} />

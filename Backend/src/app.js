@@ -7,6 +7,7 @@ import { logger } from './utils/logger.js';
 import { globalLimiter } from './middleware/rate-limit.js';
 import { errorHandler } from './middleware/error.js';
 import { notFoundHandler } from './middleware/not-found.js';
+import passport from './services/oauth/passport.js';
 import routes from './routes/index.js';
 
 const app = express();
@@ -21,6 +22,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(pinoHttp({ logger }));
 app.use(globalLimiter);
+
+app.use(passport.initialize());
 
 // API Routes
 app.use('/api', routes);
