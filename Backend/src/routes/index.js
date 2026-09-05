@@ -14,6 +14,7 @@ import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
 import quotationRoutes from '../modules/quotations/quotation.routes.js';
 import approvalRoutes from '../modules/approvals/approval.routes.js';
 import upsellRoutes from '../modules/upsell/upsell.routes.js';
+import fulfillmentRoutes from '../modules/fulfillment/fulfillment.routes.js';
 
 // Module Routes
 router.use('/v1', authRoutes);
@@ -22,5 +23,6 @@ router.use('/v1/admin', adminRoutes);
 router.use('/v1/quotations', quotationRoutes);
 router.use('/v1/approvals', approvalRoutes);
 router.use('/v1/upsell', upsellRoutes);
+router.use('/v1/fulfillment', fulfillmentRoutes);
 
 export default router;
