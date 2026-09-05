@@ -110,7 +110,7 @@ model Quotation {
   status          QuotationStatus    @default(DRAFT)
   activeVersionId String?            @unique
   activeVersion   QuotationVersion?  @relation(name: "ActiveVersion", fields: [activeVersionId], references: [id])
-  versions        QuotationVersion[]
+  versions        QuotationVersion[] @relation(name: "QuotationVersions")
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   
@@ -120,7 +120,7 @@ model Quotation {
 model QuotationVersion {
   id               String            @id @default(uuid())
   quotationId      String
-  quotation        Quotation         @relation(fields: [quotationId], references: [id], onDelete: Restrict)
+  quotation        Quotation         @relation(name: "QuotationVersions", fields: [quotationId], references: [id], onDelete: Restrict)
   versionNumber    Int
   totalAmount      Decimal           @db.Decimal(12, 2)
   totalDiscount    Decimal           @db.Decimal(12, 2)
