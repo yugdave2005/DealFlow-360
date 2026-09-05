@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { broadcastEvent } from '../../services/socket/socket.service.js';
 import * as quotationService from '../quotations/quotation.service.js';
+import { determineApprovalRequirement } from '../../utils/approvalEvaluator.js';
 
 const prisma = new PrismaClient();
 
@@ -173,17 +174,42 @@ export const negotiateQuotation = async (quotationId, customerId, { notes, count
     }
   });
 
-  // Update master quote status to NEGOTIATION
-  const updated = await prisma.quotation.update({
-    where: { id: quotationId },
-    data: { status: 'NEGOTIATION', activeVersionId: newVersion.id }
-  });
+  // Evaluate dynamic governance from DB
+  const approvalEval = await determineApprovalRequirement(prisma, riskScore);
 
-  broadcastEvent('QUOTATION_UPDATED', {
-    quotationId,
-    status: 'NEGOTIATION',
-    message: `Customer proposed counter-offer with ${discountPct}% discount`
-  });
+  if (approvalEval.required) {
+    await prisma.approvalRequest.create({
+      data: {
+        quotationVersionId: newVersion.id,
+        assignedRole: approvalEval.role,
+        status: 'PENDING',
+        comments: `Approval required for customer counter-offer: Discount requested is ${discountPct}%`
+      }
+    });
+
+    await prisma.quotation.update({
+      where: { id: quotationId },
+      data: { status: 'PENDING_APPROVAL', activeVersionId: newVersion.id }
+    });
+
+    broadcastEvent('QUOTATION_UPDATED', {
+      quotationId,
+      status: 'PENDING_APPROVAL',
+      message: `Customer proposed counter-offer with ${discountPct}% discount - Pending Manager Approval`
+    });
+  } else {
+    // Update master quote status to NEGOTIATION (within limits, sales rep can review)
+    await prisma.quotation.update({
+      where: { id: quotationId },
+      data: { status: 'NEGOTIATION', activeVersionId: newVersion.id }
+    });
+
+    broadcastEvent('QUOTATION_UPDATED', {
+      quotationId,
+      status: 'NEGOTIATION',
+      message: `Customer proposed counter-offer with ${discountPct}% discount`
+    });
+  }
 
   return newVersion;
 };

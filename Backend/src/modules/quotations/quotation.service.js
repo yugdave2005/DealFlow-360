@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { calculateRiskScore, getRiskLevel } from '../risk/risk.engine.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
+import { determineApprovalRequirement } from '../../utils/approvalEvaluator.js';
 import { broadcastEvent } from '../../services/socket/socket.service.js';
 
 const prisma = new PrismaClient();
@@ -390,35 +391,15 @@ export const submitQuotation = async (quotationId, userId) => {
   const riskScore = await calculateRiskScore(activeVersion.id);
   const riskLevel = getRiskLevel(riskScore);
 
-  // Check discount governance
-  let approvalRequired = false;
-  let requiredRole = 'SALES_MANAGER';
+  // Evaluate dynamic governance from DB
+  const approvalEval = await determineApprovalRequirement(prisma, riskScore);
 
-  if (riskScore > 25) {
-    approvalRequired = true;
-    if (riskScore > 75) {
-      requiredRole = 'ADMIN';
-    } else if (riskScore > 50) {
-      requiredRole = 'FINANCE';
-    }
-  }
-
-  // Check line violations
-  for (const item of activeVersion.items) {
-    if (Number(item.discountPercentage) > 15) {
-      approvalRequired = true;
-    }
-    if (Number(item.discountPercentage) > 25) {
-      requiredRole = 'ADMIN';
-    }
-  }
-
-  if (approvalRequired) {
+  if (approvalEval.required) {
     // Create ApprovalRequest on the version
     await prisma.approvalRequest.create({
       data: {
         quotationVersionId: activeVersion.id,
-        assignedRole: requiredRole,
+        assignedRole: approvalEval.role,
         status: 'PENDING'
       }
     });
@@ -437,7 +418,7 @@ export const submitQuotation = async (quotationId, userId) => {
       quotationId,
       status: 'PENDING_APPROVAL',
       approvalRequired: true,
-      requiredRole,
+      requiredRole: approvalEval.role,
       riskScore
     });
 
@@ -445,9 +426,9 @@ export const submitQuotation = async (quotationId, userId) => {
       approvalRequired: true,
       riskScore,
       riskLevel,
-      requiredRole,
+      requiredRole: approvalEval.role,
       quotation: updated,
-      message: `${requiredRole === 'ADMIN' ? 'Executive' : requiredRole === 'FINANCE' ? 'Finance' : 'Sales Manager'} approval is required.`
+      message: `${approvalEval.role === 'ADMIN' ? 'Executive' : approvalEval.role === 'FINANCE' ? 'Finance' : 'Sales Manager'} approval is required.`
     };
   } else {
     // Auto-approve: transition to SENT so it is available on customer portal
@@ -596,12 +577,14 @@ export const respondToNegotiation = async (quotationId, { action, proposedDiscou
   // Calculate new risk score
   const newRisk = await calculateRiskScore(newVersion.id);
 
-  // If discountPct > 15%, re-approval is required
-  if (discountPct > 15 || newRisk > 25) {
+  // Evaluate dynamic governance from DB
+  const approvalEval = await determineApprovalRequirement(prisma, newRisk);
+
+  if (approvalEval.required) {
     await prisma.approvalRequest.create({
       data: {
         quotationVersionId: newVersion.id,
-        assignedRole: newRisk > 75 ? 'ADMIN' : newRisk > 50 ? 'FINANCE' : 'SALES_MANAGER',
+        assignedRole: approvalEval.role,
         status: 'PENDING',
         comments: `Re-approval required due to negotiated terms change: ${comments || 'Discount updated to ' + discountPct + '%'}`
       }

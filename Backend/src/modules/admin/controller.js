@@ -169,18 +169,6 @@ export const createProductPricing = async (req, res, next) => {
 export const getDiscountRules = async (req, res, next) => {
   try {
     let rules = await prisma.discountRule.findMany({ include: { targetTier: true }, orderBy: { maxDiscountPercentage: 'asc' } });
-    if (rules.length === 0) {
-      const defaultRules = [
-        { appliedTo: 'CATEGORY', productCategory: 'Hardware', maxDiscountPercentage: 15 },
-        { appliedTo: 'CATEGORY', productCategory: 'Services', maxDiscountPercentage: 20 },
-        { appliedTo: 'CATEGORY', productCategory: 'Subscriptions', maxDiscountPercentage: 25 },
-        { appliedTo: 'CATEGORY', productCategory: 'Cloud', maxDiscountPercentage: 12 }
-      ];
-      for (const r of defaultRules) {
-        await prisma.discountRule.create({ data: r });
-      }
-      rules = await prisma.discountRule.findMany({ include: { targetTier: true }, orderBy: { maxDiscountPercentage: 'asc' } });
-    }
     sendSuccess(res, 200, 'Discount rules fetched', rules);
   } catch (err) { next(err); }
 };
@@ -223,18 +211,6 @@ export const getApprovalRules = async (req, res, next) => {
     let rules = await prisma.approvalRule.findMany({
       orderBy: { minRiskScore: 'asc' }
     });
-    if (rules.length === 0) {
-      const defaultRules = [
-        { minRiskScore: 0, maxRiskScore: 25, requiredApproverLevel: 'SALES_REP', priority: 1 },
-        { minRiskScore: 26, maxRiskScore: 50, requiredApproverLevel: 'SALES_MANAGER', priority: 2 },
-        { minRiskScore: 51, maxRiskScore: 75, requiredApproverLevel: 'FINANCE', priority: 3 },
-        { minRiskScore: 76, maxRiskScore: 100, requiredApproverLevel: 'ADMIN', priority: 4 }
-      ];
-      for (const r of defaultRules) {
-        await prisma.approvalRule.create({ data: r });
-      }
-      rules = await prisma.approvalRule.findMany({ orderBy: { minRiskScore: 'asc' } });
-    }
     sendSuccess(res, 200, 'Approval rules fetched', rules);
   } catch (err) { next(err); }
 };

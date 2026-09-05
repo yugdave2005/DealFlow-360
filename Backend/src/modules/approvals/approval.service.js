@@ -93,8 +93,8 @@ export const actionApproval = async (approvalRequestId, action, userId, comments
   });
 
   // Update quotation status based on action:
-  // Approved internal governance -> move to SENT (ready for customer negotiation/acceptance), NOT directly CONFIRMED
-  const newQuotationStatus = action === 'APPROVED' ? 'SENT' :
+  // Approved internal governance -> move to APPROVED (Sales Rep must manually send it)
+  const newQuotationStatus = action === 'APPROVED' ? 'APPROVED' :
     action === 'REJECTED' ? 'REJECTED' : 'NEGOTIATION';
 
   await prisma.quotation.update({

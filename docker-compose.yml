@@ -29,45 +29,6 @@ services:
       - "15672:15672" # Management UI port
     restart: unless-stopped
 
-  backend:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
-    container_name: dealflow360-backend
-    ports:
-      - "5001:5000"
-    env_file:
-      - ./Backend/.env.example # or .env if exists
-    environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/dealflow360
-      - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-      - PORT=5000
-      - NODE_ENV=development
-    volumes:
-      - ./Backend:/app
-      - /app/node_modules
-    depends_on:
-      - postgres
-      - redis
-      - rabbitmq
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile
-    container_name: dealflow360-frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - NODE_ENV=development
-    volumes:
-      - ./Frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-    restart: unless-stopped
 
 volumes:
   postgres_data:

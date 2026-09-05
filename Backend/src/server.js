@@ -1,9 +1,10 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import http from 'http';
 import app from './app.js';
 import { logger } from './utils/logger.js';
 import { initSocket } from './services/socket/socket.service.js';
-import dotenv from 'dotenv';
-dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 

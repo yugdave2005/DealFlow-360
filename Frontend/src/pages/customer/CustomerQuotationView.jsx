@@ -154,7 +154,7 @@ export default function CustomerQuotationView() {
               </div>
             </div>
 
-            {(quote.status === 'SENT' || quote.status === 'APPROVED') ? (
+            {quote.status === 'SENT' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
                 <div className="space-y-3">
                   <h4 className="font-bold text-slate-900 text-sm">Request Terms Revision / Counter-Offer</h4>
