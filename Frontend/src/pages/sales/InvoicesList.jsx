@@ -20,11 +20,13 @@ import {
   Sparkles,
   Zap,
   Check,
-  ExternalLink
+  ExternalLink,
+  Download
 } from 'lucide-react';
 import StatusBadge from '../../components/common/StatusBadge';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { downloadInvoicePDF } from '../../utils/pdfGenerator';
 
 import { api } from '../../lib/axios';
 
@@ -285,36 +287,49 @@ export default function InvoicesList() {
                         <StatusBadge status={inv.status || 'PENDING'} />
                       </td>
                       <td className="py-4 px-4 text-right">
-                        {isPaid ? (
-                          <span className="text-xs font-semibold text-emerald-700 inline-flex items-center justify-end gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Settled
-                          </span>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            {/* 1-Click Quick Pay Button */}
-                            <button
-                              onClick={() => handleQuickPay(inv)}
-                              disabled={recordPaymentMutation.isPending}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-[#B85D19] hover:from-amber-600 hover:to-[#9E4E13] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                              title="Instant 1-Click Settlement (Test Mode)"
-                            >
-                              <Zap className="w-3.5 h-3.5 fill-current" />
-                              <span>Quick Pay</span>
-                            </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              downloadInvoicePDF(inv);
+                              toast.success(`Downloaded Tax Invoice PDF for ${inv.invoiceNumber || inv.id}`);
+                            }}
+                            className="p-1.5 text-[#78716C] hover:text-[#1E1B18] hover:bg-[#F5EFEB] rounded-lg transition-colors cursor-pointer"
+                            title="Download Official Tax Invoice PDF"
+                          >
+                            <Download className="w-4 h-4 text-[#B85D19]" />
+                          </button>
 
-                            {/* Manual Record Payment Button */}
-                            <button
-                              onClick={() => {
-                                setPayingInvoice(inv);
-                                setPaymentReference(`UPI-PAY-${Date.now().toString().slice(-6)}`);
-                              }}
-                              className="px-2.5 py-1.5 bg-white hover:bg-[#F5EFEB] text-[#44403C] border border-[#EBE8E2] font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-                            >
-                              Details
-                            </button>
-                          </div>
-                        )}
+                          {isPaid ? (
+                            <span className="text-xs font-semibold text-emerald-700 inline-flex items-center justify-end gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Settled
+                            </span>
+                          ) : (
+                            <>
+                              {/* 1-Click Quick Pay Button */}
+                              <button
+                                onClick={() => handleQuickPay(inv)}
+                                disabled={recordPaymentMutation.isPending}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-[#B85D19] hover:from-amber-600 hover:to-[#9E4E13] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                                title="Instant 1-Click Settlement (Test Mode)"
+                              >
+                                <Zap className="w-3.5 h-3.5 fill-current" />
+                                <span>Quick Pay</span>
+                              </button>
+
+                              {/* Manual Record Payment Button */}
+                              <button
+                                onClick={() => {
+                                  setPayingInvoice(inv);
+                                  setPaymentReference(`UPI-PAY-${Date.now().toString().slice(-6)}`);
+                                }}
+                                className="px-2.5 py-1.5 bg-white hover:bg-[#F5EFEB] text-[#44403C] border border-[#EBE8E2] font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                              >
+                                Details
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

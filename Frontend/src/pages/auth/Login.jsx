@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -17,7 +17,14 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, defaultRoute, loading } = useAuth();
+
+  // If already authenticated, do not allow staying on login page (e.g. via back button)
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate(defaultRoute, { replace: true });
+    }
+  }, [isAuthenticated, loading, defaultRoute, navigate]);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
 
@@ -41,7 +48,7 @@ export default function Login() {
       
       const normalizedRole = normalizeRole(result.data.user?.role);
       const targetRoute = ROLE_DEFAULT_ROUTES[normalizedRole] || '/sales/quotations';
-      window.location.href = targetRoute;
+      navigate(targetRoute, { replace: true });
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -72,7 +79,7 @@ export default function Login() {
                 </div>
                 <input
                   type="email"
-                  autoComplete="email"
+                  autoComplete="off"
                   {...register('email', { 
                     required: 'Email address is required',
                     pattern: {
@@ -98,7 +105,7 @@ export default function Login() {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   {...register('password', { required: 'Password is required' })}
                   className={`df-input pl-10 pr-10 ${errors.password ? 'border-[#C95757] focus:border-[#C95757] focus:ring-[#C95757]/15' : ''}`}
                   placeholder="••••••••"
@@ -144,37 +151,37 @@ export default function Login() {
             <span className="text-sm font-medium text-[#171717]">Sign in with Google</span>
           </button>
 
-          {/* Quick Demo Logins for Hackathon Testing */}
+          {/* Quick Demo Logins for Fast Testing */}
           <div className="mt-6 pt-5 border-t border-[#EEEAE4] space-y-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-[#96918A] block text-center">
-              Quick Demo Logins (password: password123)
+              Quick Demo Logins (Click to Fill & Test)
             </span>
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => { reset({ email: 'sales1@dealflow360.com', password: 'password123' }); }}
-                className="px-2.5 py-1.5 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
+                onClick={() => reset({ email: 'sales1@dealflow360.com', password: 'password123' })}
+                className="px-2.5 py-2 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
               >
                 💼 Sales Rep
               </button>
               <button
                 type="button"
-                onClick={() => { reset({ email: 'manager@dealflow360.com', password: 'password123' }); }}
-                className="px-2.5 py-1.5 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
+                onClick={() => reset({ email: 'manager@dealflow360.com', password: 'password123' })}
+                className="px-2.5 py-2 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
               >
                 👔 Sales Manager
               </button>
               <button
                 type="button"
-                onClick={() => { reset({ email: 'admin@dealflow360.com', password: 'password123' }); }}
-                className="px-2.5 py-1.5 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
+                onClick={() => reset({ email: 'admin@dealflow360.com', password: 'password123' })}
+                className="px-2.5 py-2 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
               >
                 ⚙️ Admin Ops
               </button>
               <button
                 type="button"
-                onClick={() => { reset({ email: 'acme@client.com', password: 'password123' }); }}
-                className="px-2.5 py-1.5 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
+                onClick={() => reset({ email: 'acme@client.com', password: 'password123' })}
+                className="px-2.5 py-2 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
               >
                 🏢 Customer Acme
               </button>

@@ -24,6 +24,7 @@ import FulfillmentList from '../pages/sales/FulfillmentList';
 import WarehouseSplit from '../pages/sales/WarehouseSplit';
 import SubscriptionsList from '../pages/sales/SubscriptionsList';
 import InvoicesList from '../pages/sales/InvoicesList';
+import BillingHub from '../pages/sales/BillingHub';
 import Customers from '../pages/sales/Customers';
 import CustomerDetail from '../pages/sales/CustomerDetail';
 import DealHealth from '../pages/sales/DealHealth';
@@ -34,6 +35,7 @@ import CustomerQuotationsList from '../pages/customer/CustomerQuotationsList';
 import CustomerNegotiationsList from '../pages/customer/CustomerNegotiationsList';
 import CustomerProfile from '../pages/customer/CustomerProfile';
 import CustomerQuotationView from '../pages/customer/CustomerQuotationView';
+import CustomerInvoices from '../pages/customer/CustomerInvoices';
 
 // Admin Configuration Pages
 import AdminProducts from '../pages/admin/AdminProducts';
@@ -84,6 +86,7 @@ export default function AppRoutes() {
             <Route path="approvals/:id" element={<Approvals />} />
             <Route path="fulfillment" element={<FulfillmentList />} />
             <Route path="fulfillment/:orderId" element={<WarehouseSplit />} />
+            <Route path="billing" element={<BillingHub />} />
             <Route path="subscriptions" element={<SubscriptionsList />} />
             <Route path="invoices" element={<InvoicesList />} />
             
@@ -130,6 +133,7 @@ export default function AppRoutes() {
             <Route path="fulfillment" element={<FulfillmentList />} />
             <Route path="fulfillment/:orderId" element={<WarehouseSplit />} />
             <Route path="approvals" element={<Approvals />} />
+            <Route path="billing" element={<BillingHub />} />
             <Route path="invoices" element={<InvoicesList />} />
             <Route path="subscriptions" element={<SubscriptionsList />} />
             <Route path="*" element={<Navigate to="/sales/approvals" replace />} />
@@ -147,6 +151,8 @@ export default function AppRoutes() {
             <Route path="quotations" element={<CustomerQuotationsList />} />
             <Route path="quotations/:id" element={<CustomerQuotationView />} />
             <Route path="negotiations" element={<CustomerNegotiationsList />} />
+            <Route path="billing" element={<BillingHub />} />
+            <Route path="invoices" element={<CustomerInvoices />} />
             <Route path="profile" element={<CustomerProfile />} />
             <Route path="*" element={<Navigate to="/portal/quotations" replace />} />
           </Route>
@@ -160,6 +166,8 @@ export default function AppRoutes() {
           <Route path="quotations/:id" element={<CustomerQuotationView />} />
           <Route path="quotation/:id" element={<CustomerQuotationView />} />
           <Route path="negotiations" element={<CustomerNegotiationsList />} />
+          <Route path="billing" element={<BillingHub />} />
+          <Route path="invoices" element={<CustomerInvoices />} />
         </Route>
 
         {/* 5. ADMIN PLATFORM CONFIGURATION WORKSPACE */}

@@ -26,10 +26,12 @@ import {
   MessageSquare,
   XCircle,
   X,
-  Zap
+  Zap,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
+import { downloadQuotationPDF } from '../../utils/pdfGenerator';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import DealProgress from '../../components/common/DealProgress';
@@ -374,6 +376,20 @@ export default function QuotationDetail() {
               <span>Confirm Terms As-Is</span>
             </button>
           )}
+
+          {/* Download Official PDF */}
+          <button
+            type="button"
+            onClick={() => {
+              downloadQuotationPDF(quote);
+              toast.success(`Downloaded official PDF for ${quote.quotationNumber}`);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-[#EBE8E2] bg-[#FAF8F5] hover:bg-[#F5EFEB] text-[#1E1B18] text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer"
+            title="Download Official PDF Quotation"
+          >
+            <Download className="w-3.5 h-3.5 text-[#B85D19]" />
+            <span>Download PDF</span>
+          </button>
 
           {/* Customer Portal Link */}
           <button
