@@ -124,10 +124,21 @@ export default function CustomerQuotationView() {
 
   const payInvoiceMutation = useMutation({
     mutationFn: async () => {
-      if (!matchedInvoice?.id) {
-        throw new Error('Invoice not found for this quotation yet');
+      let invId = matchedInvoice?.id;
+      if (!invId) {
+        const resInvoices = await api.get(`/customer-portal/invoices?customerId=${customerId}`);
+        const list = resInvoices.data?.data || resInvoices.data || [];
+        const found = list.find(inv => 
+          inv.quotationNumber === quote?.quotationNumber || 
+          inv.order?.quotationId === quote?.id || 
+          inv.orderId === quote?.order?.id
+        ) || list[0];
+        if (found) invId = found.id;
       }
-      const res = await api.post(`/customer-portal/invoices/${matchedInvoice.id}/pay`, {
+      if (!invId) {
+        throw new Error('Invoice is being generated for this quotation. Please check back in a moment or visit Invoices.');
+      }
+      const res = await api.post(`/customer-portal/invoices/${invId}/pay`, {
         customerId,
         paymentMethod,
         reference: payRef || undefined
@@ -137,10 +148,11 @@ export default function CustomerQuotationView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
       queryClient.invalidateQueries({ queryKey: ['customerInvoices', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['salesInvoices'] });
       toast.success('Payment recorded successfully for Quotation!');
       setPayModalOpen(false);
     },
-    onError: (err) => toast.error(err.response?.data?.message || 'Payment failed')
+    onError: (err) => toast.error(err.response?.data?.message || err.message || 'Payment failed')
   });
 
   const handleLineInquirySubmit = (item) => {

@@ -891,16 +891,23 @@ export const confirmQuotation = async (quotationId, userId) => {
       });
     }
 
-    // 5. Create one-time Invoice for non-subscription items
+    // 5. Create commercial Invoice for quotation items
     let invoice = null;
+    let commercialTotal = 0;
     if (oneTimeItems.length > 0) {
-      let oneTimeTotal = 0;
       for (const item of oneTimeItems) {
         const lineTotal = Number(item.quantity) * Number(item.snapshotUnitPrice);
         const discountAmt = lineTotal * (Number(item.snapshotDiscount) / 100);
-        oneTimeTotal += lineTotal - discountAmt;
+        commercialTotal += lineTotal - discountAmt;
       }
-      const taxAmount = oneTimeTotal * 0.18; // 18% GST
+    }
+    // If no one-time items, base invoice on activeVersion totalAmount (e.g. recurring or setup)
+    if (commercialTotal === 0 && activeVersion.totalAmount > 0) {
+      commercialTotal = activeVersion.totalAmount;
+    }
+
+    if (commercialTotal > 0) {
+      const taxAmount = commercialTotal * 0.18; // 18% GST
 
       const currentYear = new Date().getFullYear();
       const allInvoices = await tx.invoice.findMany({
@@ -922,9 +929,9 @@ export const confirmQuotation = async (quotationId, userId) => {
           invoiceNumber,
           orderId: order.id,
           customerId: quotation.customerId,
-          totalAmount: oneTimeTotal + taxAmount,
+          totalAmount: commercialTotal + taxAmount,
           taxAmount,
-          status: 'DRAFT',
+          status: 'SENT',
           dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         }
       });
