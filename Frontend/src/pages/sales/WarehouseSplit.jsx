@@ -545,12 +545,21 @@ export default function WarehouseSplit() {
 
             {/* Cost & Summary */}
             <div className="space-y-4">
-              <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] space-y-1">
-                <span className="text-[11px] font-semibold text-[#78716C] uppercase tracking-wider block">Estimated Freight Cost</span>
-                <p className="text-3xl font-bold text-[#1E1B18]">
-                  ₹{currentCost.toLocaleString('en-IN')}
-                </p>
-                <p className="text-xs text-emerald-700 font-medium mt-1">Calculated based on {currentSlaObj.label} rate</p>
+              <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EBE8E2] space-y-2">
+                <div className="flex justify-between items-center text-xs pb-1 border-b border-[#EBE8E2]">
+                  <span className="text-[#78716C]">Quotation Products Total:</span>
+                  <span className="font-bold text-[#1E1B18]">₹{Number(planData?.order?.totalAmount || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs pb-1 border-b border-[#EBE8E2]">
+                  <span className="text-[#78716C]">Estimated Freight ({currentSlaObj.label}):</span>
+                  <span className="font-semibold text-emerald-700">+₹{currentCost.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="pt-1">
+                  <span className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider block">Total Commercial Order Value</span>
+                  <p className="text-2xl font-black text-[#1E1B18] mt-0.5">
+                    ₹{(Number(planData?.order?.totalAmount || 0) + currentCost).toLocaleString('en-IN')}
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

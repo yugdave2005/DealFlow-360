@@ -2,11 +2,36 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { MessageSquare, CheckCircle2, HelpCircle, ArrowRight, CornerDownRight, X, Send } from 'lucide-react';
+import { 
+  MessageSquare, 
+  CheckCircle2, 
+  HelpCircle, 
+  ArrowRight, 
+  CornerDownRight, 
+  X, 
+  Send, 
+  Download, 
+  CreditCard, 
+  Receipt, 
+  Zap, 
+  IndianRupee,
+  Clock
+} from 'lucide-react';
 import DealFlowLogo from '../../components/DealFlowLogo';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/axios';
+<<<<<<< HEAD
 import { quotationsApi } from '../../features/quotations/quotations.api';
+=======
+import { downloadQuotationPDF, downloadInvoicePDF } from '../../utils/pdfGenerator';
+
+const PAYMENT_METHODS = [
+  { id: 'BANK_TRANSFER', label: 'Bank Transfer (NEFT/RTGS)', icon: '🏦' },
+  { id: 'UPI', label: 'UPI Payment', icon: '📱' },
+  { id: 'CREDIT_CARD', label: 'Corporate Card', icon: '💳' },
+  { id: 'CHEQUE', label: 'Cheque', icon: '📄' }
+];
+>>>>>>> 4a87333104d73bc0797653c2d9847e8f4f8adac9
 
 export default function CustomerQuotationView() {
   const { id } = useParams();
@@ -20,6 +45,11 @@ export default function CustomerQuotationView() {
   const [activeLineInquiry, setActiveLineInquiry] = useState(null);
   const [lineCommentText, setLineCommentText] = useState('');
 
+  // Payment modal state
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [payRef, setPayRef] = useState('');
+
   const customerId = user?.id || user?.customerId || 'bb222222-2222-2222-2222-222222222222';
 
   const { data: quote, isLoading, isError } = useQuery({
@@ -30,6 +60,21 @@ export default function CustomerQuotationView() {
     }
   });
 
+  // Fetch customer invoices to link payment directly
+  const { data: customerInvoices = [] } = useQuery({
+    queryKey: ['customerInvoices', customerId],
+    queryFn: async () => {
+      const res = await api.get(`/customer-portal/invoices?customerId=${customerId}`);
+      return res.data?.data || res.data || [];
+    },
+    enabled: !!customerId
+  });
+
+  // Match invoice for this quotation / order
+  const matchedInvoice = customerInvoices.find(
+    inv => inv.quotationNumber === quote?.quotationNumber || inv.order?.quotationId === quote?.id || inv.orderId === quote?.order?.id
+  ) || customerInvoices[0];
+
   const acceptMutation = useMutation({
     mutationFn: async () => {
       const res = await quotationsApi.acceptQuotation(id, { customerId });
@@ -37,7 +82,8 @@ export default function CustomerQuotationView() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
-      toast.success('Quotation Accepted successfully!');
+      queryClient.invalidateQueries({ queryKey: ['customerInvoices', customerId] });
+      toast.success('Quotation Accepted successfully! Tax Invoice is generated.');
     }
   });
 
@@ -60,33 +106,54 @@ export default function CustomerQuotationView() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
-      toast.success('Quotation declined');
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to decline quotation');
+      toast.success('Quotation declined.');
     }
   });
 
   const negotiateMutation = useMutation({
     mutationFn: async ({ explicitNotes, discountVal }) => {
-      const res = await api.post(`/customer-portal/quotations/${id}/negotiate`, { 
-        customerId, 
-        notes: explicitNotes || notes, 
-        counterDiscount: parseFloat(discountVal !== undefined ? discountVal : counterDiscount) || 0 
+      const discountToSubmit = discountVal !== undefined ? discountVal : (Number(counterDiscount) || 0);
+      const notesToSubmit = explicitNotes || notes;
+      
+      const res = await api.post(`/customer-portal/quotations/${id}/negotiate`, {
+        customerId,
+        proposedDiscountPercentage: Number(discountToSubmit),
+        notes: notesToSubmit
       });
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
-      toast.success('Negotiation request / inquiry submitted to your Sales Rep');
+      toast.success(data?.data?.message || 'Revision request submitted to sales team!');
       setNotes('');
       setCounterDiscount('');
       setActiveLineInquiry(null);
       setLineCommentText('');
     },
     onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to submit negotiation');
+      toast.error(err.response?.data?.message || 'Failed to submit negotiation request');
     }
+  });
+
+  const payInvoiceMutation = useMutation({
+    mutationFn: async () => {
+      if (!matchedInvoice?.id) {
+        throw new Error('Invoice not found for this quotation yet');
+      }
+      const res = await api.post(`/customer-portal/invoices/${matchedInvoice.id}/pay`, {
+        customerId,
+        paymentMethod,
+        reference: payRef || undefined
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customerQuotation', id] });
+      queryClient.invalidateQueries({ queryKey: ['customerInvoices', customerId] });
+      toast.success('Payment recorded successfully for Quotation!');
+      setPayModalOpen(false);
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Payment failed')
   });
 
   const handleLineInquirySubmit = (item) => {
@@ -107,7 +174,6 @@ export default function CustomerQuotationView() {
   const version = quote.activeVersion || quote.versions?.[0];
   const items = version?.items || [];
 
-  // Compute exact subtotal from items (or stored net totalAmount)
   const subtotal = items.length > 0
     ? items.reduce((sum, it) => {
         const qty = Number(it.quantity || 1);
@@ -134,7 +200,9 @@ export default function CustomerQuotationView() {
             <DealFlowLogo variant="light" size="lg" />
             <span className="text-xs font-semibold px-2.5 py-0.5 bg-[#F5EFEB] text-[#44403C] rounded-full border border-[#E8DFD8]">Customer Portal</span>
           </div>
-          <button onClick={() => navigate('/')} className="text-xs font-semibold text-[#78716C] hover:text-[#1E1B18] transition-colors cursor-pointer">Return to workspace</button>
+          <button onClick={() => navigate('/portal/invoices')} className="text-xs font-semibold text-[#78716C] hover:text-[#1E1B18] transition-colors cursor-pointer">
+            View All Invoices & Payments &rarr;
+          </button>
         </div>
 
         <div className="bg-[#FFFFFF] rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-[#EBE8E2] overflow-hidden mb-6">
@@ -157,9 +225,21 @@ export default function CustomerQuotationView() {
                 <h3 className="text-lg font-bold text-[#1E1B18]">Commercial Line Items</h3>
                 <p className="text-xs text-[#78716C]">Review items or click the comment tool on any line to ask questions</p>
               </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    downloadQuotationPDF(quote);
+                    toast.success('Downloaded official proposal PDF');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF8F5] hover:bg-[#F5EFEB] border border-[#EBE8E2] text-xs font-bold text-[#1E1B18] rounded-xl transition-all shadow-xs cursor-pointer"
+                  title="Download Official PDF Proposal"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#B85D19]" />
+                  Download PDF
+                </button>
+              </div>
             </div>
 
-            {/* Line items with line-level commenting tool */}
             <div className="space-y-3 mb-8">
               {items.map((item, idx) => {
                 const qty = Number(item.quantity || 1);
@@ -178,63 +258,59 @@ export default function CustomerQuotationView() {
                         </p>
                       </div>
                       <div className="flex items-center gap-4 sm:text-right">
-                        {disc > 0 && (
-                          <span className="text-xs font-bold text-emerald-700 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
-                            -{disc}% Discount Applied
-                          </span>
-                        )}
                         <div>
-                          <p className="font-extrabold text-[#1E1B18] text-lg">₹{lineTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                          {disc > 0 && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full mr-2">
+                              {disc}% OFF
+                            </span>
+                          )}
+                          <span className="font-bold text-[#1E1B18] text-lg">
+                            ₹{lineTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </span>
                         </div>
                         {quote.status === 'SENT' && (
                           <button
                             type="button"
                             onClick={() => {
-                              if (isInquiring) {
-                                setActiveLineInquiry(null);
-                              } else {
-                                setActiveLineInquiry(idx);
-                                setLineCommentText('');
-                              }
+                              setActiveLineInquiry(isInquiring ? null : idx);
+                              setLineCommentText('');
                             }}
-                            className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
-                              isInquiring 
-                                ? 'bg-[#1E1B18] text-white' 
-                                : 'bg-[#FFFFFF] text-[#78716C] hover:text-[#1E1B18] border border-[#EBE8E2]'
+                            className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                              isInquiring
+                                ? 'bg-[#B85D19] text-white border-[#B85D19]'
+                                : 'bg-white text-[#78716C] hover:text-[#1E1B18] border-[#EBE8E2]'
                             }`}
-                            title="Ask question or request line change"
+                            title="Ask question or propose change for this item"
                           >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                            <span>Comment</span>
+                            <MessageSquare className="w-4 h-4" />
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {/* Line Inquiry Inline Input */}
                     {isInquiring && (
-                      <div className="pt-2 border-t border-[#EBE8E2] space-y-2 bg-[#FFFFFF] p-3 rounded-xl">
-                        <div className="flex items-center justify-between text-xs font-bold text-[#1E1B18]">
-                          <span className="flex items-center gap-1.5 text-[#B85D19]">
+                      <div className="p-3 bg-[#FFFFFF] rounded-xl border border-[#B85D19]/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#B85D19] flex items-center gap-1">
                             <CornerDownRight className="w-3.5 h-3.5" />
-                            Ask question or request change for {item.product?.name || 'this line'}:
+                            Ask question / request modification for "{item.product?.name || 'this item'}"
                           </span>
-                          <button onClick={() => setActiveLineInquiry(null)} className="text-[#A8A29E] hover:text-[#1E1B18]">
-                            <X className="w-4 h-4" />
+                          <button onClick={() => setActiveLineInquiry(null)} className="text-[#A8A29E] hover:text-[#1E1B18] p-1 cursor-pointer">
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <input
-                          type="text"
-                          placeholder="e.g. Can we adjust quantity to 15 or bundle setup support?"
+                        <textarea
                           value={lineCommentText}
                           onChange={(e) => setLineCommentText(e.target.value)}
-                          className="w-full p-2.5 bg-[#FAF8F5] border border-[#EBE8E2] rounded-xl text-xs text-[#1E1B18] focus:outline-none focus:border-[#B85D19]"
+                          placeholder="e.g. Can we increase warranty, bundle accessories, or adjust quantity to 5 units?"
+                          className="w-full p-2.5 rounded-lg border border-[#EBE8E2] text-xs text-[#1E1B18] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#B85D19]/20"
+                          rows="2"
                         />
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"
                             onClick={() => setActiveLineInquiry(null)}
-                            className="px-3 py-1.5 text-xs text-[#78716C] hover:bg-[#FAF8F5] rounded-lg"
+                            className="px-3 py-1.5 text-xs text-[#78716C] hover:bg-[#F5EFEB] rounded-lg transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>
@@ -242,10 +318,10 @@ export default function CustomerQuotationView() {
                             type="button"
                             onClick={() => handleLineInquirySubmit(item)}
                             disabled={negotiateMutation.isPending}
-                            className="px-3.5 py-1.5 bg-[#B85D19] hover:bg-[#9E4E13] text-white text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-1 cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#B85D19] hover:bg-[#9E4E13] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                           >
                             <Send className="w-3 h-3" />
-                            <span>{negotiateMutation.isPending ? 'Submitting...' : 'Send Line Inquiry'}</span>
+                            <span>{negotiateMutation.isPending ? 'Sending...' : 'Send Inquiry'}</span>
                           </button>
                         </div>
                       </div>
@@ -255,110 +331,158 @@ export default function CustomerQuotationView() {
               })}
             </div>
 
-            {/* Hybrid Billing Breakdown */}
-            <div className="bg-[#FAF8F5] rounded-2xl border border-[#EBE8E2] p-5 mb-8 space-y-3">
-              <h4 className="text-xs font-bold text-[#78716C] uppercase tracking-wider">Billing Structure</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3 bg-[#FFFFFF] rounded-xl border border-[#EBE8E2]">
-                  <span className="text-xs text-[#78716C] block font-medium">One-Time Hardware & Services</span>
-                  <span className="text-lg font-bold text-[#1E1B18]">
-                    ₹{subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="p-3 bg-[#FFFFFF] rounded-xl border border-[#EBE8E2]">
-                  <span className="text-xs text-[#78716C] block font-medium">Estimated Taxes (18% GST)</span>
-                  <span className="text-lg font-bold text-[#1E1B18]">
-                    ₹{taxAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-end border-t border-[#EBE8E2] pt-6 mb-8">
+            <div className="bg-[#FAF8F5] p-6 rounded-2xl border border-[#EBE8E2] mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <p className="text-xs text-[#A8A29E] uppercase font-semibold">Terms Validity</p>
                 <p className="text-sm text-[#44403C] font-medium">Valid for 30 days from proposal date</p>
               </div>
               <div className="text-right">
                 <p className="text-xs font-bold text-[#78716C] uppercase tracking-wider mb-1">Total Agreed Value</p>
-                <p className="text-4xl sm:text-5xl font-black text-[#1E1B18] tracking-tight">
-                  <span className="text-2xl text-[#A8A29E] mr-1">₹</span>
-                  {totalAgreed.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                </p>
+                <p className="text-4xl font-black text-[#1E1B18] tracking-tight">₹{totalAgreed.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
               </div>
             </div>
 
             {quote.status === 'SENT' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#FAF8F5] p-6 rounded-2xl border border-[#EBE8E2]">
                 <div className="space-y-3">
-                  <h4 className="font-bold text-[#1E1B18] text-sm">Request Terms Revision / Counter-Offer</h4>
-                  <p className="text-xs text-[#78716C]">Submit proposed adjustments or requested commercial discount concession.</p>
+                  <h4 className="font-bold text-[#1E1B18] text-sm">Request Terms Revision</h4>
                   <textarea 
                     value={notes} onChange={e => setNotes(e.target.value)}
                     placeholder="Provide comments or requested scope/quantity adjustment..."
-                    className="w-full p-3 rounded-xl border border-[#EBE8E2] text-xs bg-[#FFFFFF] text-[#1E1B18] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#B85D19]/20 focus:border-[#B85D19]"
+                    className="w-full p-3 rounded-xl border border-[#EBE8E2] text-xs bg-[#FFFFFF] text-[#1E1B18] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#B85D19]/20"
                     rows="3"
                   />
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#44403C] mb-1">Proposed Counter Discount (%)</label>
-                    <input 
-                      type="number" value={counterDiscount} onChange={e => setCounterDiscount(e.target.value)}
-                      placeholder="e.g. 20" 
-                      className="w-full p-2.5 rounded-xl border border-[#EBE8E2] text-xs bg-[#FFFFFF] text-[#1E1B18] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#B85D19]/20 focus:border-[#B85D19]"
-                    />
-                  </div>
+                  <input 
+                    type="number" value={counterDiscount} onChange={e => setCounterDiscount(e.target.value)}
+                    placeholder="Proposed Discount (%)" 
+                    className="w-full p-2.5 rounded-xl border border-[#EBE8E2] text-xs bg-[#FFFFFF] text-[#1E1B18]"
+                  />
                   <button 
                     onClick={() => negotiateMutation.mutate({})} disabled={negotiateMutation.isPending}
-                    className="w-full bg-[#FFFFFF] border border-[#EBE8E2] text-[#1E1B18] font-bold py-2.5 px-4 rounded-xl hover:bg-[#F5EFEB] transition-colors shadow-xs text-xs disabled:opacity-50 cursor-pointer"
+                    className="w-full bg-[#FFFFFF] border border-[#EBE8E2] text-[#1E1B18] font-bold py-2.5 rounded-xl text-xs hover:bg-[#F5EFEB] cursor-pointer"
                   >
-                    {negotiateMutation.isPending ? 'Submitting...' : 'Submit Negotiation Request'}
+                    Submit Negotiation
                   </button>
                 </div>
                 
-                <div className="flex flex-col justify-center border-t md:border-t-0 md:border-l border-[#EBE8E2] md:pl-6 pt-4 md:pt-0 text-center space-y-4">
-                  <div>
-                    <h4 className="font-bold text-[#1E1B18] text-base">Accept & Confirm Proposal</h4>
-                    <p className="text-xs text-[#78716C] mt-1">By confirming, this quotation converts into an active order dispatched for fulfillment.</p>
-                  </div>
+                <div className="flex flex-col justify-center border-t md:border-t-0 md:border-l border-[#EBE8E2] md:pl-6 pt-4 md:pt-0 space-y-4">
                   <button 
                     onClick={() => acceptMutation.mutate()} disabled={acceptMutation.isPending}
-                    className="w-full bg-[#B85D19] hover:bg-[#9E4E13] text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md hover:shadow-lg text-sm disabled:opacity-50 cursor-pointer"
+                    className="w-full bg-[#B85D19] hover:bg-[#9E4E13] text-white font-bold py-3.5 rounded-xl text-sm cursor-pointer"
                   >
-                    {acceptMutation.isPending ? 'Confirming...' : 'Accept & Confirm Quotation'}
+                    Accept & Confirm
                   </button>
-
-                  <div className="pt-2 border-t border-[#EBE8E2]">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to decline this commercial proposal?')) {
-                          declineMutation.mutate('Customer declined terms from portal');
-                        }
-                      }}
-                      disabled={declineMutation.isPending}
-                      className="text-xs font-semibold text-[#A8A29E] hover:text-[#C95757] transition-colors cursor-pointer"
-                    >
-                      {declineMutation.isPending ? 'Declining...' : 'Decline this proposal'}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => declineMutation.mutate()}
+                    className="text-xs font-semibold text-[#A8A29E] hover:text-[#C95757] w-full text-center cursor-pointer"
+                  >
+                    Decline proposal
+                  </button>
                 </div>
               </div>
 
-            ) : quote.status === 'NEGOTIATION' || quote.status === 'PENDING_APPROVAL' ? (
+            ) : quote.status === 'NEGOTIATION' ? (
               <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl text-center space-y-1">
                  <h4 className="font-bold text-amber-900 text-lg">Counter-Offer Submitted</h4>
-                 <p className="text-xs text-amber-700">Your negotiation request is currently under review by your Sales Representative & Governance Team.</p>
+                 <p className="text-xs text-amber-700">Under review by your Sales Representative.</p>
                </div>
             ) : quote.status === 'CONFIRMED' ? (
-               <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl text-center space-y-1">
-                 <h4 className="font-bold text-emerald-900 text-lg">Proposal Confirmed & Active</h4>
-                 <p className="text-xs text-emerald-700">Thank you for your business. Our operations team is processing fulfillment and order dispatch.</p>
+               <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl space-y-4">
+                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                   <div>
+                     <div className="flex items-center gap-2">
+                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                       <h4 className="font-bold text-emerald-900 text-lg">Proposal Confirmed & Invoice Ready</h4>
+                     </div>
+                     <p className="text-xs text-emerald-800 mt-1">
+                       Order has been confirmed. You can now pay the quotation invoice directly online.
+                     </p>
+                   </div>
+
+                   <div className="flex items-center gap-2 flex-wrap">
+                     {matchedInvoice && (
+                       <button
+                         onClick={() => {
+                           downloadInvoicePDF(matchedInvoice);
+                           toast.success('Downloaded Tax Invoice PDF');
+                         }}
+                         className="px-3 py-2 bg-white text-emerald-900 border border-emerald-200 font-bold text-xs rounded-xl shadow-xs hover:bg-emerald-50 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                       >
+                         <Download className="w-3.5 h-3.5 text-[#B85D19]" />
+                         Tax Invoice PDF
+                       </button>
+                     )}
+
+                     <button
+                       onClick={() => setPayModalOpen(true)}
+                       className="px-4 py-2 bg-[#B85D19] hover:bg-[#9E4E13] text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                     >
+                       <CreditCard className="w-3.5 h-3.5" />
+                       Pay Quotation (₹{totalAgreed.toLocaleString('en-IN', { maximumFractionDigits: 0 })})
+                     </button>
+                   </div>
+                 </div>
                </div>
             ) : null}
             
           </div>
         </div>
       </div>
+
+      {payModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1E1B18]/40 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-[#EBE8E2] p-6 space-y-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-[#B85D19] uppercase tracking-wider">Direct Quotation Settlement</span>
+                <h3 className="text-lg font-bold text-[#1E1B18] mt-0.5">Pay for {quote.quotationNumber}</h3>
+              </div>
+              <button onClick={() => setPayModalOpen(false)} className="p-1.5 text-[#78716C] hover:bg-[#F5EFEB] rounded-lg transition-colors cursor-pointer"><X className="w-4 h-4" /></button>
+            </div>
+
+            <div className="bg-[#FBF9F7] rounded-xl border border-[#EBE8E2] p-4 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-[#A8A29E] uppercase">Total Amount Due</span>
+                <div className="text-2xl font-black text-[#1E1B18] mt-0.5 flex items-center gap-1">
+                  <IndianRupee className="w-5 h-5" />{totalAgreed.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </div>
+              </div>
+              <button onClick={() => { setPayRef(`QUICK-${Math.floor(100000 + Math.random() * 900000)}`); setPaymentMethod('UPI'); toast.info('⚡ Auto-filled for quick testing'); }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer">
+                <Zap className="w-3 h-3" />Quick Fill
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#44403C] mb-2">Payment Method</label>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_METHODS.map(m => (
+                  <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
+                    className={`p-3 rounded-xl border text-left text-xs transition-all cursor-pointer ${paymentMethod === m.id ? 'border-[#B85D19] bg-[#F5EFEB] ring-1 ring-[#B85D19]' : 'border-[#EBE8E2] bg-white hover:bg-[#FAF8F5]'}`}>
+                    <span className="text-base">{m.icon}</span>
+                    <span className="block font-semibold text-[#1E1B18] mt-1 leading-tight">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#44403C] mb-1.5">Transaction Reference <span className="text-[#A8A29E] font-normal">(optional)</span></label>
+              <input type="text" value={payRef} onChange={e => setPayRef(e.target.value)} placeholder="e.g. UTR123456789 / Cheque No."
+                className="w-full px-3 py-2.5 text-xs bg-[#FBF9F7] border border-[#EBE8E2] rounded-xl text-[#1E1B18] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#B85D19]/20 focus:border-[#B85D19]" />
+            </div>
+
+            <div className="flex gap-2 pt-1 border-t border-[#EBE8E2]">
+              <button onClick={() => setPayModalOpen(false)} className="flex-1 py-2.5 text-xs font-semibold text-[#78716C] hover:bg-[#F5EFEB] rounded-xl transition-colors cursor-pointer">Cancel</button>
+              <button onClick={() => payInvoiceMutation.mutate()}
+                disabled={payInvoiceMutation.isPending}
+                className="flex-1 py-2.5 text-xs font-bold text-white bg-[#B85D19] hover:bg-[#9E4E13] rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50">
+                {payInvoiceMutation.isPending ? 'Processing...' : 'Confirm Quotation Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

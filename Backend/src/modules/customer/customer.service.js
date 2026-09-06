@@ -316,7 +316,14 @@ export const declineQuotation = async (quotationId, customerId, reason = 'Commer
 };
 
 export const listCustomerInvoices = async (customerId) => {
-  const where = customerId ? { customerId } : {};
+  const where = customerId
+    ? {
+        OR: [
+          { customerId },
+          { order: { customerId } }
+        ]
+      }
+    : {};
 
   const invoices = await prisma.invoice.findMany({
     where,
@@ -352,9 +359,14 @@ export const listCustomerInvoices = async (customerId) => {
 };
 
 export const payCustomerInvoice = async (invoiceId, customerId, body = {}) => {
-  // Verify the invoice belongs to this customer
+  const where = {
+    id: invoiceId,
+    ...(customerId ? { OR: [{ customerId }, { order: { customerId } }] } : {})
+  };
+
+  // Verify the invoice exists and belongs to customer
   const invoice = await prisma.invoice.findFirst({
-    where: { id: invoiceId, customerId },
+    where,
     include: { payments: true }
   });
   if (!invoice) throw new NotFoundError('Invoice not found or not accessible');

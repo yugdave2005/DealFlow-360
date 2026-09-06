@@ -43,6 +43,7 @@ export const ROLE_NAVIGATION = {
       items: [
         { title: 'Approvals', path: '/sales/approvals', icon: CheckSquare },
         { title: 'Fulfillment', path: '/sales/fulfillment', icon: Truck },
+        { title: 'Billing Hub', path: '/sales/billing', icon: Receipt },
         { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
       ]
     },
@@ -86,6 +87,7 @@ export const ROLE_NAVIGATION = {
     {
       title: 'Billing & AR',
       items: [
+        { title: 'Billing Hub', path: '/sales/billing', icon: Receipt },
         { title: 'Invoices', path: '/sales/invoices', icon: Receipt },
         { title: 'Subscriptions', path: '/sales/subscriptions', icon: RefreshCw },
       ]
@@ -104,6 +106,13 @@ export const ROLE_NAVIGATION = {
       title: 'Negotiations',
       items: [
         { title: 'Counter-Offers', path: '/portal/negotiations', icon: MessageSquare },
+      ]
+    },
+    {
+      title: 'Billing & Invoices',
+      items: [
+        { title: 'Billing Overview', path: '/portal/billing', icon: Receipt },
+        { title: 'Invoices & Payments', path: '/portal/invoices', icon: CreditCard },
       ]
     },
     {

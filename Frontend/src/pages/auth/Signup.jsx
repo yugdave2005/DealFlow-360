@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -35,10 +35,16 @@ export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, defaultRoute, loading } = useAuth();
   const selectedRole = watch('role');
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate(defaultRoute, { replace: true });
+    }
+  }, [isAuthenticated, loading, defaultRoute, navigate]);
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
 
   const handleRoleSelect = (roleId) => {
     setValue('role', roleId, { shouldValidate: true });
@@ -60,7 +66,7 @@ export default function Signup() {
       
       const normalizedRole = normalizeRole(result.data.user?.role);
       const targetRoute = ROLE_DEFAULT_ROUTES[normalizedRole] || '/sales/quotations';
-      window.location.href = targetRoute;
+      navigate(targetRoute, { replace: true });
     } catch (err) {
       toast.error(err.message || 'An error occurred during signup');
     } finally {
