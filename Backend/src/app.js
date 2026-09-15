@@ -13,10 +13,43 @@ import routes from './routes/index.js';
 const app = express();
 
 app.use(helmet());
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://dealflow360-chi.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:5001',
+  'http://localhost:3000'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.onrender.com') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1')
+    ) {
+      return callback(null, origin);
+    }
+    // Allow origin dynamically so withCredentials works
+    return callback(null, origin);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
+// Handle preflight across all routes
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
 
 app.use(express.json());
 app.use(cookieParser());
@@ -40,8 +73,10 @@ app.all(['/', '/health', '/ping'], (req, res) => {
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// API Routes
+// API Routes mounted on /api, /v1, and /
 app.use('/api', routes);
+app.use('/v1', routes);
+app.use('/', routes);
 
 // 404 Handler
 app.use(notFoundHandler);
