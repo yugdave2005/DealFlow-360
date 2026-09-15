@@ -51,7 +51,33 @@ export const resetPassword = async (req, res, next) => {
 export const googleCallback = async (req, res, next) => {
   try {
     const user = req.user;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    
+    // Determine target frontend URL
+    let frontendUrl = process.env.FRONTEND_URL;
+    
+    // If state was passed with returnUrl, extract the base origin
+    if (req.query.state) {
+      try {
+        const decoded = decodeURIComponent(req.query.state);
+        if (decoded.startsWith('http')) {
+          const parsed = new URL(decoded);
+          if (parsed.origin) {
+            frontendUrl = parsed.origin;
+          }
+        }
+      } catch (e) {
+        // fallback
+      }
+    }
+    
+    // If FRONTEND_URL is missing or still localhost in production/cloud, default to Vercel production URL
+    if (!frontendUrl || (frontendUrl.includes('localhost') && process.env.NODE_ENV === 'production')) {
+      frontendUrl = 'https://dealflow360-chi.vercel.app';
+    } else if (!frontendUrl) {
+      frontendUrl = 'https://dealflow360-chi.vercel.app';
+    }
+    
+    frontendUrl = frontendUrl.replace(/\/+$/, '');
     
     if (!user) {
       return res.redirect(`${frontendUrl}/auth/login?error=auth_failed`);

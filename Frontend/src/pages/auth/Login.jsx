@@ -57,7 +57,7 @@ export default function Login() {
   };
 
   const loginWithGoogle = () => {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    window.location.href = `${API_BASE_URL}/auth/google?returnUrl=${encodeURIComponent(window.location.origin)}`;
   };
 
   return (

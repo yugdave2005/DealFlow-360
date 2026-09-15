@@ -75,7 +75,7 @@ export default function Signup() {
   };
 
   const loginWithGoogle = () => {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    window.location.href = `${API_BASE_URL}/auth/google?returnUrl=${encodeURIComponent(window.location.origin)}`;
   };
 
   return (

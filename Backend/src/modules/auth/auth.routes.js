@@ -13,7 +13,13 @@ router.post('/verify-otp', validate(verifyOtpSchema), authController.verifyOtp);
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
 
 // Google OAuth
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', (req, res, next) => {
+  const returnUrl = req.query.returnUrl || req.headers.referer || '';
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    state: returnUrl ? encodeURIComponent(returnUrl) : undefined
+  })(req, res, next);
+});
 router.get('/google/callback', passport.authenticate('google', { session: false }), authController.googleCallback);
 
 export default router;
