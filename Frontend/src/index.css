@@ -288,20 +288,22 @@
   background: var(--df-muted);
 }
 
-/* Smooth Page Transitions */
-@keyframes df-fade-in {
-  from {
-    opacity: 0.2;
-    transform: translateY(2px);
+@layer utilities {
+  /* Smooth Page Transitions */
+  @keyframes df-fade-in {
+    from {
+      opacity: 0.2;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-.df-page-transition {
-  animation: df-fade-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  .df-page-transition {
+    animation: df-fade-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: opacity, transform;
+  }
 }
 
