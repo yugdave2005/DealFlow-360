@@ -66,11 +66,9 @@ export const ROLE_NAVIGATION = {
       ]
     },
     {
-      title: 'Governance & Insights',
+      title: 'Insights',
       items: [
         { title: 'Deal Health', path: '/sales/deal-health', icon: Activity },
-        { title: 'Discount Rules', path: '/admin/discount-rules', icon: Sliders },
-        { title: 'Approval Rules', path: '/admin/approval-rules', icon: ShieldCheck },
       ]
     }
   ],
@@ -138,7 +136,6 @@ export const ROLE_NAVIGATION = {
         { title: 'Discount Tiers', path: '/admin/discount-rules', icon: Sliders },
         { title: 'Approval Rules', path: '/admin/approval-rules', icon: ShieldCheck },
         { title: 'Warehouses', path: '/admin/warehouses', icon: Boxes },
-        { title: 'Subscription Plans', path: '/admin/subscription-plans', icon: Layers },
       ]
     },
     {

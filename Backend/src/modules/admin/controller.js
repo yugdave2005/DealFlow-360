@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { sendSuccess } from '../../utils/response.js';
 
 const prisma = new PrismaClient();
@@ -474,3 +475,153 @@ export const getCustomers = async (req, res, next) => {
     sendSuccess(res, 200, 'Customers fetched successfully', customerList);
   } catch (err) { next(err); }
 };
+
+export const createCustomer = async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: 'Customer name and email are required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'A user with this email address already exists' });
+    }
+
+    const passwordHash = await bcrypt.hash(password || 'password123', 10);
+    const customer = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: cleanEmail,
+        passwordHash,
+        role: 'CUSTOMER',
+        isActive: true
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true
+      }
+    });
+
+    // Create Audit Log
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.user?.id || null,
+        entityType: 'CUSTOMER',
+        entityId: customer.id,
+        action: 'CREATED',
+        newData: { name: customer.name, email: customer.email, role: customer.role }
+      }
+    }).catch(() => {});
+
+    sendSuccess(res, 201, 'Customer account created successfully', customer);
+  } catch (err) { next(err); }
+};
+
+export const updateCustomer = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, email, isActive } = req.body;
+
+    const existing = await prisma.user.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Customer account not found' });
+    }
+
+    const data = {};
+    if (name !== undefined) data.name = name.trim();
+    if (email !== undefined) {
+      const cleanEmail = email.trim().toLowerCase();
+      if (cleanEmail !== existing.email) {
+        const emailConflict = await prisma.user.findUnique({ where: { email: cleanEmail } });
+        if (emailConflict) {
+          return res.status(400).json({ success: false, message: 'Email address is already in use by another user' });
+        }
+      }
+      data.email = cleanEmail;
+    }
+    if (isActive !== undefined) data.isActive = Boolean(isActive);
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    // Create Audit Log
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.user?.id || null,
+        entityType: 'CUSTOMER',
+        entityId: id,
+        action: 'UPDATED',
+        oldData: { name: existing.name, email: existing.email, isActive: existing.isActive },
+        newData: { name: updated.name, email: updated.email, isActive: updated.isActive }
+      }
+    }).catch(() => {});
+
+    sendSuccess(res, 200, 'Customer details updated successfully', updated);
+  } catch (err) { next(err); }
+};
+
+export const deleteCustomer = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.user.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Customer account not found' });
+    }
+
+    // Check for linked transactions
+    const [quotesCount, ordersCount, invoicesCount] = await Promise.all([
+      prisma.quotation.count({ where: { customerId: id } }),
+      prisma.order.count({ where: { customerId: id } }),
+      prisma.invoice.count({ where: { customerId: id } })
+    ]);
+
+    let actionTaken = 'deleted';
+    let message = 'Customer account deleted successfully';
+
+    if (quotesCount > 0 || ordersCount > 0 || invoicesCount > 0) {
+      // Deactivate instead of failing foreign key constraints
+      await prisma.user.update({
+        where: { id },
+        data: { isActive: false }
+      });
+      actionTaken = 'deactivated';
+      message = `Customer has ${quotesCount + ordersCount + invoicesCount} linked record(s) (quotations/orders/invoices) and has been deactivated to preserve transaction history.`;
+    } else {
+      await prisma.auditLog.deleteMany({ where: { actorId: id } }).catch(() => {});
+      await prisma.user.delete({ where: { id } });
+      actionTaken = 'deleted';
+    }
+
+    // Create Audit Log
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.user?.id || null,
+        entityType: 'CUSTOMER',
+        entityId: id,
+        action: actionTaken === 'deleted' ? 'DELETED' : 'DEACTIVATED',
+        oldData: { name: existing.name, email: existing.email, isActive: existing.isActive },
+        newData: { status: actionTaken }
+      }
+    }).catch(() => {});
+
+    sendSuccess(res, 200, message, { id, action: actionTaken });
+  } catch (err) { next(err); }
+};
+

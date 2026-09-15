@@ -6,5 +6,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.get('/', ctrl.list);
+router.put('/:id', ctrl.update);
+router.delete('/:id', ctrl.remove);
 
 export default router;

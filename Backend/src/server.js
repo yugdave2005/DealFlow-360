@@ -14,3 +14,21 @@ initSocket(server);
 server.listen(PORT, () => {
   logger.info(`Server & WebSocket is running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });
+
+// Nodemon restart signal handling
+process.once('SIGUSR2', () => {
+  server.close(() => {
+    process.kill(process.pid, 'SIGUSR2');
+  });
+});
+
+// Graceful shutdown handling
+const handleShutdown = (signal) => {
+  server.close(() => {
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(0), 1000).unref();
+};
+
+process.on('SIGINT', () => handleShutdown('SIGINT'));
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));

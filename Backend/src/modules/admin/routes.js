@@ -29,5 +29,8 @@ router.delete('/warehouses/:id', adminController.deleteWarehouse);
 
 
 router.get('/customers', adminController.getCustomers);
+router.post('/customers', adminController.createCustomer);
+router.put('/customers/:id', adminController.updateCustomer);
+router.delete('/customers/:id', adminController.deleteCustomer);
 
 export default router;

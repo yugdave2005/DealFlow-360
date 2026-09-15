@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { 
   Building2, 
   ArrowLeft, 
@@ -10,16 +12,17 @@ import {
   Plus, 
   Inbox,
   ArrowUpRight,
-  DollarSign,
-  TrendingUp,
-  Shield,
-  Layers,
-  Calendar,
-  CheckCircle2
+  Pencil,
+  Trash2,
+  Save,
+  X,
+  AlertCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { customersApi } from '../../features/customers/customers.api';
 import { quotationsApi } from '../../features/quotations/quotations.api';
 import { api } from '../../lib/axios';
+import { useAuth } from '../../context/AuthContext';
 import StatusBadge from '../../components/common/StatusBadge';
 import RiskBadge from '../../components/common/RiskBadge';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -27,7 +30,21 @@ import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 export default function CustomerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SALES_MANAGER';
+
   const [activeTab, setActiveTab] = useState('QUOTATIONS');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // React Hook Form for Edit
+  const { 
+    register: registerEdit, 
+    handleSubmit: handleEditSubmit, 
+    reset: resetEdit,
+    formState: { errors: editErrors } 
+  } = useForm();
 
   // Fetch all customers for matching profile metadata
   const { data: customersData = [], isLoading: isCustomersLoading } = useQuery({
@@ -46,6 +63,53 @@ export default function CustomerDetail() {
   });
 
   const isLoading = isCustomersLoading || isQuotesLoading;
+
+  // Mutations for Customer Update & Delete
+  const updateMutation = useMutation({
+    mutationFn: (data) => adminApi.updateCustomer(id, data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['adminCustomersList'] });
+      toast.success(res.data?.message || 'Customer updated successfully');
+      setIsEditModalOpen(false);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || err.message || 'Failed to update customer');
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => adminApi.deleteCustomer(id),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['adminCustomersList'] });
+      toast.success(res.data?.message || 'Customer account deleted / deactivated');
+      setIsDeleteModalOpen(false);
+      navigate('/sales/customers');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || err.message || 'Failed to delete customer');
+    }
+  });
+
+  const openEditModal = () => {
+    resetEdit({
+      name: customerRecord?.name || customerRecord?.companyName || '',
+      email: customerRecord?.email || '',
+      isActive: customerRecord?.isActive !== false
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const onSaveEdit = (data) => {
+    updateMutation.mutate({
+      name: data.name?.trim(),
+      email: data.email?.trim().toLowerCase(),
+      isActive: data.isActive === true || data.isActive === 'true'
+    });
+  };
+
+  const onConfirmDelete = () => {
+    deleteMutation.mutate();
+  };
 
   const customerQuotes = useMemo(() => {
     if (!Array.isArray(quotations)) return [];
@@ -88,7 +152,7 @@ export default function CustomerDetail() {
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 pb-24">
       {/* Back Button */}
       <div>
         <button
@@ -115,6 +179,11 @@ export default function CustomerDetail() {
                 <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getTierBadgeStyle(customerTier)}`}>
                   {customerTier} TIER
                 </span>
+                {customerRecord?.isActive === false && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-300">
+                    Deactivated
+                  </span>
+                )}
                 {customerRecord?.riskScore !== undefined && (
                   <RiskBadge score={customerRecord.riskScore} level={customerRecord.riskLevel} />
                 )}
@@ -132,7 +201,28 @@ export default function CustomerDetail() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start lg:self-center">
+          <div className="flex items-center gap-2 self-start lg:self-center flex-wrap">
+            {isAdmin && (
+              <>
+                <button
+                  type="button"
+                  onClick={openEditModal}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#F8E9E3] text-[#171717] border border-[#E6E1D9] hover:border-[#E9B8A7] text-xs font-semibold rounded-[9px] transition-all cursor-pointer shadow-xs"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-[#D97757]" />
+                  <span>Edit Details</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#FBEAEA] text-[#C95757] border border-[#E6E1D9] hover:border-[#F5C7C7] text-xs font-semibold rounded-[9px] transition-all cursor-pointer shadow-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+              </>
+            )}
+
             <button
               onClick={() => navigate('/sales/quotations/new')}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#D97757] hover:bg-[#C96648] text-white text-xs font-semibold rounded-[9px] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer"
@@ -275,6 +365,187 @@ export default function CustomerDetail() {
           </div>
         )}
       </div>
+
+      {/* Edit Customer Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+          <div className="bg-white rounded-[16px] border border-[#E6E1D9] shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-[#EEEAE4] flex justify-between items-center bg-[#FAF9F6]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-[10px] bg-[#F8E9E3] border border-[#E9B8A7] flex items-center justify-center text-[#D97757]">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-[#171717]">Edit Customer Details</h3>
+                  <p className="text-xs text-[#6F6B66] font-mono">ID: {id}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-[#96918A] hover:text-[#171717] p-1.5 rounded-lg hover:bg-[#EDE8E0] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit(onSaveEdit)} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#171717] uppercase tracking-wider mb-1.5">
+                  Company / Customer Name *
+                </label>
+                <input
+                  type="text"
+                  {...registerEdit('name', { required: 'Customer name is required' })}
+                  placeholder="e.g. Acme Corp"
+                  className="w-full h-10 px-3 bg-white border border-[#E6E1D9] rounded-[8px] text-sm text-[#171717] focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+                />
+                {editErrors.name && (
+                  <p className="text-xs text-[#C95757] mt-1">{editErrors.name.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#171717] uppercase tracking-wider mb-1.5">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  {...registerEdit('email', { 
+                    required: 'Email address is required',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Invalid email address'
+                    }
+                  })}
+                  placeholder="e.g. contact@acme.com"
+                  className="w-full h-10 px-3 bg-white border border-[#E6E1D9] rounded-[8px] text-sm text-[#171717] focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+                />
+                {editErrors.email && (
+                  <p className="text-xs text-[#C95757] mt-1">{editErrors.email.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#171717] uppercase tracking-wider mb-1.5">
+                  Account Status
+                </label>
+                <div className="flex items-center gap-4 pt-1">
+                  <label className="inline-flex items-center gap-2 text-sm text-[#171717] cursor-pointer">
+                    <input
+                      type="radio"
+                      value="true"
+                      {...registerEdit('isActive')}
+                      className="text-[#D97757] focus:ring-[#D97757]"
+                    />
+                    <span className="font-medium text-[#2F7E53]">Active</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-[#171717] cursor-pointer">
+                    <input
+                      type="radio"
+                      value="false"
+                      {...registerEdit('isActive')}
+                      className="text-[#D97757] focus:ring-[#D97757]"
+                    />
+                    <span className="font-medium text-[#6F6B66]">Deactivated</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#EEEAE4] flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-[#6F6B66] hover:text-[#171717] bg-[#F5F2ED] hover:bg-[#EDE8E0] rounded-[8px] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#D97757] hover:bg-[#C96648] text-white text-xs font-semibold rounded-[8px] transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  {updateMutation.isPending ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Customer Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+          <div className="bg-white rounded-[16px] border border-[#E6E1D9] shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-[#EEEAE4] flex justify-between items-center bg-[#FBEAEA]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-[10px] bg-white border border-[#F5C7C7] flex items-center justify-center text-[#C95757]">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-[#C95757]">Delete Customer Account</h3>
+                  <p className="text-xs text-[#6F6B66]">Confirmation required</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="text-[#96918A] hover:text-[#171717] p-1.5 rounded-lg hover:bg-white/50 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 bg-[#FAF9F6] border border-[#E6E1D9] rounded-[10px] space-y-1.5 text-xs">
+                <div className="font-semibold text-sm text-[#171717]">{customerName}</div>
+                <div className="text-[#6F6B66]">{customerEmail}</div>
+                <div className="text-[#96918A] font-mono text-[11px]">ID: {id}</div>
+                {customerQuotes.length > 0 && (
+                  <div className="pt-2 text-[#C95757] font-medium flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Has {customerQuotes.length} active deal(s) / transaction records.</span>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-[#6F6B66] leading-relaxed">
+                If this customer has historical quotations or orders, the account will be safely <strong>deactivated</strong> to preserve audit integrity. If no transactions exist, it will be completely removed.
+              </p>
+
+              <div className="pt-3 border-t border-[#EEEAE4] flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-[#6F6B66] hover:text-[#171717] bg-[#F5F2ED] hover:bg-[#EDE8E0] rounded-[8px] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={onConfirmDelete}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#C95757] hover:bg-[#B24545] text-white text-xs font-semibold rounded-[8px] transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  {deleteMutation.isPending ? (
+                    <span>Processing...</span>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Confirm Delete</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

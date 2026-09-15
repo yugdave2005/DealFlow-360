@@ -53,3 +53,11 @@ export const listCustomers = async () => {
 
   return customerList;
 };
+
+export const updateCustomer = async (id, body) => {
+  return repo.updateCustomer(id, body);
+};
+
+export const deleteCustomer = async (id) => {
+  return repo.deleteCustomer(id);
+};
