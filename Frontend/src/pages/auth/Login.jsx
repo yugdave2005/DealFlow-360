@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { normalizeRole, ROLE_DEFAULT_ROUTES } from '../../lib/roles';
 
 export default function Login() {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
       email: '',
       password: ''
@@ -150,43 +150,6 @@ export default function Login() {
             </svg>
             <span className="text-sm font-medium text-[#171717]">Sign in with Google</span>
           </button>
-
-          {/* Quick Demo Logins for Fast Testing */}
-          <div className="mt-6 pt-5 border-t border-[#EEEAE4] space-y-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#96918A] block text-center">
-              Quick Demo Logins (Click to Fill & Test)
-            </span>
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => reset({ email: 'sales1@dealflow360.com', password: 'password123' })}
-                className="px-2.5 py-2 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
-              >
-                💼 Sales Rep
-              </button>
-              <button
-                type="button"
-                onClick={() => reset({ email: 'manager@dealflow360.com', password: 'password123' })}
-                className="px-2.5 py-2 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
-              >
-                👔 Sales Manager
-              </button>
-              <button
-                type="button"
-                onClick={() => reset({ email: 'admin@dealflow360.com', password: 'password123' })}
-                className="px-2.5 py-2 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
-              >
-                ⚙️ Admin Ops
-              </button>
-              <button
-                type="button"
-                onClick={() => reset({ email: 'acme@client.com', password: 'password123' })}
-                className="px-2.5 py-2 text-xs font-semibold bg-[#FAF9F6] hover:bg-[#F2EFEA] text-[#171717] border border-[#E6E1D9] rounded-[8px] transition-colors text-center cursor-pointer"
-              >
-                🏢 Customer Acme
-              </button>
-            </div>
-          </div>
 
           <p className="mt-6 text-center text-sm text-[#6F6B66]">
             Don't have an account? <Link to="/auth/signup" className="text-[#D97757] hover:text-[#C96648] font-medium">Create one</Link>
