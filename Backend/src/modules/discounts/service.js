@@ -7,10 +7,9 @@ export const listDiscountRules = async () => {
   // Auto-seed default rules if empty
   if (rules.length === 0) {
     const defaults = [
-      { appliedTo: 'CATEGORY', productCategory: 'Hardware', maxDiscountPercentage: 15 },
-      { appliedTo: 'CATEGORY', productCategory: 'Services', maxDiscountPercentage: 20 },
-      { appliedTo: 'CATEGORY', productCategory: 'Subscriptions', maxDiscountPercentage: 25 },
-      { appliedTo: 'CATEGORY', productCategory: 'Cloud', maxDiscountPercentage: 12 }
+      { appliedTo: 'CATEGORY', productCategory: 'HARDWARE', maxDiscountPercentage: 15 },
+      { appliedTo: 'CATEGORY', productCategory: 'SERVICES', maxDiscountPercentage: 10 },
+      { appliedTo: 'CATEGORY', productCategory: 'SUBSCRIPTION', maxDiscountPercentage: 12 }
     ];
     for (const r of defaults) {
       await repo.create(r);
