@@ -13,6 +13,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import Login from '../pages/auth/Login';
 import Signup from '../pages/auth/Signup';
 import ForgotPassword from '../pages/auth/ForgotPassword';
+import AuthCallback from '../pages/auth/AuthCallback';
 
 // Sales Workspace Pages
 import QuotationsList from '../pages/sales/QuotationsList';
@@ -58,6 +59,7 @@ export default function AppRoutes() {
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="callback" element={<AuthCallback />} />
       </Route>
 
       {/* =========================================================================

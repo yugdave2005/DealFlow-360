@@ -50,16 +50,26 @@ export const resetPassword = async (req, res, next) => {
 
 export const googleCallback = async (req, res, next) => {
   try {
-    // user comes from passport
     const user = req.user;
-    if (!user) return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    
+    if (!user) {
+      return res.redirect(`${frontendUrl}/auth/login?error=auth_failed`);
+    }
     
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
     setCookies(res, refreshToken);
     
-    // Redirect to frontend with access token in fragment or query 
-    // In production, sending sensitive token in URL is riskier, but standard for simple setups.
-    res.redirect(`${process.env.FRONTEND_URL}/sales?token=${accessToken}`);
-  } catch (err) { next(err); }
+    const userPayload = encodeURIComponent(JSON.stringify({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    }));
+    
+    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}&user=${userPayload}`);
+  } catch (err) { 
+    next(err); 
+  }
 };

@@ -13,6 +13,7 @@ export function AuthProvider({ children }) {
     try {
       const url = new URL(window.location.href);
       const urlToken = url.searchParams.get('token') || url.searchParams.get('accessToken');
+      const urlUser = url.searchParams.get('user');
       let cleaned = false;
 
       if (urlToken) {
@@ -22,7 +23,19 @@ export function AuthProvider({ children }) {
         cleaned = true;
       }
 
-      ['email', 'password', 'token', 'accessToken', 'secret', 'auth'].forEach(param => {
+      if (urlUser) {
+        try {
+          const parsedUser = JSON.parse(decodeURIComponent(urlUser));
+          localStorage.setItem('user', JSON.stringify(parsedUser));
+          setUser(parsedUser);
+        } catch (err) {
+          console.error('Failed to parse user from query param', err);
+        }
+        url.searchParams.delete('user');
+        cleaned = true;
+      }
+
+      ['email', 'password', 'token', 'accessToken', 'secret', 'auth', 'user'].forEach(param => {
         if (url.searchParams.has(param)) {
           url.searchParams.delete(param);
           cleaned = true;
