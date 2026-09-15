@@ -19,7 +19,7 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String?
   name         String
@@ -37,7 +37,7 @@ model User {
 // ==========================================
 
 model CustomerTier {
-  id             String           @id @default(uuid())
+  id             String           @id @default(cuid())
   name           String           @unique
   description    String?
   prices         ProductPricing[]
@@ -45,7 +45,7 @@ model CustomerTier {
 }
 
 model Product {
-  id                String   @id @default(uuid())
+  id                String   @id @default(cuid())
   name              String
   category          String
   isSubscription    Boolean  @default(false)
@@ -59,7 +59,7 @@ model Product {
 }
 
 model ProductPricing {
-  id             String        @id @default(uuid())
+  id             String        @id @default(cuid())
   productId      String
   product        Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
   customerTierId String?
@@ -73,7 +73,7 @@ enum DiscountAppliedTo {
 }
 
 model DiscountRule {
-  id                    String            @id @default(uuid())
+  id                    String            @id @default(cuid())
   appliedTo             DiscountAppliedTo 
   targetTierId          String?
   targetTier            CustomerTier?     @relation(fields: [targetTierId], references: [id])
@@ -82,7 +82,7 @@ model DiscountRule {
 }
 
 model ApprovalRule {
-  id                    String @id @default(uuid())
+  id                    String @id @default(cuid())
   minRiskScore          Int
   maxRiskScore          Int
   requiredApproverLevel Role   
@@ -106,7 +106,7 @@ enum QuotationStatus {
 }
 
 model Quotation {
-  id              String             @id @default(uuid())
+  id              String             @id @default(cuid())
   quotationNumber String             @unique
   customerId      String             
   salesRepId      String             
@@ -121,7 +121,7 @@ model Quotation {
 }
 
 model QuotationVersion {
-  id               String            @id @default(uuid())
+  id               String            @id @default(cuid())
   quotationId      String
   quotation        Quotation         @relation(name: "QuotationVersions", fields: [quotationId], references: [id], onDelete: Restrict)
   versionNumber    Int
@@ -142,7 +142,7 @@ model QuotationVersion {
 }
 
 model QuotationItem {
-  id                 String           @id @default(uuid())
+  id                 String           @id @default(cuid())
   quotationVersionId String
   quotationVersion   QuotationVersion @relation(fields: [quotationVersionId], references: [id], onDelete: Cascade)
   productId          String
@@ -159,7 +159,7 @@ enum ApprovalStatus {
 }
 
 model ApprovalRequest {
-  id                 String           @id @default(uuid())
+  id                 String           @id @default(cuid())
   quotationVersionId String
   quotationVersion   QuotationVersion @relation(fields: [quotationVersionId], references: [id])
   assignedRole       Role
@@ -171,7 +171,7 @@ model ApprovalRequest {
 }
 
 model NegotiationMessage {
-  id                 String           @id @default(uuid())
+  id                 String           @id @default(cuid())
   quotationVersionId String
   quotationVersion   QuotationVersion @relation(fields: [quotationVersionId], references: [id])
   authorId           String
@@ -187,7 +187,7 @@ model NegotiationMessage {
 // ==========================================
 
 model Warehouse {
-  id          String      @id @default(uuid())
+  id          String      @id @default(cuid())
   code        String      @unique
   name        String
   location    String?
@@ -196,7 +196,7 @@ model Warehouse {
 }
 
 model Inventory {
-  id                String      @id @default(uuid())
+  id                String      @id @default(cuid())
   warehouseId       String
   warehouse         Warehouse   @relation(fields: [warehouseId], references: [id])
   productId         String
@@ -214,7 +214,7 @@ enum FulfillmentMode {
 }
 
 model FulfillmentPlan {
-  id                String             @id @default(uuid())
+  id                String             @id @default(cuid())
   orderId           String             @unique
   order             Order              @relation(fields: [orderId], references: [id])
   optimizationMode  FulfillmentMode
@@ -234,7 +234,7 @@ enum FulfillmentStatus {
 }
 
 model FulfillmentItem {
-  id                 String            @id @default(uuid())
+  id                 String            @id @default(cuid())
   fulfillmentPlanId  String
   fulfillmentPlan    FulfillmentPlan   @relation(fields: [fulfillmentPlanId], references: [id])
   warehouseId        String?           // Null if backordered
@@ -257,7 +257,7 @@ enum OrderStatus {
 }
 
 model Order {
-  id             String        @id @default(uuid())
+  id             String        @id @default(cuid())
   orderNumber    String        @unique
   quotationId    String        @unique
   quotation      Quotation     @relation(fields: [quotationId], references: [id])
@@ -275,7 +275,7 @@ model Order {
 }
 
 model OrderItem {
-  id                 String   @id @default(uuid())
+  id                 String   @id @default(cuid())
   orderId            String
   order              Order    @relation(fields: [orderId], references: [id])
   productId          String
@@ -295,7 +295,7 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id            String        @id @default(uuid())
+  id            String        @id @default(cuid())
   invoiceNumber String        @unique
   orderId       String
   order         Order         @relation(fields: [orderId], references: [id])
@@ -309,7 +309,7 @@ model Invoice {
 }
 
 model Payment {
-  id            String   @id @default(uuid())
+  id            String   @id @default(cuid())
   invoiceId     String
   invoice       Invoice  @relation(fields: [invoiceId], references: [id])
   amount        Decimal  @db.Decimal(12, 2)
@@ -325,7 +325,7 @@ enum SubscriptionStatus {
 }
 
 model Subscription {
-  id              String             @id @default(uuid())
+  id              String             @id @default(cuid())
   orderId         String
   order           Order              @relation(fields: [orderId], references: [id])
   customerId      String
@@ -341,7 +341,7 @@ model Subscription {
 // ==========================================
 
 model AuditLog {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   actorId     String?
   actor       User?    @relation("audit_actor", fields: [actorId], references: [id], onDelete: SetNull)
   entityType  String   // e.g., 'QUOTATION', 'INVENTORY'
@@ -359,7 +359,7 @@ enum OutboxStatus {
 }
 
 model OutboxEvent {
-  id            String       @id @default(uuid())
+  id            String       @id @default(cuid())
   eventType     String
   aggregateType String
   aggregateId   String
