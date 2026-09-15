@@ -431,7 +431,7 @@ export const getCustomers = async (req, res, next) => {
 
     // 4. Map customer users into full commercial profiles
     const customerList = customerUsers.map(user => {
-      const userQuotes = quotations.filter(q => q.customerId === user.id || q.quotationNumber?.includes(user.name));
+      const userQuotes = quotations.filter(q => q.customerId === user.id);
       const pipelineValue = userQuotes.reduce((sum, q) => sum + Number(q.activeVersion?.totalAmount || 0), 0);
       const avgRisk = userQuotes.length > 0
         ? Math.round(userQuotes.reduce((sum, q) => sum + (q.activeVersion?.riskScore || 0), 0) / userQuotes.length)

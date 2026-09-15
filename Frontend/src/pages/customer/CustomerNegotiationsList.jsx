@@ -28,9 +28,7 @@ export default function CustomerNegotiationsList() {
         const list = res.data?.data || res.data || (Array.isArray(res) ? res : []);
         return Array.isArray(list) ? list : [];
       } catch (e) {
-        const fallback = await api.get('/quotations').catch(() => ({ data: [] }));
-        const list = fallback.data?.data || fallback.data || (Array.isArray(fallback) ? fallback : []);
-        return Array.isArray(list) ? list : [];
+        return [];
       }
     }
   });

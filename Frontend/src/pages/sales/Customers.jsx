@@ -194,8 +194,7 @@ export default function Customers() {
     return rawList.map(c => {
       const relatedQuotes = quotations.filter(q => 
         q.customerId === c.id || 
-        q.quotationNumber?.includes(c.name) ||
-        (q.customer && (q.customer.id === c.id || q.customer.email === c.email))
+        (q.customer && q.customer.id === c.id)
       );
       
       const pipelineValue = c.pipelineValue !== undefined && c.pipelineValue > 0 

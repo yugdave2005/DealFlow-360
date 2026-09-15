@@ -22,9 +22,7 @@ export default function CustomerQuotationsList() {
         const res = await quotationsApi.getCustomerQuotations();
         return res.data?.data || res.data || [];
       } catch (err) {
-        // Fallback for demo
-        const fallback = await quotationsApi.getQuotations().catch(() => ({ data: { data: [] } }));
-        return fallback.data?.data || fallback.data || [];
+        return [];
       }
     }
   });

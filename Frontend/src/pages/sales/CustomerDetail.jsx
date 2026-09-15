@@ -115,12 +115,9 @@ export default function CustomerDetail() {
     if (!Array.isArray(quotations)) return [];
     return quotations.filter(q => 
       q.customerId === id || 
-      q.customer?.id === id || 
-      (customerRecord?.email && q.customer?.email === customerRecord.email) ||
-      (customerRecord?.name && q.customer?.name === customerRecord.name) ||
-      q.id === id
+      (q.customer && q.customer.id === id)
     );
-  }, [quotations, id, customerRecord]);
+  }, [quotations, id]);
 
   const firstQuote = customerQuotes[0];
   const customerName = customerRecord?.companyName || customerRecord?.name || firstQuote?.customer?.companyName || firstQuote?.customer?.name || (id ? `Account #${id.slice(0, 8)}` : 'Client Account');

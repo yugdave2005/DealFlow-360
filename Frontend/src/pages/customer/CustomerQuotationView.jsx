@@ -47,7 +47,7 @@ export default function CustomerQuotationView() {
   const [paymentMethod, setPaymentMethod] = useState('UPI');
   const [payRef, setPayRef] = useState('');
 
-  const customerId = user?.id || user?.customerId || 'bb222222-2222-2222-2222-222222222222';
+  const customerId = user?.id || user?.customerId || '';
 
   const { data: quote, isLoading, isError } = useQuery({
     queryKey: ['customerQuotation', id, customerId],

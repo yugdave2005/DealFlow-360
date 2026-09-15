@@ -3,7 +3,7 @@ import { sendSuccess } from '../../utils/response.js';
 
 export const listQuotations = async (req, res, next) => {
   try {
-    const customerId = req.query.customerId || req.user?.id;
+    const customerId = req.user?.role === 'CUSTOMER' ? req.user.id : (req.query.customerId || req.user?.id);
     const quotes = await customerService.listCustomerQuotations(customerId);
     sendSuccess(res, 200, 'Customer Quotations', quotes);
   } catch (err) { next(err); }
@@ -11,15 +11,15 @@ export const listQuotations = async (req, res, next) => {
 
 export const getQuotation = async (req, res, next) => {
   try {
-    const customerId = req.query.customerId || req.user?.id; 
-    const quote = await customerService.getCustomerQuotation(req.params.id, customerId);
+    const customerId = req.user?.role === 'CUSTOMER' ? req.user.id : (req.query.customerId || req.user?.id); 
+    const quote = await customerService.getCustomerQuotation(req.params.id, customerId, req.user?.role);
     sendSuccess(res, 200, 'Customer Quotation', quote);
   } catch (err) { next(err); }
 };
 
 export const negotiate = async (req, res, next) => {
   try {
-    const customerId = req.body.customerId || req.user?.id;
+    const customerId = req.user?.role === 'CUSTOMER' ? req.user.id : (req.body.customerId || req.user?.id);
     const result = await customerService.negotiateQuotation(req.params.id, customerId, req.body);
     sendSuccess(res, 200, 'Negotiation submitted', result);
   } catch (err) { next(err); }
@@ -27,7 +27,7 @@ export const negotiate = async (req, res, next) => {
 
 export const accept = async (req, res, next) => {
   try {
-    const customerId = req.body.customerId || req.user?.id;
+    const customerId = req.user?.role === 'CUSTOMER' ? req.user.id : (req.body.customerId || req.user?.id);
     const result = await customerService.acceptQuotation(req.params.id, customerId);
     sendSuccess(res, 200, 'Quotation accepted', result);
   } catch (err) { next(err); }
@@ -35,14 +35,14 @@ export const accept = async (req, res, next) => {
 
 export const decline = async (req, res, next) => {
   try {
-    const customerId = req.body.customerId || req.user?.id;
+    const customerId = req.user?.role === 'CUSTOMER' ? req.user.id : (req.body.customerId || req.user?.id);
     const result = await customerService.declineQuotation(req.params.id, customerId, req.body?.reason);
     sendSuccess(res, 200, 'Quotation declined', result);
   } catch (err) { next(err); }
 };
 export const listInvoices = async (req, res, next) => {
   try {
-    const customerId = req.query.customerId || req.user?.id;
+    const customerId = req.user?.role === 'CUSTOMER' ? req.user.id : (req.query.customerId || req.user?.id);
     const invoices = await customerService.listCustomerInvoices(customerId);
     sendSuccess(res, 200, 'Customer Invoices', invoices);
   } catch (err) { next(err); }
@@ -50,7 +50,7 @@ export const listInvoices = async (req, res, next) => {
 
 export const payInvoice = async (req, res, next) => {
   try {
-    const customerId = req.body.customerId || req.user?.id;
+    const customerId = req.user?.role === 'CUSTOMER' ? req.user.id : (req.body.customerId || req.user?.id);
     const result = await customerService.payCustomerInvoice(req.params.id, customerId, req.body);
     sendSuccess(res, 200, 'Payment recorded', result);
   } catch (err) { next(err); }

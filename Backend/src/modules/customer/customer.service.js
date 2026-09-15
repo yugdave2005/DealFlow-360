@@ -8,15 +8,15 @@ import { calculateRiskScore } from '../risk/risk.engine.js';
 const prisma = new PrismaClient();
 
 export const listCustomerQuotations = async (customerId) => {
-  const where = customerId ? {
-    OR: [
-      { customerId },
-      { status: { in: ['SENT', 'NEGOTIATION', 'APPROVED', 'CONFIRMED'] } }
-    ]
-  } : {};
+  if (!customerId) {
+    return [];
+  }
 
   const quotations = await prisma.quotation.findMany({
-    where,
+    where: {
+      customerId,
+      status: { in: ['SENT', 'NEGOTIATION', 'APPROVED', 'CONFIRMED', 'CONVERTED', 'CANCELLED'] }
+    },
     include: {
       versions: { 
         orderBy: { versionNumber: 'desc' }, 
@@ -58,9 +58,14 @@ export const listCustomerQuotations = async (customerId) => {
   });
 };
 
-export const getCustomerQuotation = async (quotationId, customerId) => {
+export const getCustomerQuotation = async (quotationId, customerId, role) => {
+  const where = { id: quotationId };
+  if (role === 'CUSTOMER' && customerId) {
+    where.customerId = customerId;
+  }
+
   const quotation = await prisma.quotation.findFirst({
-    where: { id: quotationId },
+    where,
     include: {
       versions: { 
         orderBy: { versionNumber: 'desc' }, 
@@ -316,17 +321,17 @@ export const declineQuotation = async (quotationId, customerId, reason = 'Commer
 };
 
 export const listCustomerInvoices = async (customerId) => {
-  const where = customerId
-    ? {
-        OR: [
-          { customerId },
-          { order: { customerId } }
-        ]
-      }
-    : {};
+  if (!customerId) {
+    return [];
+  }
 
   const invoices = await prisma.invoice.findMany({
-    where,
+    where: {
+      OR: [
+        { customerId },
+        { order: { customerId } }
+      ]
+    },
     include: {
       payments: true,
       order: {
