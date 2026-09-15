@@ -34,30 +34,34 @@ import billingRoutes from '../modules/billing/routes.js';
 import userRoutes from '../modules/users/routes.js';
 import customerRoutes from '../modules/customers/routes.js';
 
-// Existing module mounts
-router.use('/v1/auth', authRoutes);
-router.use('/v1/dashboard', dashboardRoutes);
-router.use('/v1/admin', adminRoutes);
-router.use('/v1/quotations', quotationRoutes);
-router.use('/v1/approvals', approvalRoutes);
-router.use('/v1/upsell', upsellRoutes);
-router.use('/v1/fulfillment', fulfillmentRoutes);
-router.use('/v1/subscriptions', subscriptionRoutes);
-router.use('/v1/invoices', invoiceRoutes);
-router.use('/v1/deal-health', dealHealthRoutes);
-router.use('/v1/customer-portal', customerPortalRoutes);
+// Mount all module routes under both /v1/x and /x for universal URL compatibility
+const mountRoute = (path, routeHandler) => {
+  router.use(`/v1${path}`, routeHandler);
+  router.use(path, routeHandler);
+};
 
-// NEW domain module mounts
-router.use('/v1/products', productRoutes);
-router.use('/v1/pricing', pricingRoutes);
-router.use('/v1/inventory', inventoryRoutes);
-router.use('/v1/discounts', discountRoutes);
-router.use('/v1/warehouses', warehouseRoutes);
-router.use('/v1/payments', paymentRoutes);
-router.use('/v1/negotiations', negotiationRoutes);
-router.use('/v1/notifications', notificationRoutes);
-router.use('/v1/billing', billingRoutes);
-router.use('/v1/users', userRoutes);
-router.use('/v1/customers', customerRoutes);
+// Module mounts
+mountRoute('/auth', authRoutes);
+mountRoute('/dashboard', dashboardRoutes);
+mountRoute('/admin', adminRoutes);
+mountRoute('/quotations', quotationRoutes);
+mountRoute('/approvals', approvalRoutes);
+mountRoute('/upsell', upsellRoutes);
+mountRoute('/fulfillment', fulfillmentRoutes);
+mountRoute('/subscriptions', subscriptionRoutes);
+mountRoute('/invoices', invoiceRoutes);
+mountRoute('/deal-health', dealHealthRoutes);
+mountRoute('/customer-portal', customerPortalRoutes);
+mountRoute('/products', productRoutes);
+mountRoute('/pricing', pricingRoutes);
+mountRoute('/inventory', inventoryRoutes);
+mountRoute('/discounts', discountRoutes);
+mountRoute('/warehouses', warehouseRoutes);
+mountRoute('/payments', paymentRoutes);
+mountRoute('/negotiations', negotiationRoutes);
+mountRoute('/notifications', notificationRoutes);
+mountRoute('/billing', billingRoutes);
+mountRoute('/users', userRoutes);
+mountRoute('/customers', customerRoutes);
 
 export default router;
