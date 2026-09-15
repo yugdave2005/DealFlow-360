@@ -203,17 +203,12 @@ export default function WarehouseSplit() {
   };
 
   const acceptMutation = useMutation({
-<<<<<<< HEAD
-    mutationFn: () => fulfillmentApi.acceptPlan(orderId, {
-      splits: warehouses.filter(w => w.allocated > 0).map(w => ({
-=======
     mutationFn: () => {
       if (!productId) {
         throw new Error('Product ID is not available — plan data may not be loaded yet');
       }
       const targetId = planData?.id || planData?.orderId || orderId;
       const splits = warehouses.filter(w => w.allocated > 0 && w.id).map(w => ({
->>>>>>> origin/main
         warehouseId: w.id,
         productId,
         quantity: Number(w.allocated)

@@ -221,7 +221,6 @@ export default function DealHealth() {
                     <Send className="w-3 h-3" />
                     <span>Send Nudge</span>
                   </button>
-                  </button>
                   <button
                     onClick={() => navigate(`/sales/quotations/${deal.id}`)}
                     className="text-[#78716C] hover:text-[#1E1B18] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
@@ -288,7 +287,6 @@ export default function DealHealth() {
                     <span>Review</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
->>>>>>> origin/main
                 </div>
               </div>
             ))}

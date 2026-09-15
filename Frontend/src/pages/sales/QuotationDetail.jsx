@@ -598,15 +598,9 @@ export default function QuotationDetail() {
                     <span className="px-2 py-0.5 rounded bg-[#FFFFFF] text-[#1E1B18] font-mono font-bold shadow-xs border border-[#EBE8E2]">
                       v{ver.versionNumber}
                     </span>
-<<<<<<< HEAD
-                    <span>Total: â‚¹{Number(ver.totalAmount).toLocaleString('en-IN')}</span>
-                    <span>Â·</span>
-                    <span>Discount: {((Number(ver.totalDiscount) / (Number(ver.totalAmount) || 1)) * 100).toFixed(0)}%</span>
-=======
                     <span>Total: ₹{Number(ver.totalAmount).toLocaleString('en-IN')}</span>
                     <span>·</span>
                     <span>Discount: {((Number(ver.totalDiscount) / ((Number(ver.totalAmount) + Number(ver.totalDiscount)) || 1)) * 100).toFixed(0)}%</span>
->>>>>>> origin/main
                   </div>
                   <span className="text-[#A8A29E] font-normal">
                     {ver.createdAt ? new Date(ver.createdAt).toLocaleDateString() : 'Active Revision'}

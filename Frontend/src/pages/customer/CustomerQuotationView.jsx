@@ -20,9 +20,7 @@ import {
 import DealFlowLogo from '../../components/DealFlowLogo';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/axios';
-<<<<<<< HEAD
 import { quotationsApi } from '../../features/quotations/quotations.api';
-=======
 import { downloadQuotationPDF, downloadInvoicePDF } from '../../utils/pdfGenerator';
 
 const PAYMENT_METHODS = [
@@ -31,7 +29,6 @@ const PAYMENT_METHODS = [
   { id: 'CREDIT_CARD', label: 'Corporate Card', icon: '💳' },
   { id: 'CHEQUE', label: 'Cheque', icon: '📄' }
 ];
->>>>>>> 4a87333104d73bc0797653c2d9847e8f4f8adac9
 
 export default function CustomerQuotationView() {
   const { id } = useParams();
@@ -87,20 +84,11 @@ export default function CustomerQuotationView() {
     }
   });
 
-<<<<<<< HEAD
-  const negotiateMutation = useMutation({
-    mutationFn: async () => {
-      const res = await quotationsApi.negotiateQuotation(id, { 
-        customerId, 
-        notes, 
-        counterDiscount: parseFloat(counterDiscount) || 0 
-=======
   const declineMutation = useMutation({
     mutationFn: async (reason) => {
       const res = await api.post(`/customer-portal/quotations/${id}/decline`, { 
         customerId,
         reason: reason || 'Declined by customer from portal'
->>>>>>> origin/main
       });
       return res.data;
     },

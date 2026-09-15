@@ -1,13 +1,26 @@
-import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 
-export const exportToExcel = (data, filename = 'export', sheetName = 'Sheet 1') => {
+export const exportToExcel = (data, filename = 'export') => {
   if (!data || data.length === 0) return;
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  XLSX.writeFile(workbook, `${filename}.xlsx`);
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => 
+      headers.map(field => {
+        const val = row[field] === null || row[field] === undefined ? '' : String(row[field]);
+        return `"${val.replace(/"/g, '""')}"`;
+      }).join(',')
+    )
+  ].join('\r\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 export const exportToPDF = (headers, rows, filename = 'export', title = 'Data Export') => {
@@ -20,13 +33,24 @@ export const exportToPDF = (headers, rows, filename = 'export', title = 'Data Ex
   doc.setFontSize(10);
   doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 14, 22);
 
-  doc.autoTable({
-    head: [headers],
-    body: rows,
-    startY: 28,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [79, 70, 229] }, // Indigo-600
-    theme: 'grid'
+  let startY = 32;
+  const colWidth = Math.max(25, Math.floor(260 / headers.length));
+  
+  // Draw header
+  doc.setFont('helvetica', 'bold');
+  headers.forEach((h, i) => {
+    doc.text(String(h), 14 + (i * colWidth), startY);
+  });
+  doc.line(14, startY + 2, 280, startY + 2);
+
+  // Draw rows
+  doc.setFont('helvetica', 'normal');
+  rows.slice(0, 22).forEach((row, rIdx) => {
+    const y = startY + 8 + (rIdx * 7);
+    row.forEach((cell, cIdx) => {
+      const text = String(cell ?? '').substring(0, 18);
+      doc.text(text, 14 + (cIdx * colWidth), y);
+    });
   });
 
   doc.save(`${filename}.pdf`);
