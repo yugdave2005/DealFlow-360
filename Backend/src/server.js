@@ -1,3 +1,4 @@
+import './config/dbEnv.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
