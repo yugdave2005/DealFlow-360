@@ -1,6 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import { logger } from './utils/logger.js';
@@ -12,6 +13,7 @@ import routes from './routes/index.js';
 
 const app = express();
 
+app.use(compression());
 app.use(helmet());
 const allowedOrigins = [
   process.env.FRONTEND_URL,
