@@ -25,6 +25,25 @@ app.use(pinoHttp({ logger }));
 
 app.use(passport.initialize());
 
+// Health check for UptimeRobot & deployment monitors
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    message: 'DealFlow360 Backend is running 🚀',
+    uptime: `${Math.floor(process.uptime())}s`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'DealFlow360 API is healthy',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // API Routes
 app.use('/api', routes);
 
